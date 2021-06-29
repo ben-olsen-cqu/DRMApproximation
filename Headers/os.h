@@ -1,6 +1,6 @@
-#if defined(__APPLE__)
-#define MAC
-#endif
+//#if defined(__APPLE__)
+//#define MAC
+//#endif
 
 #if defined(WIN64) || defined(WIN32)
 #define WINDOWS

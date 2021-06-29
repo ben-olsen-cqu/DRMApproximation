@@ -6,20 +6,20 @@ if os.host() == "Windows" then
     filter {"platforms:x64"}
         system "Windows"
         architecture "x86_64"
-        defines "WINDOWS"
+        defines {"WINDOWS"}
 end
 
 if os.host() == "macosx" then
     filter {"platforms:x64"}
         system "macosx"
-        defines "MAC"
+        defines {"MAC"}
 end
 
 if os.host() == "linux" then
     filter {"platforms:x64"}
         system "Linux"
         architecture "x86_64"
-        defines "LINUX"
+        defines {"LINUX"}
 end
 
 project "DRMApproximation"

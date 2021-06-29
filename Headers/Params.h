@@ -2,7 +2,7 @@
 #include <string>
 #include <vector>
 #include <variant>
-#include <stdio.h>
+#include <iostream>
 
 enum class ParamType {Text, Real, Integer, Bool};
 
@@ -21,10 +21,11 @@ private:
 
 public:
 	//Initialise the parameter without storing a value
-	Parameter(std::string _name, ParamType _type)
+	Parameter(std::string _name, std::string _abbrev, ParamType _type)
 	{
 		name = _name;
 		type = _type;
+        abbrev = _abbrev;
 	}
 
 	//Store a value in an already initialised parameter
@@ -60,10 +61,11 @@ public:
 	}
 
 	//Initialise a parameter and store the value
-	Parameter(std::string _name, ParamType _type, std::string _value)
+	Parameter(std::string _name, std::string _abbrev, ParamType _type, std::string _value)
 	{
 		name = _name;
 		type = _type;
+        abbrev = _abbrev;
 		Store(_value);
 	}
 
@@ -92,6 +94,7 @@ public:
 			return std::get<int>(value);
 		else
 			std::cout << "This is not an Integer Parameter!";
+        return -1;
 	}
 
 	//Retreive a text value
@@ -101,6 +104,7 @@ public:
 			return std::get<std::string>(value);
 		else
 			std::cout << "This is not an Text Parameter!";
+        return "";
 	}
 
 	//Retreive a bool value
@@ -110,6 +114,7 @@ public:
 			return std::get<bool>(value);
 		else
 			std::cout << "This is not an Bool Parameter!";
+        return false;
 	}
 
 	//Retreive a float value
@@ -119,6 +124,7 @@ public:
 			return std::get<float>(value);
 		else
 			std::cout << "This is not an Real Parameter!";
+        return -1.0f;
 	}
 };
 
@@ -143,22 +149,13 @@ class ParamManager
 		}
 		else
 		{
-
-		}
-	}
-
-	Parameter Get(std::string name)
-	{
-		for each (Parameter p in params)
-		{
-			if (p.Name() == name)
-				return p;
+            //parameter assigning
 		}
 	}
 
 	Parameter Get(std::string abbrev)
 	{
-		for each (Parameter p in params)
+		for(Parameter p : params)
 		{
 			if (p.Abbreviation() == abbrev)
 				return p;
@@ -167,7 +164,7 @@ class ParamManager
 
 	std::string ValueS(std::string name)
 	{
-		for each (Parameter p in params)
+		for(Parameter p : params)
 		{
 			if (p.Name() == name)
 				if (p.Type() == ParamType::Text)
@@ -175,27 +172,35 @@ class ParamManager
 					return p.RetrieveS();
 				}
 				else
-					std::cout << "This is not an Text Parameter!";
+                {
+                    std::cout << "This is not an Text Parameter!";
+                    
+                }
 		}
 	}
 
 	float ValueF(std::string name)
 	{
-		for each (Parameter p in params)
+		for(Parameter p : params)
 		{
 			if (p.Name() == name)
+            {
 				if (p.Type() == ParamType::Real)
 				{
 					return p.RetrieveF();
 				}
 				else
-					std::cout << "This is not an Real Parameter!";
+                {
+                    std::cout << "This is not an Real Parameter!";
+                }
+            }
 		}
+        return -1.0f;
 	}
 
 	int ValueI(std::string name)
 	{
-		for each (Parameter p in params)
+		for (Parameter p : params)
 		{
 			if (p.Name() == name)
 				if (p.Type() == ParamType::Integer)
@@ -203,13 +208,16 @@ class ParamManager
 					return p.RetrieveI();
 				}
 				else
-					std::cout << "This is not an Integer Parameter!";
+                {
+                    std::cout << "This is not an Integer Parameter!";
+                    
+                }
 		}
 	}
 
 	bool ValueB(std::string name)
 	{
-		for each (Parameter p in params)
+		for(Parameter p : params)
 		{
 			if (p.Name() == name)
 				if (p.Type() == ParamType::Bool)
@@ -217,7 +225,10 @@ class ParamManager
 					return p.RetrieveB();
 				}
 				else
-					std::cout << "This is not an Bool Parameter!";
+                {
+                    std::cout << "This is not an Bool Parameter!";
+                    
+                }
 		}
 	}
 
