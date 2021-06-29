@@ -1,9 +1,22 @@
+#include "../Headers/Params.h"
+#include "../Headers/os.h"
+
 #include <iostream>
 
-#include "../Headers/Bit.h"
+//#if defined(MAC) || defined(LINUX)
+//#include <unistd.h> 
+//#endif 
+//#if defined(WINDOWS)
+//#include <io.h>
+//
+//#include "Windows.h"
+//#include <wincon.h>
+//#define LEAN_AND_MEAN
+//#endif
 
-int main()
+int main(int argc, char** argv)
 {
-	std::cout << "Hello World!";
-	return 0;
+
+
+    return 0;
 }
