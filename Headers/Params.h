@@ -27,6 +27,7 @@ public:
 		name = _name;
 		type = _type;
         abbrev = _abbrev;
+		bvalue = false;
 	}
 
 	//Store a value in an already initialised parameter
@@ -68,6 +69,7 @@ public:
 		type = _type;
         abbrev = _abbrev;
 		Store(_value);
+		bvalue = false;
 	}
 
 	//Get the name of a parameter
@@ -135,58 +137,19 @@ private:
 	//Container for all parameters
 	std::vector<Parameter> params;
 public:
+
+	ParamManager() 
+		:params()
+	{
+
+	}
+
 	//Store a parameter in the manager
 	void Store(Parameter p)
 	{
 		params.push_back(p);
 	}
 
-	//Set the values of stored parameters if passed in by the command line or set manually
-	void Set(int argc, char* argv[])
-	{
-		if (argc <= 1) //Only the executable name so no need to proceed further
-			return;
-
-		if (params.size() < 1) //Check if any parameters are stored to check against
-		{
-			std::cout << "Store a parameter before assigning a value!";
-		}
-		else
-		{
-            //parameter assigning from input argc and argv
-			std::vector<std::string> args;
-			for (int i = 1; i < argc; i++)
-			{
-				//std::cout << argv[i] << "\n";
-				std::string s = argv[i];
-				args.push_back(s);
-			}
-
-			//"\t value:" << args[i + 1] <<
-			try
-			{
-			while (args.size() > 1)
-			{
-				
-					SetParam(&args);
-				
-			}
-			}
-			catch (std::exception ex)
-			{
-				std::cout << "Error Parsing Command Line Arguments: ";
-				std::cout << ex.what() << "\n";
-			}
-			for (Parameter p : params)
-			{
-				if (p.Name() == "Path")
-				{
-					p.Store(args[0]);
-				}
-			}
-		}
-	}
-	
 	//Set parameters - function used by Set()
 	int SetParam(std::vector<std::string>* args)
 	{
@@ -223,7 +186,7 @@ public:
 						}
 					}
 				}
-				else 
+				else
 				{
 					if ((*args)[i].size() >= 3) //Multiple short args grouped together
 					{
@@ -283,6 +246,52 @@ public:
 		}
 	}
 
+	//Set the values of stored parameters if passed in by the command line or set manually
+	void Set(int argc, char* argv[])
+	{
+		if (argc <= 1) //Only the executable name so no need to proceed further
+			return;
+
+		if (params.size() < 1) //Check if any parameters are stored to check against
+		{
+			std::cout << "Store a parameter before assigning a value!";
+		}
+		else
+		{
+            //parameter assigning from input argc and argv
+			std::vector<std::string> args;
+			for (int i = 1; i < argc; i++)
+			{
+				//std::cout << argv[i] << "\n";
+				std::string s = argv[i];
+				args.push_back(s);
+			}
+
+			//"\t value:" << args[i + 1] <<
+			try
+			{
+			while (args.size() > 1)
+			{
+				
+					SetParam(&args);
+				
+			}
+			}
+			catch (std::exception ex)
+			{
+				std::cout << "Error Parsing Command Line Arguments: ";
+				std::cout << ex.what() << "\n";
+			}
+			for (Parameter p : params)
+			{
+				if (p.Name() == "Path")
+				{
+					p.Store(args[0]);
+				}
+			}
+		}
+	}
+	
 	void Output()
 	{
 		for (Parameter p : params)
