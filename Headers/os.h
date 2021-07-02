@@ -9,3 +9,8 @@
 #if defined(unix) || defined(__unix__) || defined(__unix)
 #define LINUX
 #endif
+
+//#if defined(MAC) || defined(LINUX)
+//#endif 
+//#if defined(WINDOWS)
+//#endif

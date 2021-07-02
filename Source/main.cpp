@@ -1,34 +1,53 @@
 #include "../Headers/Params.h"
 #include "../Headers/os.h"
+#include "../Headers/FileReader.h"
+#include "../Headers/Coordinates.h"
+#include "../Headers/Bit.h"
 
 #include <iostream>
 #include <exception>
 
-//#if defined(MAC) || defined(LINUX)
-//#endif 
-//#if defined(WINDOWS)
-//#endif
+void CommandLineArgs(ParamManager* pm, int argc, char* argv[])
+{
+    Parameter p1("Path", ">", ParamType::Text);
+    Parameter p2("Var", "v", ParamType::Bool);
+    
+    pm->Store(p1);
+    pm->Store(p2);
+    
+    pm->Set(argc, argv);
+    if (pm->GetbyName("Path").RetrieveS().size() > 0)
+    {
+        pm->Output();
+    }
+}
 
 int main(int argc, char* argv[])
 {
-    //-v 3 --flowdirection "/Input/Test Data1/" -rt
-
-    Parameter p1("reuse", "r", ParamType::Bool);
-    Parameter p2("flowdirection", "f", ParamType::Bool);
-    Parameter p3("usestoredtrees", "t", ParamType::Bool);
-    Parameter p4("variable", "v", ParamType::Integer);
-    Parameter p5("Path", ">", ParamType::Text);
-
     ParamManager pm;
+    std::vector<std::string> files;
+    std::vector<Coordinates> Coords;
 
-    pm.Store(p1);
-    pm.Store(p2);
-    pm.Store(p3);
-    pm.Store(p4);
-    pm.Store(p5);
+    CommandLineArgs(&pm, argc, argv);
 
-    pm.Set(argc, argv);
-    pm.Output();
+    if (pm.GetbyName("Path").RetrieveS().size() < 1)
+        return -1;
+
+    try
+    {
+        files = FileReader::GetFileList(pm.GetbyName("Path").RetrieveS());
+    }
+    catch(std::exception ex)
+    {
+        std::cout << ex.what() << "\n" << pm.GetbyName("Path").RetrieveS() << "\n";
+        return -1;
+    }
+
+    std::cout << "Found total of " << std::to_string(files.size()) << " files to proccess." << std::endl << std::endl;
+
+    Coords = FileReader::ReadFiles(files);
+
+    std::cout << std::endl << "All files finished importing. Total coordinates loaded: " << Coords.size() << std::endl << std::endl;
 
     return 0;
 }
