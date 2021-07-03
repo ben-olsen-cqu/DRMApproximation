@@ -3,20 +3,36 @@
 #include "../Headers/FileReader.h"
 #include "../Headers/Coordinates.h"
 #include "../Headers/Bit.h"
-#include "../Headers/Quadtree.h"
+#include "../Headers/QuadtreeManager.h"
 
 #include <iostream>
 #include <exception>
 #include <filesystem>
 
+void PrintHelp()
+{
+    std::cout << "Use the Readme" << std::endl; //Update Later %%%%%
+}
+
 void CommandLineArgs(ParamManager* pm, int argc, char* argv[])
 {
+    /* DEFINE THE PARAMETERS THAT WILL BE USED IN THE PROGRAM */
     Parameter p1("Path", ">", ParamType::Text);
-    Parameter p2("Var", "v", ParamType::Bool);
+    Parameter p2("help", "h", ParamType::Bool);
+    Parameter p3("treereuse", "t", ParamType::Bool);
+    Parameter p4("ascfiles", "a", ParamType::Bool);
+    Parameter p5("memorylimit", "m", ParamType::Integer);
+    Parameter p6("spacing", "s", ParamType::Real);
     
+    /* STORE IN MANAGER */
     pm->Store(p1);
     pm->Store(p2);
+    pm->Store(p3);
+    pm->Store(p4);
+    pm->Store(p5);
+    pm->Store(p6);
     
+    /* SET THE PARAMETERS IF PASSED IN */
     pm->Set(argc, argv);
     
     #if defined(MAC)
@@ -27,6 +43,13 @@ void CommandLineArgs(ParamManager* pm, int argc, char* argv[])
     pm->SetPath(absolutePath.lexically_normal());
     #endif
     
+    /* IF HELP IS DEFINED, PRINT HELP */
+    if (pm->GetbyName("help").RetrieveB())
+    {
+        PrintHelp();
+    }
+
+    /* CHECK IF PATH IS DEFINED, AND PLOT ALL PARAMETER VALUES IF IT IS*/
     if (pm->GetbyName("Path").RetrieveS().size() > 0)
     {
         pm->Output();
@@ -35,36 +58,51 @@ void CommandLineArgs(ParamManager* pm, int argc, char* argv[])
 
 int main(int argc, char* argv[])
 {
-    ParamManager pm; //Initialise a parammanager to handle the command line args passed in at runtime
+    /* LOCAL VARIABLES*/
+
+    ParamManager ParameterManager; //Initialise a param-manager to handle the command line args passed in at runtime
     std::vector<std::string> files; //list of strings for input file paths
-    std::vector<Coordinates> Coords; //list of coordinates to store in the quadtree structure
 
-    CommandLineArgs(&pm, argc, argv);
+    int maxMem = 1000; //Memory limit for trees, 2 trees max will be active at a time so half for each tree 
+    float spacing = 1.0f; //Spacing between the points in the x and y directions, only square grids are supported
 
-    if (pm.GetbyName("Path").RetrieveS().size() < 1)
+    /* COMMAND LINE ARGS HANDLING*/
+
+    CommandLineArgs(&ParameterManager, argc, argv); //Define and set command line args
+
+    if (ParameterManager.GetbyName("Path").RetrieveS().size() < 1) //Check if the path has been defined 
         return -1;
 
-    try
+    if (ParameterManager.GetbyName("memorylimit").RetrieveI() > 0) //Update memory limit if defined in the command line args
     {
-        files = FileReader::GetFileList(pm.GetbyName("Path").RetrieveS());
+        maxMem = ParameterManager.GetbyName("memorylimit").RetrieveI(); 
+    }
+
+    if (ParameterManager.GetbyName("spacing").RetrieveF() > 0.0f) //Update the spacing if defined in the command line args
+    {
+        spacing = ParameterManager.GetbyName("spacing").RetrieveF();
+    }
+
+    /* GET FILE LIST*/
+
+    try
+    { 
+        //Add check for ASC file command line arg %%%%%
+
+        files = FileReader::GetFileList(ParameterManager.GetbyName("Path").RetrieveS()); //Retrieve all csv files in the given path and store a list of the files
     }
     catch(std::exception ex)
     {
-        std::cout << ex.what() << "\n" << pm.GetbyName("Path").RetrieveS() << "\n";
+        std::cout << ex.what() << "\n" << ParameterManager.GetbyName("Path").RetrieveS() << "\n"; //If an exception is thrown display the error message
         return -1;
     }
 
     std::cout << "Found total of " << std::to_string(files.size()) << " files to proccess." << std::endl << std::endl;
 
-    Coords = FileReader::ReadFiles(files);
+    /* CREATE A QUADTREE TO STORE THE COORDINATES*/
 
-    std::cout << std::endl << "All files finished importing. Total coordinates loaded: " << Coords.size() << std::endl << std::endl;
-
-    std::cout << "Size of a Bit Quadtree: " << sizeof(Quadtree<Bit>) << " Bytes\n";
-    std::cout << "Size of a Coordinates Quadtree: " << sizeof(Quadtree<Coordinates>) << " Bytes\n";
-    std::cout << "Size of a Bit Type: " << sizeof(Bit) << " Bytes\n";
-    std::cout << "Size of a Coordinates Type: " << sizeof(Coordinates) << " Bytes\n";
-
+    QuadtreeManager<Coordinates> qm;
+    qm.CreateQuadtree(files, spacing, maxMem);
 
     return 0;
 }

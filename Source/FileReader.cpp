@@ -1,16 +1,16 @@
 #include "../Headers/FileReader.h"
 #include <fstream>
+#include <filesystem>
+
+#if defined(WINDOWS)  
+using namespace std::filesystem;
+#elif defined(MAC) || defined(LINUX)
+using namespace std::__fs::filesystem;
+#endif
 
 std::vector<std::string> FileReader::GetFileList(std::string path)
 {
     std::vector<std::string> files;
-
-#if defined(WINDOWS) 
-    using namespace std::filesystem;
-#elif defined(MAC) || defined(LINUX)
-    using namespace std::__fs::filesystem;
-#endif
-    
 
     for (const auto& entry : directory_iterator(path))
     {

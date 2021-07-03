@@ -188,6 +188,7 @@ void ParamManager::Output()
 		}
 		}
 	}
+	std::cout << std::endl;
 }
 
 int ParamManager::MaxParamCount()
