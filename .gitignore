@@ -3,11 +3,6 @@
 ##
 ## Get latest from https://github.com/github/gitignore/blob/master/VisualStudio.gitignore
 
-#Results
-Catchment_Creator/Catchment Creator/Export Data/Contours/*.csv
-Catchment_Creator/Catchment Creator/Export Data/Normals/*.csv
-Catchment_Creator/Catchment Creator/Export Data/Surfaces/*.csv
-
 # User-specific files
 *.rsuser
 *.suo
