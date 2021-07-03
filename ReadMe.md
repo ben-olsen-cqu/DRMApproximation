@@ -1,5 +1,5 @@
-##Direct Rainfall Model Approximation
-#Final Year Engineering Thesis
+# Direct Rainfall Model Approximation
+## Final Year Engineering Thesis
 
 This program has been created to accept inputs from a TUFLOW Rainfall on Grid model and delineate catchments and calculate hydrographs using the Time-Area Method hydrological method.
 
