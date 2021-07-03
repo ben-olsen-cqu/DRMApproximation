@@ -151,6 +151,8 @@ public:
 	
 	Parameter GetbyAbbrev(std::string abbrev);	//Get a parameter by searching by name
 	Parameter GetbyName(std::string name);		//Get a parameter by searching by abbreviation
+    
+    void SetPath(std::string path);                  //Update the path param if needed
 	
 	std::string ValueS(std::string name);	//Get a string value from a parameter by searching for the parameter by name
 	float ValueF(std::string name);			//Get a float value from a parameter by searching for the parameter by name

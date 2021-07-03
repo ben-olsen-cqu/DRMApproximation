@@ -8,6 +8,9 @@
 
 /* Begin PBXBuildFile section */
 		634256ECB0A54D1E26C44D2C /* main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 42D362542DBF884675A55094 /* main.cpp */; };
+		B538CB9F268FC050005B9887 /* Params.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B538CB9C268FC050005B9887 /* Params.cpp */; };
+		B538CBA0268FC050005B9887 /* FileReader.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B538CB9D268FC050005B9887 /* FileReader.cpp */; };
+		B538CBA1268FC050005B9887 /* FileWriter.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B538CB9E268FC050005B9887 /* FileWriter.cpp */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -16,6 +19,13 @@
 		42D362542DBF884675A55094 /* main.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = main.cpp; path = Source/main.cpp; sourceTree = "<group>"; };
 		560D8F3DF8FBB5EF8821957D /* Bit.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = Bit.h; path = Headers/Bit.h; sourceTree = "<group>"; };
 		79CB15C7C23BF9F906DACC07 /* Params.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = Params.h; path = Headers/Params.h; sourceTree = "<group>"; };
+		B538CB9C268FC050005B9887 /* Params.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = Params.cpp; path = Source/Params.cpp; sourceTree = "<group>"; };
+		B538CB9D268FC050005B9887 /* FileReader.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = FileReader.cpp; path = Source/FileReader.cpp; sourceTree = "<group>"; };
+		B538CB9E268FC050005B9887 /* FileWriter.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = FileWriter.cpp; path = Source/FileWriter.cpp; sourceTree = "<group>"; };
+		B538CBA3268FC06C005B9887 /* FileWriter.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = FileWriter.h; path = Headers/FileWriter.h; sourceTree = "<group>"; };
+		B538CBA4268FC06C005B9887 /* Coordinates.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Coordinates.h; path = Headers/Coordinates.h; sourceTree = "<group>"; };
+		B538CBA5268FC06C005B9887 /* FileReader.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = FileReader.h; path = Headers/FileReader.h; sourceTree = "<group>"; };
+		B538CBAD268FCBD9005B9887 /* CoreFoundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreFoundation.framework; path = System/Library/Frameworks/CoreFoundation.framework; sourceTree = SDKROOT; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -32,6 +42,9 @@
 		20D885C0C52B2372D7636C00 /* Headers */ = {
 			isa = PBXGroup;
 			children = (
+				B538CBA4268FC06C005B9887 /* Coordinates.h */,
+				B538CBA5268FC06C005B9887 /* FileReader.h */,
+				B538CBA3268FC06C005B9887 /* FileWriter.h */,
 				560D8F3DF8FBB5EF8821957D /* Bit.h */,
 				79CB15C7C23BF9F906DACC07 /* Params.h */,
 				360792C3397864F5BAE50903 /* os.h */,
@@ -42,6 +55,9 @@
 		58872CEAFBD2B61C16A3832A /* Source */ = {
 			isa = PBXGroup;
 			children = (
+				B538CB9D268FC050005B9887 /* FileReader.cpp */,
+				B538CB9E268FC050005B9887 /* FileWriter.cpp */,
+				B538CB9C268FC050005B9887 /* Params.cpp */,
 				42D362542DBF884675A55094 /* main.cpp */,
 			);
 			name = Source;
@@ -55,12 +71,21 @@
 			name = Products;
 			sourceTree = "<group>";
 		};
+		B538CBAC268FCBD9005B9887 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				B538CBAD268FCBD9005B9887 /* CoreFoundation.framework */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
 		FD951B8EA0E0A4C0BBB171CE /* DRMApproximation */ = {
 			isa = PBXGroup;
 			children = (
 				20D885C0C52B2372D7636C00 /* Headers */,
 				58872CEAFBD2B61C16A3832A /* Source */,
 				A6C936B49B3FADE6EA134CF4 /* Products */,
+				B538CBAC268FCBD9005B9887 /* Frameworks */,
 			);
 			name = DRMApproximation;
 			sourceTree = "<group>";
@@ -125,7 +150,10 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				B538CBA1268FC050005B9887 /* FileWriter.cpp in Sources */,
 				634256ECB0A54D1E26C44D2C /* main.cpp in Sources */,
+				B538CBA0268FC050005B9887 /* FileReader.cpp in Sources */,
+				B538CB9F268FC050005B9887 /* Params.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -150,6 +178,7 @@
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				OBJROOT = obj/x64/Debug;
 				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = macosx;
 				SYMROOT = Build/Debug;
 			};
 			name = Debug;
@@ -198,6 +227,7 @@
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				OBJROOT = obj/x64/Release;
 				ONLY_ACTIVE_ARCH = NO;
+				SDKROOT = macosx;
 				SYMROOT = Build/Release;
 			};
 			name = Release;

@@ -229,6 +229,17 @@ Parameter ParamManager::GetbyName(std::string name)
 	}
 }
 
+void ParamManager::SetPath(std::string path)
+{
+    for (Parameter &p : params)
+    {
+        if (p.Name() == "Path")
+            {
+                p.Store(path);
+            }
+    }
+}
+
 std::string ParamManager::ValueS(std::string name)
 {
 	for (Parameter p : params)

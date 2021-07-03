@@ -6,6 +6,7 @@
 
 #include <iostream>
 #include <exception>
+#include <filesystem>
 
 void CommandLineArgs(ParamManager* pm, int argc, char* argv[])
 {
@@ -16,6 +17,15 @@ void CommandLineArgs(ParamManager* pm, int argc, char* argv[])
     pm->Store(p2);
     
     pm->Set(argc, argv);
+    
+    #if defined(MAC)
+    std::filesystem::path relpath = pm->GetbyName("Path").RetrieveS();
+    std::filesystem::path absolutePath = argv[0];
+    absolutePath.remove_filename();
+    absolutePath /= relpath;
+    pm->SetPath(absolutePath.lexically_normal());
+    #endif
+    
     if (pm->GetbyName("Path").RetrieveS().size() > 0)
     {
         pm->Output();
