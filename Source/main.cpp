@@ -3,6 +3,7 @@
 #include "../Headers/FileReader.h"
 #include "../Headers/Coordinates.h"
 #include "../Headers/Bit.h"
+#include "../Headers/Quadtree.h"
 
 #include <iostream>
 #include <exception>
@@ -34,9 +35,9 @@ void CommandLineArgs(ParamManager* pm, int argc, char* argv[])
 
 int main(int argc, char* argv[])
 {
-    ParamManager pm;
-    std::vector<std::string> files;
-    std::vector<Coordinates> Coords;
+    ParamManager pm; //Initialise a parammanager to handle the command line args passed in at runtime
+    std::vector<std::string> files; //list of strings for input file paths
+    std::vector<Coordinates> Coords; //list of coordinates to store in the quadtree structure
 
     CommandLineArgs(&pm, argc, argv);
 
@@ -58,6 +59,12 @@ int main(int argc, char* argv[])
     Coords = FileReader::ReadFiles(files);
 
     std::cout << std::endl << "All files finished importing. Total coordinates loaded: " << Coords.size() << std::endl << std::endl;
+
+    std::cout << "Size of a Bit Quadtree: " << sizeof(Quadtree<Bit>) << " Bytes\n";
+    std::cout << "Size of a Coordinates Quadtree: " << sizeof(Quadtree<Coordinates>) << " Bytes\n";
+    std::cout << "Size of a Bit Type: " << sizeof(Bit) << " Bytes\n";
+    std::cout << "Size of a Coordinates Type: " << sizeof(Coordinates) << " Bytes\n";
+
 
     return 0;
 }

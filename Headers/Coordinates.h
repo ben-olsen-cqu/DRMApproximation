@@ -3,9 +3,9 @@
 struct Coordinates
 {
 public:
-    float x;
-    float y;
-    float z;
+    double x;
+    double y;
+    double z;
     
     friend bool operator == (const Coordinates &lhs, const Coordinates &rhs)
     {
@@ -37,14 +37,14 @@ public:
         z = 0.0f;
     };
     
-    Coordinates(float _x, float _y)
+    Coordinates(double _x, double _y)
     {
         x = _x;
         y = _y;
         z = 0.0f;
     };
     
-    Coordinates(float _x, float _y, float _z)
+    Coordinates(double _x, double _y, double _z)
     {
         x = _x;
         y = _y;

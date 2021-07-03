@@ -27,6 +27,18 @@
     <ClInclude Include="Headers\Coordinates.h">
       <Filter>Headers</Filter>
     </ClInclude>
+    <ClInclude Include="Headers\QuadtreeManager.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\CatchMath.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\CatchmentBuilder.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\Quadtree.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Source\main.cpp">
@@ -39,6 +51,15 @@
       <Filter>Source</Filter>
     </ClCompile>
     <ClCompile Include="Source\FileWriter.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\QuadtreeManager.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\CatchmentBuilder.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Quadtree.cpp">
       <Filter>Source</Filter>
     </ClCompile>
   </ItemGroup>

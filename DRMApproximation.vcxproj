@@ -88,17 +88,24 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="Headers\Bit.h" />
+    <ClInclude Include="Headers\CatchMath.h" />
+    <ClInclude Include="Headers\CatchmentBuilder.h" />
     <ClInclude Include="Headers\Coordinates.h" />
     <ClInclude Include="Headers\FileReader.h" />
     <ClInclude Include="Headers\FileWriter.h" />
     <ClInclude Include="Headers\os.h" />
     <ClInclude Include="Headers\Params.h" />
+    <ClInclude Include="Headers\Quadtree.h" />
+    <ClInclude Include="Headers\QuadtreeManager.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="Source\CatchmentBuilder.cpp" />
     <ClCompile Include="Source\FileReader.cpp" />
     <ClCompile Include="Source\FileWriter.cpp" />
     <ClCompile Include="Source\main.cpp" />
     <ClCompile Include="Source\Params.cpp" />
+    <ClCompile Include="Source\Quadtree.cpp" />
+    <ClCompile Include="Source\QuadtreeManager.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
