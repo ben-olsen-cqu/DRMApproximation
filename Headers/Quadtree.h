@@ -12,27 +12,33 @@ public:
 	Node<T>() = default;
 };
 
+struct MinMax
+{
+	double minx;
+	double miny;
+	double minz;
+	double maxx;
+	double maxy;
+	double maxz;
+};
+
 template<typename T>
 class Quadtree
 {
-private:
+public:
 	T topLeft;
 	T bottomRight;
 
-	bool loaded;
 	bool hasData;
 	int level;
 
 	Node<T>* n = nullptr;
-
-	float unit = 1.0f;
 
 	Quadtree<T>* topRightTree = nullptr;
 	Quadtree<T>* bottomRightTree = nullptr;
 	Quadtree<T>* bottomLeftTree = nullptr;
 	Quadtree<T>* topLeftTree = nullptr;
 
-public:
 	~Quadtree<T>()
 	{
 		if (n != nullptr)
@@ -63,6 +69,8 @@ public:
 	};
 	Quadtree<T>(T topL, T bottomR)
 	{
+		hasData = false;
+
 		n = nullptr;
 		topLeftTree = nullptr;
 		topRightTree = nullptr;
@@ -72,10 +80,7 @@ public:
 		topLeft = topL;
 		bottomRight = bottomR;
 	}
-public:
-    void insert(Node<T>* node);
-    Node<T>* search(T p) const;
-    bool inBoundary(T p) const;
+
 	T TopLeft() const;
 	T BottomRight() const;
 };

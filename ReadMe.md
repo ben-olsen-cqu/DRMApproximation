@@ -14,7 +14,7 @@ These outputs are intended to be used to check the calibration and verify the ou
 | Short CLA | Long CLA          | Description                                                                       |
 | --------- | ----------------- | --------------------------------------------------------------------------------- |
 | **-t**    | **--treereuse**   | Reuse previously generated tree structures for computation                        |
-| **-m**    | **--memorylimit** | Set the programs memory limit, if left unset the default value is 1000MB          |
+| **-m**    | **--memorylimit** | Set the programs memory limit, the default value is 1000MB                        |
 | **-a**    | **--ascfiles**    | Force use of ASC files instead of CSV data                                        |
 | **-s**    | **--spacing**     | Set the spacing between data points in the x and y direction. default value is 1m |
 

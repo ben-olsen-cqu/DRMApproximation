@@ -28,6 +28,8 @@ public:
 		type = _type;
         abbrev = _abbrev;
 		bvalue = false;
+		ivalue = -1;
+		fvalue = -1.0f;
 	}
 
 	//Store a value in an already initialised parameter
