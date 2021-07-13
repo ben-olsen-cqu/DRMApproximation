@@ -28,7 +28,7 @@ public:
 	void CreateQuadtree(const std::vector<std::string> files, const float _spacing, const int mem);
 	void Insert(Quadtree<T>* q, Node<T>* n);
 	Node<T>* Search(T p) const;
-	bool inBoundary(Quadtree<T>* q,T p) const;
+	bool inBoundary(Quadtree<T>* q, T p) const;
 	T TopLeft() const;
 	T BottomRight() const;
 private:
@@ -37,6 +37,7 @@ private:
 	void CalculateTreeExtent(MinMax mm);
 	void CreateSingleTree(std::vector<std::string> files);
 	void CreateSplitTree(std::vector<std::string> files);
+	Node<T>* Subsearch(Quadtree<T>* q, T p) const;
 };
 
 template class QuadtreeManager<Coordinates>;

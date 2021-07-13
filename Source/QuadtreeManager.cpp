@@ -4,10 +4,13 @@
 #include <iostream>
 #include <cmath>
 #include <fstream>
+#include <chrono>
 
 template<typename T>
 void QuadtreeManager<T>::CreateQuadtree(const std::vector<std::string> files, const float _spacing, const int mem)
 {
+    auto time_start = std::chrono::steady_clock::now();
+
     spacing = _spacing;
     MinMax mm;
     FileReader::GetMinMaxCSV(files, mm);
@@ -25,7 +28,11 @@ void QuadtreeManager<T>::CreateQuadtree(const std::vector<std::string> files, co
         CreateSplitTree(files);
 	}
 
-    std::cout << std::endl << "Quadtree setup complete!" << std::endl;
+    auto time_complete = std::chrono::steady_clock::now();
+
+    auto time_diff = std::chrono::duration_cast<std::chrono::milliseconds>(time_complete - time_start);
+    
+    std::cout << std::endl << "Quadtree setup complete!" << std::endl << "Setup completed in: " << time_diff.count() << "ms\n" << std::endl << std::endl;
 }
 
 template <typename T>
@@ -97,56 +104,9 @@ void QuadtreeManager<T>::Insert(Quadtree<T>* q, Node<T>* n)
 }
 
 template<typename T>
-Node<T>* QuadtreeManager<T>::Search(T p) const //%%%%%
+Node<T>* QuadtreeManager<T>::Search(T p) const
 {
-    //// Current quad cannot contain it 
-    //if (!inBoundary(p))
-    //    return nullptr;
-
-    //// We are at a quad of unit length 
-    //// We cannot subdivide this quad further 
-    //if (n != nullptr && (p.x == n->pos.x && p.y == n->pos.y))
-    //    return n;
-
-    //if (((topLeft.x + bottomRight.x) / 2) <= p.x)
-    //{
-    //    // Indicates topRightTree 
-    //    if ((topLeft.y + bottomRight.y) / 2 <= p.y)
-    //    {
-    //        if (topRightTree == nullptr)
-    //            return nullptr;
-    //        //return topRightTree->search(p);
-    //    }
-
-    //    // Indicates botRightTree 
-    //    else
-    //    {
-    //        if (bottomRightTree == nullptr)
-    //            return nullptr;
-    //        //return bottomRightTree->search(p);
-    //    }
-    //}
-    //else
-    //{
-
-    //    // Indicates topLeftTree 
-    //    if ((topLeft.y + bottomRight.y) / 2 <= p.y)
-    //    {
-    //        if (topLeftTree == nullptr)
-    //            return nullptr;
-    //        //return topLeftTree->search(p);
-    //    }
-
-    //    // Indicates botLeftTree 
-    //    else
-    //    {
-    //        if (bottomLeftTree == nullptr)
-    //            return nullptr;
-    //        //return bottomLeftTree->search(p);
-    //    }
-    //}
-
-    return nullptr;
+    return Subsearch(quad, p);
 }
 
 template<typename T>
@@ -254,14 +214,17 @@ void QuadtreeManager<T>::CalculateTreeExtent(MinMax mm)
 {
     if (((mm.maxx - mm.minx) - (mm.maxy - mm.miny)) < .0001f) //Input data is square
     {
+#if defined(DEBUG)
         std::cout << "Square Data\n";
+#endif
         topLeft = T(mm.minx, mm.maxy);
         bottomRight = T(mm.maxx, mm.miny);
     }
     else //Input data has rectangular extents, tree must be square so increase the smaller dimension to the larger one
     {
+#if defined(DEBUG)
         std::cout << "Rectangular Data\n";
-
+#endif
         double extentx = mm.maxx - mm.minx;
         double extenty = mm.maxy - mm.miny;
 
@@ -309,4 +272,57 @@ void QuadtreeManager<T>::CreateSingleTree(std::vector<std::string> files)
 template<typename T>
 void QuadtreeManager<T>::CreateSplitTree(std::vector<std::string> files)
 {
+}
+
+template<typename T>
+Node<T>* QuadtreeManager<T>::Subsearch(Quadtree<T>* q, T p) const
+{
+    // Current quad cannot contain it 
+    if (!inBoundary(q, p))
+        return nullptr;
+
+    // We are at a quad of unit length 
+    // We cannot subdivide this quad further 
+    if (q->n != nullptr && (p.x == q->n->pos.x && p.y == q->n->pos.y))
+        return q->n;
+
+    if (((q->topLeft.x + q->bottomRight.x) / 2) <= p.x)
+    {
+        // Indicates topRightTree 
+        if ((q->topLeft.y + q->bottomRight.y) / 2 <= p.y)
+        {
+            if (q->topRightTree == nullptr)
+                return nullptr;
+            return Subsearch(q->topRightTree,p);
+        }
+
+        // Indicates botRightTree 
+        else
+        {
+            if (q->bottomRightTree == nullptr)
+                return nullptr;
+            return Subsearch(q->bottomRightTree, p);
+        }
+    }
+    else
+    {
+
+        // Indicates topLeftTree 
+        if ((q->topLeft.y + q->bottomRight.y) / 2 <= p.y)
+        {
+            if (q->topLeftTree == nullptr)
+                return nullptr;
+            return Subsearch(q->topLeftTree, p);
+        }
+
+        // Indicates botLeftTree 
+        else
+        {
+            if (q->bottomLeftTree == nullptr)
+                return nullptr;
+            return Subsearch(q->bottomLeftTree, p);
+        }
+    }
+
+    return nullptr;
 }
