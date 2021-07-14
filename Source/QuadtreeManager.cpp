@@ -326,3 +326,8 @@ Node<T>* QuadtreeManager<T>::Subsearch(Quadtree<T>* q, T p) const
 
     return nullptr;
 }
+
+template class QuadtreeManager<Coordinates>;
+template class QuadtreeManager<Bit>;
+template class QuadtreeManager<Vec3>;
+template class QuadtreeManager<Normal>;

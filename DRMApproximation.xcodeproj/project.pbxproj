@@ -11,6 +11,9 @@
 		B538CB9F268FC050005B9887 /* Params.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B538CB9C268FC050005B9887 /* Params.cpp */; };
 		B538CBA0268FC050005B9887 /* FileReader.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B538CB9D268FC050005B9887 /* FileReader.cpp */; };
 		B538CBA1268FC050005B9887 /* FileWriter.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B538CB9E268FC050005B9887 /* FileWriter.cpp */; };
+		B5A2724E269E66BE004CF36C /* QuadtreeManager.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B5A2724B269E66BE004CF36C /* QuadtreeManager.cpp */; };
+		B5A2724F269E66BE004CF36C /* CatchmentBuilder.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B5A2724C269E66BE004CF36C /* CatchmentBuilder.cpp */; };
+		B5A27250269E66BE004CF36C /* Quadtree.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B5A2724D269E66BE004CF36C /* Quadtree.cpp */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -26,6 +29,13 @@
 		B538CBA4268FC06C005B9887 /* Coordinates.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Coordinates.h; path = Headers/Coordinates.h; sourceTree = "<group>"; };
 		B538CBA5268FC06C005B9887 /* FileReader.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = FileReader.h; path = Headers/FileReader.h; sourceTree = "<group>"; };
 		B538CBAD268FCBD9005B9887 /* CoreFoundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreFoundation.framework; path = System/Library/Frameworks/CoreFoundation.framework; sourceTree = SDKROOT; };
+		B5A27247269E66B0004CF36C /* Quadtree.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = Quadtree.h; path = Headers/Quadtree.h; sourceTree = "<group>"; };
+		B5A27248269E66B0004CF36C /* QuadtreeManager.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.h; name = QuadtreeManager.h; path = Headers/QuadtreeManager.h; sourceTree = "<group>"; };
+		B5A27249269E66B0004CF36C /* CatchMath.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = CatchMath.h; path = Headers/CatchMath.h; sourceTree = "<group>"; };
+		B5A2724A269E66B0004CF36C /* CatchmentBuilder.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = CatchmentBuilder.h; path = Headers/CatchmentBuilder.h; sourceTree = "<group>"; };
+		B5A2724B269E66BE004CF36C /* QuadtreeManager.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = QuadtreeManager.cpp; path = Source/QuadtreeManager.cpp; sourceTree = "<group>"; };
+		B5A2724C269E66BE004CF36C /* CatchmentBuilder.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = CatchmentBuilder.cpp; path = Source/CatchmentBuilder.cpp; sourceTree = "<group>"; };
+		B5A2724D269E66BE004CF36C /* Quadtree.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = Quadtree.cpp; path = Source/Quadtree.cpp; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -42,6 +52,10 @@
 		20D885C0C52B2372D7636C00 /* Headers */ = {
 			isa = PBXGroup;
 			children = (
+				B5A27249269E66B0004CF36C /* CatchMath.h */,
+				B5A2724A269E66B0004CF36C /* CatchmentBuilder.h */,
+				B5A27247269E66B0004CF36C /* Quadtree.h */,
+				B5A27248269E66B0004CF36C /* QuadtreeManager.h */,
 				B538CBA4268FC06C005B9887 /* Coordinates.h */,
 				B538CBA5268FC06C005B9887 /* FileReader.h */,
 				B538CBA3268FC06C005B9887 /* FileWriter.h */,
@@ -55,6 +69,9 @@
 		58872CEAFBD2B61C16A3832A /* Source */ = {
 			isa = PBXGroup;
 			children = (
+				B5A2724C269E66BE004CF36C /* CatchmentBuilder.cpp */,
+				B5A2724D269E66BE004CF36C /* Quadtree.cpp */,
+				B5A2724B269E66BE004CF36C /* QuadtreeManager.cpp */,
 				B538CB9D268FC050005B9887 /* FileReader.cpp */,
 				B538CB9E268FC050005B9887 /* FileWriter.cpp */,
 				B538CB9C268FC050005B9887 /* Params.cpp */,
@@ -150,8 +167,11 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				B5A2724E269E66BE004CF36C /* QuadtreeManager.cpp in Sources */,
 				B538CBA1268FC050005B9887 /* FileWriter.cpp in Sources */,
 				634256ECB0A54D1E26C44D2C /* main.cpp in Sources */,
+				B5A2724F269E66BE004CF36C /* CatchmentBuilder.cpp in Sources */,
+				B5A27250269E66BE004CF36C /* Quadtree.cpp in Sources */,
 				B538CBA0268FC050005B9887 /* FileReader.cpp in Sources */,
 				B538CB9F268FC050005B9887 /* Params.cpp in Sources */,
 			);
@@ -176,6 +196,7 @@
 				GCC_SYMBOLS_PRIVATE_EXTERN = NO;
 				GCC_WARN_ABOUT_RETURN_TYPE = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
+				HEADER_SEARCH_PATHS = /Headers/;
 				OBJROOT = obj/x64/Debug;
 				ONLY_ACTIVE_ARCH = YES;
 				SDKROOT = macosx;
@@ -225,6 +246,7 @@
 				GCC_SYMBOLS_PRIVATE_EXTERN = NO;
 				GCC_WARN_ABOUT_RETURN_TYPE = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
+				HEADER_SEARCH_PATHS = /Headers/;
 				OBJROOT = obj/x64/Release;
 				ONLY_ACTIVE_ARCH = NO;
 				SDKROOT = macosx;
