@@ -272,6 +272,12 @@ void QuadtreeManager<T>::CreateSingleTree(std::vector<std::string> files)
 template<typename T>
 void QuadtreeManager<T>::CreateSplitTree(std::vector<std::string> files)
 {
+
+    std::ofstream datastream;
+
+    datastream.open("./Temp/Tree/Tree.dat", std::ios::binary);
+
+    WriteToFile(q, &datastream);
 }
 
 template<typename T>
@@ -325,6 +331,27 @@ Node<T>* QuadtreeManager<T>::Subsearch(Quadtree<T>* q, T p) const
     }
 
     return nullptr;
+}
+
+template<typename T>
+void QuadtreeManager<T>::WriteToFile(Quadtree<T>* q, std::ofstream* datastream)
+{
+    if (q->topRightTree != nullptr)
+        WriteToFile(q->topRightTree,datastream);
+    if (q->bottomRightTree != nullptr)
+        WriteToFile(q->bottomRightTree,datastream);
+    if (q->bottomLeftTree != nullptr)
+        WriteToFile(q->bottomLeftTree,datastream);
+    if (q->topLeftTree != nullptr)
+        WriteToFile(q->topLeftTree,datastream);
+
+    if (q->n != nullptr)
+    {
+        //Top Left
+        //BottomRight
+        //Level
+        //Node
+    }
 }
 
 template class QuadtreeManager<Coordinates>;

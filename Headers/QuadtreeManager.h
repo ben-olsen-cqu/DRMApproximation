@@ -38,6 +38,7 @@ private:
 	void CreateSingleTree(std::vector<std::string> files);
 	void CreateSplitTree(std::vector<std::string> files);
 	Node<T>* Subsearch(Quadtree<T>* q, T p) const;
+	void WriteToFile(Quadtree<T>* q, std::ofstream* datastream);
 };
 
 
