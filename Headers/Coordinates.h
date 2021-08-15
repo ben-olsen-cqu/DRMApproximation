@@ -30,6 +30,11 @@ public:
         }
     }
     
+    void BinaryWrite(std::ofstream* datastream)
+    {
+        datastream->write((char*)x, sizeof(x));
+    };
+
     Coordinates()
     {
         x = 0.0f;

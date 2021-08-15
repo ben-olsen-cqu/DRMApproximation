@@ -267,6 +267,12 @@ void QuadtreeManager<T>::CreateSingleTree(std::vector<std::string> files)
             Insert(quad, node);
         }
     }
+
+    std::ofstream datastream;
+
+    datastream.open("./Temp/Tree/Tree.dat", std::ios::binary);
+
+    WriteToFile(quad, &datastream);
 }
 
 template<typename T>
@@ -277,7 +283,7 @@ void QuadtreeManager<T>::CreateSplitTree(std::vector<std::string> files)
 
     datastream.open("./Temp/Tree/Tree.dat", std::ios::binary);
 
-    WriteToFile(q, &datastream);
+    //WriteToFile(q, &datastream);
 }
 
 template<typename T>
@@ -348,9 +354,15 @@ void QuadtreeManager<T>::WriteToFile(Quadtree<T>* q, std::ofstream* datastream)
     if (q->n != nullptr)
     {
         //Top Left
+        
         //BottomRight
         //Level
         //Node
+    }
+    else
+    {
+        T type(0, 0);
+        type.BinaryWrite(datastream);
     }
 }
 
