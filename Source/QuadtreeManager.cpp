@@ -186,7 +186,9 @@ void QuadtreeManager<T>::CalculateTreeProps(const double xextent, const double y
     //if (CalculateNodes(memlevel) / nodesreq > 1)
     //    memlevel++;
 
-	std::cout << std::endl << "Memory Split Level: " << memlevel << std::endl << std::endl;
+    splitlevel = levelreq - memlevel;
+
+	std::cout << std::endl << "Memory Split Level: " << splitlevel << std::endl << std::endl;
 
 	if (levelreq <= memlevel)
 	{
@@ -280,7 +282,7 @@ void QuadtreeManager<T>::CreateSplitTree(std::vector<std::string> files)
     quad->level = 0;
     quad->hasData = true;
 
-    CreatetoLevel(quad, memlevel);
+    CreatetoLevel(quad, splitlevel);
 
     std::vector<Quadtree<T>*> bottomnodes;
 
@@ -441,7 +443,7 @@ void QuadtreeManager<T>::CreatetoLevel(Quadtree<T>* q, int target)
 template<typename T>
 void QuadtreeManager<T>::GetBottomNodes(Quadtree<T>* q, std::vector<Quadtree<T>*>* bottomnodes)
 {
-    if (q->level == memlevel)
+    if (q->level == splitlevel)
         bottomnodes->push_back(q);
 
     if (q->topRightTree != nullptr)

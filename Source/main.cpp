@@ -104,7 +104,8 @@ int main(int argc, char* argv[])
     QuadtreeManager<Coordinates> qm;
     qm.CreateQuadtree(files, spacing, maxMem);
 
-    Node<Coordinates>* n = qm.Search(Coordinates(477000.5, 7103000.5));
+    //Node<Coordinates>* n = qm.Search(Coordinates(477000.5, 7103000.5));
+    Node<Coordinates>* n = qm.Search(Coordinates(253999.5, 7420999.5));
 
     if (n != nullptr)
     {

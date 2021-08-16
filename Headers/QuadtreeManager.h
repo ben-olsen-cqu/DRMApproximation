@@ -15,11 +15,12 @@ template<typename T>
 class QuadtreeManager
 {
 private:
-	TreeType type;
+	TreeType type; //Split or Single
 	Quadtree<T>* quad;
-	int levelreq;
-	int memlevel;
-	float spacing;
+	int levelreq; //Depth of tree required to hold a square data set that covers the extent of the imported data
+	int memlevel; //The maximum amount of levels that the memory restriction will allow
+	int splitlevel; //The level at which the main tree is split into 2 trees and written to file
+	float spacing; //the data density
 	T topLeft;
 	T bottomRight;
 
