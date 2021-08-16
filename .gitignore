@@ -342,3 +342,4 @@ healthchecksdb
 #geopackage files
 *.gpkg*
 Inputs/Test Data 2/Lidar.csv
+*.dat

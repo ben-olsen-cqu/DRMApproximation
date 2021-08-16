@@ -33,6 +33,24 @@ void QuadtreeManager<T>::CreateQuadtree(const std::vector<std::string> files, co
     auto time_diff = std::chrono::duration_cast<std::chrono::milliseconds>(time_complete - time_start);
     
     std::cout << std::endl << "Quadtree setup complete!" << std::endl << "Setup completed in: " << time_diff.count() << "ms\n" << std::endl << std::endl;
+
+    /* Binary Writing Setup*/
+
+    time_start = std::chrono::steady_clock::now();
+
+    std::ofstream datastream;
+
+    datastream.open("./Temp/Tree/Tree.dat", std::ios::binary);
+
+    WriteToFile(quad, &datastream);
+
+    datastream.close();
+
+    time_complete = std::chrono::steady_clock::now();
+
+    time_diff = std::chrono::duration_cast<std::chrono::milliseconds>(time_complete - time_start);
+
+    std::cout << std::endl << "Tree Written to File!" << std::endl << "Write completed in: " << time_diff.count() << "ms\n" << std::endl << std::endl;
 }
 
 template <typename T>
@@ -132,7 +150,7 @@ void QuadtreeManager<T>::CalculateTreeProps(const double xextent, const double y
 {
 	levelreq = 0;
 
-    float area = std::pow(std::max(xextent, yextent),2); //set area as square using the largest dimension
+    float area = (float)std::pow(std::max(xextent, yextent),2); //set area as square using the largest dimension
     double spacingsq = std::pow(spacing, 2);
     double nodesreq = (area / spacingsq);
 
@@ -204,7 +222,7 @@ float QuadtreeManager<T>::CalculateNodes(int level)
 	float nodecount = 0;
 
 	for (int i = 0; i < level+1; i++)
-		nodecount += std::pow(4, i);
+		nodecount += (float)std::pow(4, i);
 
 	return nodecount;
 }
@@ -277,7 +295,9 @@ void QuadtreeManager<T>::CreateSplitTree(std::vector<std::string> files)
 
     datastream.open("./Temp/Tree/Tree.dat", std::ios::binary);
 
-    WriteToFile(q, &datastream);
+    //WriteToFile(q, &datastream);
+
+    datastream.close();
 }
 
 template<typename T>
@@ -347,11 +367,19 @@ void QuadtreeManager<T>::WriteToFile(Quadtree<T>* q, std::ofstream* datastream)
 
     if (q->n != nullptr)
     {
-        //Top Left
-        //BottomRight
-        //Level
-        //Node
+        datastream->write((char*)&(q->n->pos), sizeof(T));
     }
+    else
+    {
+        T dummy(0, 0);
+        datastream->write((char*)&dummy, sizeof(T));
+    }
+}
+
+template<typename T>
+void QuadtreeManager<T>::ReadFromFile(Quadtree<T>* q, std::ifstream* datastream)
+{
+
 }
 
 template class QuadtreeManager<Coordinates>;
