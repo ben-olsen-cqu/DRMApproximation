@@ -343,3 +343,4 @@ healthchecksdb
 *.gpkg*
 Inputs/Test Data 2/Lidar.csv
 *.dat
+Temp/Tree/Tree.dat

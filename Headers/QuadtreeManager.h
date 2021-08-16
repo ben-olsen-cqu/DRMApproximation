@@ -40,6 +40,8 @@ private:
 	Node<T>* Subsearch(Quadtree<T>* q, T p) const;
 	void WriteToFile(Quadtree<T>* q, std::ofstream* datastream);
 	void ReadFromFile(Quadtree<T>* q, std::ifstream* datastream);
+	void CreatetoLevel(Quadtree<T>* q, int target);
+	void GetBottomNodes(Quadtree<T>* q, std::vector<Quadtree<T>*>* bottomnodes);
 };
 
 

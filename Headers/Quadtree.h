@@ -30,6 +30,7 @@ public:
 	T bottomRight;
 
 	bool hasData;
+	int index;
 	int level;
 
 	Node<T>* n = nullptr;
@@ -42,7 +43,7 @@ public:
 	~Quadtree<T>()
 	{
 		if (n != nullptr)
-		{;
+		{
 			delete n;
 			n = nullptr;
 		}

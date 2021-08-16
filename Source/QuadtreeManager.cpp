@@ -33,24 +33,6 @@ void QuadtreeManager<T>::CreateQuadtree(const std::vector<std::string> files, co
     auto time_diff = std::chrono::duration_cast<std::chrono::milliseconds>(time_complete - time_start);
     
     std::cout << std::endl << "Quadtree setup complete!" << std::endl << "Setup completed in: " << time_diff.count() << "ms\n" << std::endl << std::endl;
-
-    /* Binary Writing Setup*/
-
-    time_start = std::chrono::steady_clock::now();
-
-    std::ofstream datastream;
-
-    datastream.open("./Temp/Tree/Tree.dat", std::ios::binary);
-
-    WriteToFile(quad, &datastream);
-
-    datastream.close();
-
-    time_complete = std::chrono::steady_clock::now();
-
-    time_diff = std::chrono::duration_cast<std::chrono::milliseconds>(time_complete - time_start);
-
-    std::cout << std::endl << "Tree Written to File!" << std::endl << "Write completed in: " << time_diff.count() << "ms\n" << std::endl << std::endl;
 }
 
 template <typename T>
@@ -58,6 +40,7 @@ void QuadtreeManager<T>::Insert(Quadtree<T>* q, Node<T>* n)
 {
     if (!inBoundary(q,n->pos))
     {
+        delete n;
         return;
     }
 
@@ -80,6 +63,7 @@ void QuadtreeManager<T>::Insert(Quadtree<T>* q, Node<T>* n)
             {
                 q->topRightTree = new Quadtree<T>(T((q->topLeft.x + q->bottomRight.x) / 2, q->topLeft.y), T(q->bottomRight.x, (q->topLeft.y + q->bottomRight.y) / 2));
                 q->topRightTree->level = q->level + 1;
+                q->topRightTree->hasData = true;
             }
             Insert(q->topRightTree, n);
         }
@@ -91,6 +75,7 @@ void QuadtreeManager<T>::Insert(Quadtree<T>* q, Node<T>* n)
             {
                 q->bottomRightTree = new Quadtree<T>(T((q->topLeft.x + q->bottomRight.x) / 2, (q->topLeft.y + q->bottomRight.y) / 2), T(q->bottomRight.x, q->bottomRight.y));
                 q->bottomRightTree->level = q->level + 1;
+                q->bottomRightTree->hasData = true;
             }
             Insert(q->bottomRightTree, n);
         }
@@ -104,6 +89,7 @@ void QuadtreeManager<T>::Insert(Quadtree<T>* q, Node<T>* n)
             {
                 q->topLeftTree = new Quadtree<T>(T(q->topLeft.x, q->topLeft.y), T((q->topLeft.x + q->bottomRight.x) / 2, (q->topLeft.y + q->bottomRight.y) / 2));
                 q->topLeftTree->level = q->level + 1;
+                q->topLeftTree->hasData = true;
             }
             Insert(q->topLeftTree, n);
         }
@@ -115,6 +101,7 @@ void QuadtreeManager<T>::Insert(Quadtree<T>* q, Node<T>* n)
             {
                 q->bottomLeftTree = new Quadtree<T>(T(q->topLeft.x, (q->topLeft.y + q->bottomRight.y) / 2), T((q->topLeft.x + q->bottomRight.x) / 2, q->bottomRight.y));
                 q->bottomLeftTree->level = q->level + 1;
+                q->bottomLeftTree->hasData = true;
             }
             Insert(q->bottomLeftTree, n);
         }
@@ -257,8 +244,6 @@ void QuadtreeManager<T>::CalculateTreeExtent(MinMax mm)
             mm.maxy = mm.maxy - (extenty / 2) + (extentx / 2);
         }
 
-        std::cout << std::fixed << "Min and Max Coords: " << mm.minx << "," << mm.miny << "," << mm.minz << "\t" << mm.maxx << "," << mm.maxy << "," << mm.maxz << std::endl;
-
         topLeft = T(mm.minx, mm.maxy);
         bottomRight = T(mm.maxx, mm.miny);
     }
@@ -269,6 +254,7 @@ void QuadtreeManager<T>::CreateSingleTree(std::vector<std::string> files)
 {
     quad = new Quadtree<T>(topLeft,bottomRight);
     quad->level = 0;
+    quad->hasData = true;
 
     for (int i = 0; i < files.size(); i++)
     {
@@ -290,14 +276,48 @@ void QuadtreeManager<T>::CreateSingleTree(std::vector<std::string> files)
 template<typename T>
 void QuadtreeManager<T>::CreateSplitTree(std::vector<std::string> files)
 {
+    quad = new Quadtree<T>(topLeft, bottomRight);
+    quad->level = 0;
+    quad->hasData = true;
 
-    std::ofstream datastream;
+    CreatetoLevel(quad, memlevel);
 
-    datastream.open("./Temp/Tree/Tree.dat", std::ios::binary);
+    std::vector<Quadtree<T>*> bottomnodes;
 
-    //WriteToFile(q, &datastream);
+    GetBottomNodes(quad, &bottomnodes);
 
-    datastream.close();
+    std::cout << "List of bottom nodes generated" << std::endl;
+
+    for (int j = 0; j < bottomnodes.size(); j++)
+    {
+        std::cout << "Inserting nodes to tree " << j << " of " << bottomnodes.size() << std::endl;
+
+        for (int i = 0; i < files.size(); i++)
+        {
+            std::ifstream fs(files[i]);
+
+            double x, y, z;
+            while (!fs.eof())
+            {
+                FileReader::ReadLine(&fs, x, y, z);
+
+                T n(x, y, z);
+                Node<T>* node = new Node<T>(n);
+
+                Insert(bottomnodes[j], node);
+            }
+        }
+        (bottomnodes[j])->index = j;
+        std::ofstream datastream;
+
+        datastream.open("./Temp/Tree/Tree" + std::to_string(j) + ".dat", std::ios::binary);
+
+        WriteToFile(bottomnodes[j], &datastream);
+
+        datastream.close();
+
+        bottomnodes[j]->~Quadtree();
+    }
 }
 
 template<typename T>
@@ -379,10 +399,105 @@ void QuadtreeManager<T>::WriteToFile(Quadtree<T>* q, std::ofstream* datastream)
 template<typename T>
 void QuadtreeManager<T>::ReadFromFile(Quadtree<T>* q, std::ifstream* datastream)
 {
+    while (!datastream->eof())
+    {
+        T temp;
 
+        datastream->read((char*)&temp, sizeof(T));
+
+        Node<T>* node = new Node<T>(temp);
+
+        Insert(quad, node);
+    }
 }
+
+template<typename T>
+void QuadtreeManager<T>::CreatetoLevel(Quadtree<T>* q, int target)
+{
+    if (q->level >= target)
+        return;
+
+    q->topRightTree = new Quadtree<T>(T((q->topLeft.x + q->bottomRight.x) / 2, q->topLeft.y), T(q->bottomRight.x, (q->topLeft.y + q->bottomRight.y) / 2));
+    q->topRightTree->level = q->level + 1;
+    q->topRightTree->hasData = true;
+    CreatetoLevel(q->topRightTree, target);
+
+    q->bottomRightTree = new Quadtree<T>(T((q->topLeft.x + q->bottomRight.x) / 2, (q->topLeft.y + q->bottomRight.y) / 2), T(q->bottomRight.x, q->bottomRight.y));
+    q->bottomRightTree->level = q->level + 1;
+    q->bottomRightTree->hasData = true;
+    CreatetoLevel(q->bottomRightTree, target);
+
+    q->topLeftTree = new Quadtree<T>(T(q->topLeft.x, q->topLeft.y), T((q->topLeft.x + q->bottomRight.x) / 2, (q->topLeft.y + q->bottomRight.y) / 2));
+    q->topLeftTree->level = q->level + 1;
+    q->topLeftTree->hasData = true;
+    CreatetoLevel(q->topLeftTree, target);
+
+    q->bottomLeftTree = new Quadtree<T>(T(q->topLeft.x, (q->topLeft.y + q->bottomRight.y) / 2), T((q->topLeft.x + q->bottomRight.x) / 2, q->bottomRight.y));
+    q->bottomLeftTree->level = q->level + 1;
+    q->bottomLeftTree->hasData = true;
+    CreatetoLevel(q->bottomLeftTree, target);
+}
+
+template<typename T>
+void QuadtreeManager<T>::GetBottomNodes(Quadtree<T>* q, std::vector<Quadtree<T>*>* bottomnodes)
+{
+    if (q->level == memlevel)
+        bottomnodes->push_back(q);
+
+    if (q->topRightTree != nullptr)
+        GetBottomNodes(q->topRightTree, bottomnodes);
+    if (q->bottomRightTree != nullptr)
+        GetBottomNodes(q->bottomRightTree, bottomnodes);
+    if (q->bottomLeftTree != nullptr)
+        GetBottomNodes(q->bottomLeftTree, bottomnodes);
+    if (q->topLeftTree != nullptr)
+        GetBottomNodes(q->topLeftTree, bottomnodes);
+}
+
 
 template class QuadtreeManager<Coordinates>;
 template class QuadtreeManager<Bit>;
 template class QuadtreeManager<Vec3>;
 template class QuadtreeManager<Normal>;
+
+///* Binary Writing Setup*/
+//
+//time_start = std::chrono::steady_clock::now();
+//
+//std::ofstream datastream;
+//
+//datastream.open("./Temp/Tree/Tree.dat", std::ios::binary);
+//
+//WriteToFile(quad, &datastream);
+//
+//datastream.close();
+//
+//time_complete = std::chrono::steady_clock::now();
+//
+//time_diff = std::chrono::duration_cast<std::chrono::milliseconds>(time_complete - time_start);
+//
+//std::cout << std::endl << "Tree Written to File!" << std::endl << "Write completed in: " << time_diff.count() << "ms\n" << std::endl << std::endl;
+//
+///* Dispose of Quadtree for testing of read/write*/
+//
+//quad->~Quadtree();
+//
+///* Binary Reading Setup*/
+//
+//time_start = std::chrono::steady_clock::now();
+//
+//std::ifstream datastream2;
+//
+//datastream2.open("./Temp/Tree/Tree.dat", std::ios::binary);
+//
+//ReadFromFile(quad, &datastream2);
+//
+//datastream2.close();
+//
+//time_complete = std::chrono::steady_clock::now();
+//
+//time_diff = std::chrono::duration_cast<std::chrono::milliseconds>(time_complete - time_start);
+//
+//std::cout << std::endl << "Tree Read from File!" << std::endl << "Read completed in: " << time_diff.count() << "ms\n" << std::endl << std::endl;
+//
+////Test Complete

@@ -106,7 +106,10 @@ int main(int argc, char* argv[])
 
     Node<Coordinates>* n = qm.Search(Coordinates(477000.5, 7103000.5));
 
-    std::cout << n->pos.x << "," << n->pos.y << "," << n->pos.z << std::endl;
+    if (n != nullptr)
+    {
+        std::cout << n->pos.x << "," << n->pos.y << "," << n->pos.z << std::endl;
+    }
 
     return 0;
 }
