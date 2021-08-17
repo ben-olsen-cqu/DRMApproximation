@@ -308,6 +308,7 @@ void QuadtreeManager<T>::CreateSplitTree(std::vector<std::string> files)
         outstreams.push_back(ofstream);
     }
 
+    std::cout << "Output Streams Created" << std::endl;
 
     for (int i = 0; i < files.size(); i++)
     {
@@ -332,10 +333,39 @@ void QuadtreeManager<T>::CreateSplitTree(std::vector<std::string> files)
         }
     }
 
-    for (int j = 0; j < bottomnodes.size(); j++)
+    std::cout << "Tree Structures Written" << std::endl;
+
+    for (int j = 0; j < bottomnodes.size(); j++) //Clean up data streams
     {
         outstreams[j]->close();
         delete outstreams[j];
+    }
+
+    std::cout << "Cleaning Up Output Streams" << std::endl;
+
+    for (int j = 0; j < bottomnodes.size(); j++) //Write in slightly faster order
+    {
+        std::cout << "Finalising Write of Sub Tree " << j+1 << " of " << bottomnodes.size() << std::endl;
+        
+        std::ifstream datastream2;
+
+        datastream2.open("./Temp/Tree/Tree" + std::to_string(bottomnodes[j]->index) + ".bin", std::ios::binary);
+
+        ReadFromFile(bottomnodes[j], &datastream2);
+        bottomnodes[j]->hasData = true;
+
+        datastream2.close();
+
+        std::ofstream datastream;
+
+        datastream.open("./Temp/Tree/Tree" + std::to_string(bottomnodes[j]->index) + ".bin", std::ios::binary);
+
+        WriteQuadToFile(bottomnodes[j], &datastream);
+
+        datastream.close();
+
+        bottomnodes[j]->~Quadtree();
+        bottomnodes[j]->hasData = false;
     }
 }
 
