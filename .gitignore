@@ -344,3 +344,5 @@ healthchecksdb
 Inputs/Test Data 2/Lidar.csv
 *.dat
 Temp/Tree/Tree.dat
+*.bin
+*.csv
