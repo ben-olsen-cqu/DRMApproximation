@@ -5,6 +5,7 @@
 #include <cmath>
 #include <fstream>
 #include <chrono>
+#include <filesystem>
 
 template<typename T>
 void QuadtreeManager<T>::CreateQuadtree(const std::vector<std::string> files, const float _spacing, const int mem)
@@ -288,37 +289,77 @@ void QuadtreeManager<T>::CreateSplitTree(std::vector<std::string> files)
 
     GetBottomNodes(quad, &bottomnodes);
 
-    std::cout << "List of bottom nodes generated" << std::endl;
-
     for (int j = 0; j < bottomnodes.size(); j++)
     {
-        std::cout << "Inserting nodes to tree " << j << " of " << bottomnodes.size() << std::endl;
+        //Index the trees in the list for reference
+        (bottomnodes[j])->index = j;
+    }
 
-        for (int i = 0; i < files.size(); i++)
+    std::cout << "List of bottom nodes generated" << std::endl;
+
+    for (int i = 0; i < files.size(); i++)
+    {
+        std::ifstream fs(files[i]);
+
+        double x, y, z;
+        while (!fs.eof())
         {
-            std::ifstream fs(files[i]);
+            FileReader::ReadLine(&fs, x, y, z);
 
-            double x, y, z;
-            while (!fs.eof())
+            T n(x, y, z);
+            Node<T>* node = new Node<T>(n);
+
+            for (int j = 0; j < bottomnodes.size(); j++)
             {
-                FileReader::ReadLine(&fs, x, y, z);
+                if (inBoundary(bottomnodes[j], n))
+                {
+                    if (bottomnodes[j]->hasData == true)
+                    {
+                        //tree already loaded
+                        Insert(bottomnodes[j], node);
+                    }
+                    else
+                    {
+                        //deload the previous tree
+                        for (int k = 0; k < bottomnodes.size(); k++)
+                        {
+                            if (bottomnodes[k]->hasData == true) //deloads only if a tree is loaded
+                            {
+                                std::ofstream datastream;
 
-                T n(x, y, z);
-                Node<T>* node = new Node<T>(n);
+                                datastream.open("./Temp/Tree/Tree" + std::to_string(bottomnodes[k]->index) + ".dat", std::ios::binary);
 
-                Insert(bottomnodes[j], node);
+                                WriteToFile(bottomnodes[k], &datastream);
+
+                                datastream.close();
+
+                                bottomnodes[k]->~Quadtree();
+                                bottomnodes[k]->hasData = false;
+                            }
+                        }
+
+                        //load the tree if the file exists
+                        if (std::filesystem::exists("./Temp/Tree/Tree" + std::to_string(bottomnodes[j]->index) + ".dat"))
+                        {
+                            std::ifstream datastream2;
+
+                            datastream2.open("./Temp/Tree/Tree" + std::to_string(bottomnodes[j]->index) + ".dat", std::ios::binary);
+
+                            ReadFromFile(bottomnodes[j], &datastream2);
+                            bottomnodes[j]->hasData = true;
+
+                            datastream2.close();
+                        }
+                        else
+                        {
+                            bottomnodes[j]->hasData = true;
+                        }
+                        //Insert the new node to the loaded tree
+                        Insert(bottomnodes[j], node);
+                    }
+                }
             }
         }
-        (bottomnodes[j])->index = j;
-        std::ofstream datastream;
-
-        datastream.open("./Temp/Tree/Tree" + std::to_string(j) + ".dat", std::ios::binary);
-
-        WriteToFile(bottomnodes[j], &datastream);
-
-        datastream.close();
-
-        bottomnodes[j]->~Quadtree();
     }
 }
 
@@ -421,22 +462,34 @@ void QuadtreeManager<T>::CreatetoLevel(Quadtree<T>* q, int target)
 
     q->topRightTree = new Quadtree<T>(T((q->topLeft.x + q->bottomRight.x) / 2, q->topLeft.y), T(q->bottomRight.x, (q->topLeft.y + q->bottomRight.y) / 2));
     q->topRightTree->level = q->level + 1;
-    q->topRightTree->hasData = true;
+    if(q->topRightTree->level == target)
+        q->topRightTree->hasData = false;
+    else
+        q->topRightTree->hasData = true;
     CreatetoLevel(q->topRightTree, target);
 
     q->bottomRightTree = new Quadtree<T>(T((q->topLeft.x + q->bottomRight.x) / 2, (q->topLeft.y + q->bottomRight.y) / 2), T(q->bottomRight.x, q->bottomRight.y));
     q->bottomRightTree->level = q->level + 1;
-    q->bottomRightTree->hasData = true;
+    if (q->topRightTree->level == target)
+        q->bottomRightTree->hasData = false;
+    else
+        q->bottomRightTree->hasData = true;
     CreatetoLevel(q->bottomRightTree, target);
 
     q->topLeftTree = new Quadtree<T>(T(q->topLeft.x, q->topLeft.y), T((q->topLeft.x + q->bottomRight.x) / 2, (q->topLeft.y + q->bottomRight.y) / 2));
     q->topLeftTree->level = q->level + 1;
-    q->topLeftTree->hasData = true;
+    if (q->topRightTree->level == target)
+        q->topLeftTree->hasData = false;
+    else
+        q->topLeftTree->hasData = true;
     CreatetoLevel(q->topLeftTree, target);
 
     q->bottomLeftTree = new Quadtree<T>(T(q->topLeft.x, (q->topLeft.y + q->bottomRight.y) / 2), T((q->topLeft.x + q->bottomRight.x) / 2, q->bottomRight.y));
     q->bottomLeftTree->level = q->level + 1;
-    q->bottomLeftTree->hasData = true;
+    if (q->topRightTree->level == target)
+        q->bottomLeftTree->hasData = false;
+    else
+        q->bottomLeftTree->hasData = true;
     CreatetoLevel(q->bottomLeftTree, target);
 }
 
