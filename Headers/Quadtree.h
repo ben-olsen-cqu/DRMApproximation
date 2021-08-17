@@ -82,6 +82,20 @@ public:
 		bottomRight = bottomR;
 	}
 
+	Quadtree<T>()
+	{
+		hasData = false;
+
+		n = nullptr;
+		topLeftTree = nullptr;
+		topRightTree = nullptr;
+		bottomLeftTree = nullptr;
+		bottomRightTree = nullptr;
+
+		topLeft = T(0,0);
+		bottomRight = T(0,0);
+	}
+
 	T TopLeft() const;
 	T BottomRight() const;
 };

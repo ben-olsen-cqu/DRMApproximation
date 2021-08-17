@@ -23,16 +23,20 @@ private:
 	float spacing; //the data density
 	T topLeft;
 	T bottomRight;
+public:
+	std::string prePath = "Temp/Tree/Tree";
 
 public:
-	QuadtreeManager() = default;
+	QuadtreeManager();
 	void CreateQuadtree(const std::vector<std::string> files, const float _spacing, const int mem);
 	void Insert(Quadtree<T>* q, Node<T>* n);
-	Node<T>* Search(T p) const;
+	Node<T>* Search(T p);
 	bool inBoundary(Quadtree<T>* q, T p) const;
 	T TopLeft() const;
 	T BottomRight() const;
+	~QuadtreeManager();
 private:
+	void SubInsert(Quadtree<T>* q, Node<T>* n);
 	void CalculateTreeProps(const double xextent, const double yextent, const int mem);
 	float CalculateNodes(int level);
 	void CalculateTreeExtent(MinMax mm);

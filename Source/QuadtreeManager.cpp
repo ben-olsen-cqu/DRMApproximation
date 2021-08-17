@@ -8,6 +8,12 @@
 #include <filesystem>
 
 template<typename T>
+QuadtreeManager<T>::QuadtreeManager()
+{
+    quad = new Quadtree<T>();
+}
+
+template<typename T>
 void QuadtreeManager<T>::CreateQuadtree(const std::vector<std::string> files, const float _spacing, const int mem)
 {
     auto time_start = std::chrono::steady_clock::now();
@@ -36,8 +42,74 @@ void QuadtreeManager<T>::CreateQuadtree(const std::vector<std::string> files, co
     std::cout << std::endl << "Quadtree setup complete!" << std::endl << "Setup completed in: " << time_diff.count() << "ms\n" << std::endl << std::endl;
 }
 
-template <typename T>
+template<typename T>
 void QuadtreeManager<T>::Insert(Quadtree<T>* q, Node<T>* n)
+{
+    if (type == TreeType::Single)
+    {
+        SubInsert(q, n);
+    }
+    else
+    {
+        std::vector<Quadtree<T>*> bottomnodes;
+
+        GetBottomNodes(quad, &bottomnodes);
+
+        for (int j = 0; j < bottomnodes.size(); j++)
+        {
+            if (inBoundary(bottomnodes[j], n->pos))
+            {
+                if (bottomnodes[j]->hasData == true)
+                {
+                    //tree already loaded
+                    SubInsert(bottomnodes[j], n);
+                }
+                else
+                {
+                    //deload the previous tree
+                    for (int k = 0; k < bottomnodes.size(); k++)
+                    {
+                        if (bottomnodes[k]->hasData == true) //deloads only if a tree is loaded
+                        {
+                            std::ofstream datastream;
+
+                            datastream.open("./" + prePath + std::to_string(bottomnodes[k]->index) + ".bin", std::ios::binary);
+
+                            WriteQuadToFile(bottomnodes[k], &datastream);
+
+                            datastream.close();
+
+                            bottomnodes[k]->~Quadtree();
+                            bottomnodes[k]->hasData = false;
+                        }
+                    }
+
+                    //load the tree if the file exists
+                    if (std::filesystem::exists("./" + prePath + std::to_string(bottomnodes[j]->index) + ".bin"))
+                    {
+                        std::ifstream datastream2;
+
+                        datastream2.open("./" + prePath + std::to_string(bottomnodes[j]->index) + ".bin", std::ios::binary);
+
+                        ReadFromFile(bottomnodes[j], &datastream2);
+                        bottomnodes[j]->hasData = true;
+
+                        datastream2.close();
+                    }
+                    else
+                    {
+                        bottomnodes[j]->hasData = true;
+                    }
+                    //Insert the new node to the loaded tree
+                    SubInsert(bottomnodes[j], n);
+                }
+            }
+        }
+    }
+}
+
+template <typename T>
+void QuadtreeManager<T>::SubInsert(Quadtree<T>* q, Node<T>* n)
 {
     if (!inBoundary(q,n->pos))
     {
@@ -66,7 +138,7 @@ void QuadtreeManager<T>::Insert(Quadtree<T>* q, Node<T>* n)
                 q->topRightTree->level = q->level + 1;
                 q->topRightTree->hasData = true;
             }
-            Insert(q->topRightTree, n);
+            SubInsert(q->topRightTree, n);
         }
 
         // Indicates Bottom Right Tree 
@@ -78,7 +150,7 @@ void QuadtreeManager<T>::Insert(Quadtree<T>* q, Node<T>* n)
                 q->bottomRightTree->level = q->level + 1;
                 q->bottomRightTree->hasData = true;
             }
-            Insert(q->bottomRightTree, n);
+            SubInsert(q->bottomRightTree, n);
         }
     }
     else
@@ -92,7 +164,7 @@ void QuadtreeManager<T>::Insert(Quadtree<T>* q, Node<T>* n)
                 q->topLeftTree->level = q->level + 1;
                 q->topLeftTree->hasData = true;
             }
-            Insert(q->topLeftTree, n);
+            SubInsert(q->topLeftTree, n);
         }
 
         // Indicates Bottom Left Tree 
@@ -104,15 +176,75 @@ void QuadtreeManager<T>::Insert(Quadtree<T>* q, Node<T>* n)
                 q->bottomLeftTree->level = q->level + 1;
                 q->bottomLeftTree->hasData = true;
             }
-            Insert(q->bottomLeftTree, n);
+            SubInsert(q->bottomLeftTree, n);
         }
     }
 }
 
 template<typename T>
-Node<T>* QuadtreeManager<T>::Search(T p) const
+Node<T>* QuadtreeManager<T>::Search(T p)
 {
-    return Subsearch(quad, p);
+    if (type == TreeType::Single)
+    {
+        return Subsearch(quad, p);
+    }
+    else
+    {
+        std::vector<Quadtree<T>*> bottomnodes;
+
+        GetBottomNodes(quad, &bottomnodes);
+
+        for (int j = 0; j < bottomnodes.size(); j++)
+        {
+            if (inBoundary(bottomnodes[j], p))
+            {
+                if (bottomnodes[j]->hasData == true)
+                {
+                    //tree already loaded
+                    return Subsearch(bottomnodes[j], p);
+                }
+                else
+                {
+                    //deload the previous tree
+                    for (int k = 0; k < bottomnodes.size(); k++)
+                    {
+                        if (bottomnodes[k]->hasData == true) //deloads only if a tree is loaded
+                        {
+                            std::ofstream datastream;
+
+                            datastream.open("./" + prePath + std::to_string(bottomnodes[k]->index) + ".bin", std::ios::binary);
+
+                            WriteQuadToFile(bottomnodes[k], &datastream);
+
+                            datastream.close();
+
+                            bottomnodes[k]->~Quadtree();
+                            bottomnodes[k]->hasData = false;
+                        }
+                    }
+
+                    //load the tree if the file exists
+                    if (std::filesystem::exists("./" + prePath + std::to_string(bottomnodes[j]->index) + ".bin"))
+                    {
+                        std::ifstream datastream2;
+
+                        datastream2.open("./" + prePath + std::to_string(bottomnodes[j]->index) + ".bin", std::ios::binary);
+
+                        ReadFromFile(bottomnodes[j], &datastream2);
+                        bottomnodes[j]->hasData = true;
+
+                        datastream2.close();
+                    }
+                    else
+                    {
+                        bottomnodes[j]->hasData = true;
+                    }
+                    //Insert the new node to the loaded tree
+                    return Subsearch(bottomnodes[j], p);
+                }
+            }
+        }
+    }
 }
 
 template<typename T>
@@ -131,6 +263,17 @@ template<typename T>
 T QuadtreeManager<T>::BottomRight() const
 {
     return bottomRight;
+}
+
+template<typename T>
+QuadtreeManager<T>::~QuadtreeManager()
+{
+    if (quad != nullptr)
+    {
+        quad->~Quadtree();
+        delete quad;
+        quad = nullptr;
+    }
 }
 
 template<typename T>
@@ -255,7 +398,8 @@ void QuadtreeManager<T>::CalculateTreeExtent(MinMax mm)
 template<typename T>
 void QuadtreeManager<T>::CreateSingleTree(std::vector<std::string> files)
 {
-    quad = new Quadtree<T>(topLeft,bottomRight);
+    quad->topLeft = topLeft;
+    quad->bottomRight = bottomRight;
     quad->level = 0;
     quad->hasData = true;
 
@@ -271,15 +415,22 @@ void QuadtreeManager<T>::CreateSingleTree(std::vector<std::string> files)
             T n(x, y, z);
             Node<T>* node = new Node<T>(n);
 
-            Insert(quad, node);
+            SubInsert(quad, node);
         }
     }
+
+    std::ofstream datastream;
+
+    datastream.open("./" + prePath + ".bin", std::ios::binary);
+
+    WriteQuadToFile(quad, &datastream);
 }
 
 template<typename T>
 void QuadtreeManager<T>::CreateSplitTree(std::vector<std::string> files)
 {
-    quad = new Quadtree<T>(topLeft, bottomRight);
+    quad->topLeft = topLeft;
+    quad->bottomRight = bottomRight;
     quad->level = 0;
     quad->hasData = true;
 
@@ -304,7 +455,7 @@ void QuadtreeManager<T>::CreateSplitTree(std::vector<std::string> files)
     for (int j = 0; j < bottomnodes.size(); j++)
     {
         std::ofstream* ofstream = new std::ofstream;
-        ofstream->open("./Temp/Tree/Tree" + std::to_string(bottomnodes[j]->index) + ".bin", std::ios_base::app | std::ios::binary);
+        ofstream->open("./" + prePath + std::to_string(bottomnodes[j]->index) + ".bin", std::ios_base::app | std::ios::binary);
         outstreams.push_back(ofstream);
     }
 
@@ -349,7 +500,7 @@ void QuadtreeManager<T>::CreateSplitTree(std::vector<std::string> files)
         
         std::ifstream datastream2;
 
-        datastream2.open("./Temp/Tree/Tree" + std::to_string(bottomnodes[j]->index) + ".bin", std::ios::binary);
+        datastream2.open("./" + prePath + std::to_string(bottomnodes[j]->index) + ".bin", std::ios::binary);
 
         ReadFromFile(bottomnodes[j], &datastream2);
         bottomnodes[j]->hasData = true;
@@ -358,7 +509,7 @@ void QuadtreeManager<T>::CreateSplitTree(std::vector<std::string> files)
 
         std::ofstream datastream;
 
-        datastream.open("./Temp/Tree/Tree" + std::to_string(bottomnodes[j]->index) + ".bin", std::ios::binary);
+        datastream.open("./" + prePath + std::to_string(bottomnodes[j]->index) + ".bin", std::ios::binary);
 
         WriteQuadToFile(bottomnodes[j], &datastream);
 
@@ -470,7 +621,7 @@ void QuadtreeManager<T>::ReadFromFile(Quadtree<T>* q, std::ifstream* datastream)
 
         Node<T>* node = new Node<T>(temp);
 
-        Insert(quad, node);
+        SubInsert(quad, node);
     }
 }
 
@@ -534,45 +685,3 @@ template class QuadtreeManager<Coordinates>;
 template class QuadtreeManager<Bit>;
 template class QuadtreeManager<Vec3>;
 template class QuadtreeManager<Normal>;
-
-///* Binary Writing Setup*/
-//
-//time_start = std::chrono::steady_clock::now();
-//
-//std::ofstream datastream;
-//
-//datastream.open("./Temp/Tree/Tree.dat", std::ios::binary);
-//
-//WriteToFile(quad, &datastream);
-//
-//datastream.close();
-//
-//time_complete = std::chrono::steady_clock::now();
-//
-//time_diff = std::chrono::duration_cast<std::chrono::milliseconds>(time_complete - time_start);
-//
-//std::cout << std::endl << "Tree Written to File!" << std::endl << "Write completed in: " << time_diff.count() << "ms\n" << std::endl << std::endl;
-//
-///* Dispose of Quadtree for testing of read/write*/
-//
-//quad->~Quadtree();
-//
-///* Binary Reading Setup*/
-//
-//time_start = std::chrono::steady_clock::now();
-//
-//std::ifstream datastream2;
-//
-//datastream2.open("./Temp/Tree/Tree.dat", std::ios::binary);
-//
-//ReadFromFile(quad, &datastream2);
-//
-//datastream2.close();
-//
-//time_complete = std::chrono::steady_clock::now();
-//
-//time_diff = std::chrono::duration_cast<std::chrono::milliseconds>(time_complete - time_start);
-//
-//std::cout << std::endl << "Tree Read from File!" << std::endl << "Read completed in: " << time_diff.count() << "ms\n" << std::endl << std::endl;
-//
-////Test Complete
