@@ -346,3 +346,4 @@ Inputs/Test Data 2/Lidar.csv
 Temp/Tree/Tree.dat
 *.bin
 *.csv
+*.asc

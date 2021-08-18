@@ -7,23 +7,20 @@ void CatchmentBuilder::CreateCatchments(QuadtreeManager<Coordinates>& quad)
 {
     std::cout << "Smoothing Surface\n";
     //Quadtree<Coordinates>* smoothQuad = SmoothPoints(quad);
-    QuadtreeManager<Coordinates> smooth;
+    QuadtreeManager<Coordinates> smooth(quad.topLeft,quad.bottomRight);
 
-    smooth.BottomRight() = quad.BottomRight();
-    smooth.TopLeft() = quad.TopLeft();
     smooth.prePath = "Temp/SmoothTree/Tree";
-    smooth.splitlevel() = 
+    smooth.spacing = quad.spacing;
+    smooth.splitlevel = quad.splitlevel;
+    smooth.SetTreeType(quad.type);
 
+    SmoothPoints(quad, smooth);
+    std::cout << "Exporting Original Surface\n";
+    FileWriter::WriteCoordTreeASC("./Exports/Surfaces/Original", quad);
 
-    //auto smoothTL = Normal(smoothQuad->TopLeft().x + 0.5f, smoothQuad->TopLeft().y - .5f);
-    //auto smoothBR = Normal(smoothQuad->BottomRight().x - 0.5f, smoothQuad->BottomRight().y + 0.5f);
-
-    //Quadtree<Normal>* normalquad = new Quadtree<Normal>(smoothTL, smoothBR);
-
-    //std::cout << "Exporting Smoothed Surface\n";
-    //FileWriter::WriteCoordTreeASC("Surfaces/Smooth", smoothQuad);
-    //FileWriter::WriteCoordTreeASC("Surfaces/Original", quad);
-
+    std::cout << "Exporting Smoothed Surface\n";
+    FileWriter::WriteCoordTreeASC("./Exports/Surfaces/Smooth", smooth);
+    
     //std::cout << "Generating Normals\n";
     //float boundsx = (smoothQuad->BottomRight().x) - (smoothQuad->TopLeft().x);
     //float boundsy = (smoothQuad->TopLeft().y) - (smoothQuad->BottomRight().y);
@@ -77,55 +74,72 @@ void CatchmentBuilder::CreateCatchments(QuadtreeManager<Coordinates>& quad)
     //    }
 
     //std::cout << "Writing Normals to File.\n";
-    ////FileWriter::WriteVecNormals3dWKT("Normals/SmoothNormals3dWKT", normalquad);
-    ////FileWriter::WriteVecNormals2dWKT("Normals/SmoothNormals2dWKT", normalquad);
-
-    //delete normalquad;
-    //delete smoothQuad;
+    ////FileWriter::WriteVecNormals3dWKT("./Exports/Normals/SmoothNormals3dWKT", normalquad);
+    ////FileWriter::WriteVecNormals2dWKT("./Exports/Normals/SmoothNormals2dWKT", normalquad);
 }
 
-Quadtree<Coordinates>* CatchmentBuilder::SmoothPoints(const Quadtree<Coordinates>* quad)
+void CatchmentBuilder::SmoothPoints(QuadtreeManager<Coordinates>& quad, QuadtreeManager<Coordinates>& smooth)
 {
-    
+    double boundsx = (quad.BottomRight().x) - (quad.TopLeft().x);
+    double boundsy = (quad.TopLeft().y) - (quad.BottomRight().y);
+    double bottom = (quad.BottomRight().y);
+    double left = (quad.TopLeft().x);
 
-    /*auto smoothTL = Coordinates(quad->TopLeft().x + 3, quad->TopLeft().y - 3);
-    auto smoothBR = Coordinates(quad->BottomRight().x - 3, quad->BottomRight().y + 3);
+    int numquads = quad.splitlevel * 2; //quad splits the area in half in the x and y axis
+    double boundsperquadx = boundsx / numquads;
+    double boundsperquady = boundsy / numquads;
 
-    float boundsx = (quad->BottomRight().x) - (quad->TopLeft().x) - 6;
-    float boundsy = (quad->TopLeft().y) - (quad->BottomRight().y) - 6;
-    float bottom = (quad->BottomRight().y) + 3;
-    float left = (quad->TopLeft().x) + 3;
+    std::vector<Coordinates> list;
 
-    Quadtree<Coordinates>* smoothquad = new Quadtree<Coordinates>(smoothTL, smoothBR);
+    //for loop for iterating through split level trees
+
+    //for loops for iterating through coords in a split level tree
 
     for (int y = 0; y <= boundsy; y++)
+    {
+        std::cout << "\r" << (((y + 1) / (boundsy)) * 100) << "% Smoothed";
         for (int x = 0; x <= boundsx; x++)
         {
-            Coordinates coord = quad->search(Coordinates(x + left, y + bottom))->pos;
-            
-            std::vector<Coordinates> vecCoords;
-
-            for (int j = y - 3; j < y + 3; j++)
-                for (int i = x - 3; i < x + 3; i++)
-                {
-                    vecCoords.push_back(Coordinates(quad->search(Coordinates(i + left, j + bottom))->pos));
-                }
-
-            float zavg = 0.0f;
-
-            for (auto c : vecCoords)
+            Node<Coordinates>* node = quad.Search(Coordinates(x + left, y + bottom));
+            if (node != nullptr)
             {
-                zavg += c.z;
+                Coordinates coord = node->pos;
+
+                std::vector<Coordinates> vecCoords;
+
+                for (int j = y - 1; j <= y + 1; j++)
+                    for (int i = x - 1; i <= x + 1; i++)
+                    {
+                        Node<Coordinates>* n = quad.Search(Coordinates(i + left, j + bottom));
+
+                        if (n != nullptr)
+                        {
+                            Coordinates coord = n->pos;
+                            vecCoords.push_back(coord);
+                        }
+                    }
+                if (vecCoords.size() == 0)
+                {
+                    float zavg = 0.0f;
+
+                    for (auto const c : vecCoords)
+                    {
+                        zavg += c.z;
+                    }
+
+                    zavg /= vecCoords.size();
+
+                    coord.z = zavg;
+
+                    smooth.Insert(new Node<Coordinates>(coord));
+                }
+                else
+                {
+                    smooth.Insert(new Node<Coordinates>(coord));
+                }
             }
-
-            zavg /= vecCoords.size();
-
-            coord.z = zavg;
-
-            smoothquad->insert(new Node<Coordinates>(coord));
-
         }
+    }
 
-    return smoothquad;*/
-    return nullptr;
+    std::cout << "\n\n";
 }

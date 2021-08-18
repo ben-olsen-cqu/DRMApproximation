@@ -8,36 +8,40 @@
 #include <vector>
 #include <string>
 
-enum class TreeType{Split, Single};
+enum class TreeType { Split, Single };
 
 /* Create a wrapper for the quadtree class to manage dynamic loading and creation, */
 template<typename T>
 class QuadtreeManager
 {
 private:
-	TreeType type; //Split or Single
 	Quadtree<T>* quad;
 	int levelreq; //Depth of tree required to hold a square data set that covers the extent of the imported data
 	int memlevel; //The maximum amount of levels that the memory restriction will allow
+	std::vector<Quadtree<T>*> bottomnodes;
+
+public:
+	std::string prePath = "Temp/Tree/Tree";
 	int splitlevel; //The level at which the main tree is split into 2 trees and written to file
 	float spacing; //the data density
 	T topLeft;
 	T bottomRight;
-public:
-	std::string prePath = "Temp/Tree/Tree";
+	TreeType type; //Split or Single
 
 public:
 	QuadtreeManager();
+	QuadtreeManager(T tL, T bR);
 	void CreateQuadtree(const std::vector<std::string> files, const float _spacing, const int mem);
-	void Insert(Quadtree<T>* q, Node<T>* n);
+	void Insert(Node<T>* n);
 	Node<T>* Search(T p);
 	bool inBoundary(Quadtree<T>* q, T p) const;
 	T TopLeft() const;
 	T BottomRight() const;
-	int splitlevel() const;
-	void CreatetoLevel(Quadtree<T>* q, int target);
+	void CreateTreestoLevel();
+	void SetTreeType(TreeType t);
 	~QuadtreeManager();
 private:
+	void CreatetoLevel(Quadtree<T>* q, int target);
 	void SubInsert(Quadtree<T>* q, Node<T>* n);
 	void CalculateTreeProps(const double xextent, const double yextent, const int mem);
 	float CalculateNodes(int level);
@@ -48,7 +52,7 @@ private:
 	void WriteQuadToFile(Quadtree<T>* q, std::ofstream* datastream);
 	void WriteTToFile(T* t, std::ofstream* datastream);
 	void ReadFromFile(Quadtree<T>* q, std::ifstream* datastream);
-	void GetBottomNodes(Quadtree<T>* q, std::vector<Quadtree<T>*>* bottomnodes);
+	void GetBottomNodes(Quadtree<T>* q);
 };
 
 

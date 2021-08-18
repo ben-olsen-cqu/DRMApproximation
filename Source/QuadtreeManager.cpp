@@ -11,6 +11,16 @@ template<typename T>
 QuadtreeManager<T>::QuadtreeManager()
 {
     quad = new Quadtree<T>();
+    quad->level = 0;
+}
+
+template<typename T>
+QuadtreeManager<T>::QuadtreeManager(T tL, T bR)
+{
+    quad = new Quadtree<T>(tL,bR);
+    topLeft = tL;
+    bottomRight = bR;
+    quad->level = 0;
 }
 
 template<typename T>
@@ -43,18 +53,14 @@ void QuadtreeManager<T>::CreateQuadtree(const std::vector<std::string> files, co
 }
 
 template<typename T>
-void QuadtreeManager<T>::Insert(Quadtree<T>* q, Node<T>* n)
+void QuadtreeManager<T>::Insert( Node<T>* n)
 {
     if (type == TreeType::Single)
     {
-        SubInsert(q, n);
+        SubInsert(quad, n);
     }
     else
     {
-        std::vector<Quadtree<T>*> bottomnodes;
-
-        GetBottomNodes(quad, &bottomnodes);
-
         for (int j = 0; j < bottomnodes.size(); j++)
         {
             if (inBoundary(bottomnodes[j], n->pos))
@@ -184,16 +190,15 @@ void QuadtreeManager<T>::SubInsert(Quadtree<T>* q, Node<T>* n)
 template<typename T>
 Node<T>* QuadtreeManager<T>::Search(T p)
 {
+    if (!inBoundary(quad, p))
+        return nullptr;
+    
     if (type == TreeType::Single)
     {
         return Subsearch(quad, p);
     }
     else
     {
-        std::vector<Quadtree<T>*> bottomnodes;
-
-        GetBottomNodes(quad, &bottomnodes);
-
         for (int j = 0; j < bottomnodes.size(); j++)
         {
             if (inBoundary(bottomnodes[j], p))
@@ -210,14 +215,6 @@ Node<T>* QuadtreeManager<T>::Search(T p)
                     {
                         if (bottomnodes[k]->hasData == true) //deloads only if a tree is loaded
                         {
-                            std::ofstream datastream;
-
-                            datastream.open("./" + prePath + std::to_string(bottomnodes[k]->index) + ".bin", std::ios::binary);
-
-                            WriteQuadToFile(bottomnodes[k], &datastream);
-
-                            datastream.close();
-
                             bottomnodes[k]->~Quadtree();
                             bottomnodes[k]->hasData = false;
                         }
@@ -266,9 +263,27 @@ T QuadtreeManager<T>::BottomRight() const
 }
 
 template<typename T>
-int QuadtreeManager<T>::splitlevel() const
+void QuadtreeManager<T>::CreateTreestoLevel()
 {
-    return splitlevel;
+    CreatetoLevel(quad, splitlevel);
+}
+
+template<typename T>
+void QuadtreeManager<T>::SetTreeType(TreeType t)
+{
+    type = t;
+
+    if (type == TreeType::Split)
+    {
+        CreateTreestoLevel();
+        GetBottomNodes(quad);
+
+        for (int j = 0; j < bottomnodes.size(); j++)
+        {
+            //Index the trees in the list for reference
+            (bottomnodes[j])->index = j;
+        }
+    }
 }
 
 template<typename T>
@@ -442,9 +457,7 @@ void QuadtreeManager<T>::CreateSplitTree(std::vector<std::string> files)
 
     CreatetoLevel(quad, splitlevel);
 
-    std::vector<Quadtree<T>*> bottomnodes;
-
-    GetBottomNodes(quad, &bottomnodes);
+    GetBottomNodes(quad);
 
     for (int j = 0; j < bottomnodes.size(); j++)
     {
@@ -496,34 +509,35 @@ void QuadtreeManager<T>::CreateSplitTree(std::vector<std::string> files)
     {
         outstreams[j]->close();
         delete outstreams[j];
+        outstreams[j] = nullptr;
     }
 
-    std::cout << "Cleaning Up Output Streams" << std::endl;
+    //std::cout << "Cleaning Up Output Streams" << std::endl;
 
-    for (int j = 0; j < bottomnodes.size(); j++) //Write in slightly faster order
-    {
-        std::cout << "Finalising Write of Sub Tree " << j+1 << " of " << bottomnodes.size() << std::endl;
-        
-        std::ifstream datastream2;
+    //for (int j = 0; j < bottomnodes.size(); j++) //Write in slightly faster order
+    //{
+    //    std::cout << "Finalising Write of Sub Tree " << j+1 << " of " << bottomnodes.size() << std::endl;
+    //    
+    //    std::ifstream datastream2;
 
-        datastream2.open("./" + prePath + std::to_string(bottomnodes[j]->index) + ".bin", std::ios::binary);
+    //    datastream2.open("./" + prePath + std::to_string(bottomnodes[j]->index) + ".bin", std::ios::binary);
 
-        ReadFromFile(bottomnodes[j], &datastream2);
-        bottomnodes[j]->hasData = true;
+    //    ReadFromFile(bottomnodes[j], &datastream2);
+    //    bottomnodes[j]->hasData = true;
 
-        datastream2.close();
+    //    datastream2.close();
 
-        std::ofstream datastream;
+    //    std::ofstream datastream;
 
-        datastream.open("./" + prePath + std::to_string(bottomnodes[j]->index) + ".bin", std::ios::binary);
+    //    datastream.open("./" + prePath + std::to_string(bottomnodes[j]->index) + ".bin", std::ios::binary);
 
-        WriteQuadToFile(bottomnodes[j], &datastream);
+    //    WriteQuadToFile(bottomnodes[j], &datastream);
 
-        datastream.close();
+    //    datastream.close();
 
-        bottomnodes[j]->~Quadtree();
-        bottomnodes[j]->hasData = false;
-    }
+    //    bottomnodes[j]->~Quadtree();
+    //    bottomnodes[j]->hasData = false;
+    //}
 }
 
 template<typename T>
@@ -671,19 +685,19 @@ void QuadtreeManager<T>::CreatetoLevel(Quadtree<T>* q, int target)
 }
 
 template<typename T>
-void QuadtreeManager<T>::GetBottomNodes(Quadtree<T>* q, std::vector<Quadtree<T>*>* bottomnodes)
+void QuadtreeManager<T>::GetBottomNodes(Quadtree<T>* q)
 {
     if (q->level == splitlevel)
-        bottomnodes->push_back(q);
+        bottomnodes.push_back(q);
 
     if (q->topRightTree != nullptr)
-        GetBottomNodes(q->topRightTree, bottomnodes);
+        GetBottomNodes(q->topRightTree);
     if (q->bottomRightTree != nullptr)
-        GetBottomNodes(q->bottomRightTree, bottomnodes);
+        GetBottomNodes(q->bottomRightTree);
     if (q->bottomLeftTree != nullptr)
-        GetBottomNodes(q->bottomLeftTree, bottomnodes);
+        GetBottomNodes(q->bottomLeftTree);
     if (q->topLeftTree != nullptr)
-        GetBottomNodes(q->topLeftTree, bottomnodes);
+        GetBottomNodes(q->topLeftTree);
 }
 
 

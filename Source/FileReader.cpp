@@ -87,7 +87,9 @@ void FileReader::GetMinMaxCSV(std::vector<std::string> files, MinMax& mm)
         mm.miny = std::numeric_limits<double>::max();
         mm.minx = std::numeric_limits<double>::max();
         mm.minz = std::numeric_limits<double>::max();
-
+        
+        Coordinates compare(0.0f, 0.0f, 0.0f);
+        
         while (!infile.eof())
         {
             std::string substr;
@@ -104,8 +106,6 @@ void FileReader::GetMinMaxCSV(std::vector<std::string> files, MinMax& mm)
             std::getline(infile, substr, ',');
             if (!(substr.empty() || substr == "\n"))
                 c.z = std::stof(substr);
-
-            Coordinates compare(0.0f, 0.0f, 0.0f);
 
             if ((compare != c))
             {
