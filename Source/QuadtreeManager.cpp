@@ -266,6 +266,12 @@ T QuadtreeManager<T>::BottomRight() const
 }
 
 template<typename T>
+int QuadtreeManager<T>::splitlevel() const
+{
+    return splitlevel;
+}
+
+template<typename T>
 QuadtreeManager<T>::~QuadtreeManager()
 {
     if (quad != nullptr)

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Quadtree.h"
+#include "QuadtreeManager.h"
 #include "Coordinates.h"
 #include "CatchMath.h"
 
@@ -9,6 +10,7 @@
 class CatchmentBuilder
 {
 public:
-    void CreateCatchments(const Quadtree<Coordinates>* quad);
+    void CreateCatchments(QuadtreeManager<Coordinates> &quad);
+private:
     Quadtree<Coordinates>* SmoothPoints(const Quadtree<Coordinates>* quad);
 };

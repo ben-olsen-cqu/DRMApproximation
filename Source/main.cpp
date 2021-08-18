@@ -4,6 +4,7 @@
 #include "../Headers/Coordinates.h"
 #include "../Headers/Bit.h"
 #include "../Headers/QuadtreeManager.h"
+#include "../Headers/CatchmentBuilder.h"
 
 #include <iostream>
 #include <exception>
@@ -104,13 +105,16 @@ int main(int argc, char* argv[])
     QuadtreeManager<Coordinates> qm;
     qm.CreateQuadtree(files, spacing, maxMem);
 
-    //Node<Coordinates>* n = qm.Search(Coordinates(477000.5, 7103000.5));
-    Node<Coordinates>* n = qm.Search(Coordinates(253999.5, 7420999.5));
+    auto time_start = std::chrono::steady_clock::now();
 
-    if (n != nullptr)
-    {
-        std::cout << n->pos.x << "," << n->pos.y << "," << n->pos.z << std::endl;
-    }
+    CatchmentBuilder catchBuilder;
+    catchBuilder.CreateCatchments(qm);
+
+    auto time_complete = std::chrono::steady_clock::now();
+
+    auto time_diff = std::chrono::duration_cast<std::chrono::milliseconds>(time_complete - time_start);
+
+    std::cout << "Catchments Created in: " << time_diff.count() << "ms\n";
 
     return 0;
 }

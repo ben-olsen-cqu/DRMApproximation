@@ -3,10 +3,17 @@
 
 #include <iostream>
 
-void CatchmentBuilder::CreateCatchments(const Quadtree<Coordinates>* quad)
+void CatchmentBuilder::CreateCatchments(QuadtreeManager<Coordinates>& quad)
 {
-    //std::cout << "Smoothing Surface\n";
+    std::cout << "Smoothing Surface\n";
     //Quadtree<Coordinates>* smoothQuad = SmoothPoints(quad);
+    QuadtreeManager<Coordinates> smooth;
+
+    smooth.BottomRight() = quad.BottomRight();
+    smooth.TopLeft() = quad.TopLeft();
+    smooth.prePath = "Temp/SmoothTree/Tree";
+    smooth.splitlevel() = 
+
 
     //auto smoothTL = Normal(smoothQuad->TopLeft().x + 0.5f, smoothQuad->TopLeft().y - .5f);
     //auto smoothBR = Normal(smoothQuad->BottomRight().x - 0.5f, smoothQuad->BottomRight().y + 0.5f);
