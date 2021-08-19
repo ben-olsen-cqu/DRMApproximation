@@ -107,31 +107,14 @@ void CatchmentBuilder::SmoothPoints(QuadtreeManager<Coordinates>& quad, Quadtree
             for (int y = 0; y < boundsperquady; y++)
                 for (int x = 0; x < boundsperquadx; x++)
                 {
-                    auto time_start = std::chrono::steady_clock::now();
 
                     Node<Coordinates>* node = quad.Search(Coordinates(x + v * boundsperquadx + left, y + w * boundsperquady + bottom));
 
-                    auto time_complete = std::chrono::steady_clock::now();
-
-                    auto time_diff = std::chrono::duration_cast<std::chrono::microseconds>(time_complete - time_start);
-
-                    std::cout << "First Search: " << time_diff.count() << "ms\n";
-
                     if (node != nullptr)
                     {
-                        time_start = std::chrono::steady_clock::now();
-
                         Coordinates coord = node->pos;
 
                         std::vector<Coordinates> vecCoords;
-
-                        time_complete = std::chrono::steady_clock::now();
-
-                        time_diff = std::chrono::duration_cast<std::chrono::microseconds>(time_complete - time_start);
-
-                        std::cout << "Allocate: " << time_diff.count() << "us\n";
-
-                        time_start = std::chrono::steady_clock::now();
 
                         for (int j = y - 1; j <= y + 1; j++)
                             for (int i = x - 1; i <= x + 1; i++)
@@ -145,14 +128,6 @@ void CatchmentBuilder::SmoothPoints(QuadtreeManager<Coordinates>& quad, Quadtree
                                 }
                             }
 
-                        time_complete = std::chrono::steady_clock::now();
-
-                        time_diff = std::chrono::duration_cast<std::chrono::microseconds>(time_complete - time_start);
-
-                        std::cout << "3x3 Search: " << time_diff.count() << "us\n";
-
-                        time_start = std::chrono::steady_clock::now();
-
                         float zavg = 0.0f;
 
                         for (auto const c : vecCoords)
@@ -164,22 +139,7 @@ void CatchmentBuilder::SmoothPoints(QuadtreeManager<Coordinates>& quad, Quadtree
 
                         coord.z = zavg;
 
-                        time_complete = std::chrono::steady_clock::now();
-
-                        time_diff = std::chrono::duration_cast<std::chrono::microseconds>(time_complete - time_start);
-
-                        std::cout << "Allocate2: " << time_diff.count() << "us\n";
-
-                        time_start = std::chrono::steady_clock::now();
-
                         smooth.Insert(new Node<Coordinates>(coord));
-
-                        time_complete = std::chrono::steady_clock::now();
-
-                        time_diff = std::chrono::duration_cast<std::chrono::microseconds>(time_complete - time_start);
-
-                        std::cout << "Insert: " << time_diff.count() << "us\n";
-
                     }
                 }
 }

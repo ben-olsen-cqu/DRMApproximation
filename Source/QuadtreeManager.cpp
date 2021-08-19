@@ -511,33 +511,6 @@ void QuadtreeManager<T>::CreateSplitTree(std::vector<std::string> files)
         delete outstreams[j];
         outstreams[j] = nullptr;
     }
-
-    //std::cout << "Cleaning Up Output Streams" << std::endl;
-
-    //for (int j = 0; j < bottomnodes.size(); j++) //Write in slightly faster order
-    //{
-    //    std::cout << "Finalising Write of Sub Tree " << j+1 << " of " << bottomnodes.size() << std::endl;
-    //    
-    //    std::ifstream datastream2;
-
-    //    datastream2.open("./" + prePath + std::to_string(bottomnodes[j]->index) + ".bin", std::ios::binary);
-
-    //    ReadFromFile(bottomnodes[j], &datastream2);
-    //    bottomnodes[j]->hasData = true;
-
-    //    datastream2.close();
-
-    //    std::ofstream datastream;
-
-    //    datastream.open("./" + prePath + std::to_string(bottomnodes[j]->index) + ".bin", std::ios::binary);
-
-    //    WriteQuadToFile(bottomnodes[j], &datastream);
-
-    //    datastream.close();
-
-    //    bottomnodes[j]->~Quadtree();
-    //    bottomnodes[j]->hasData = false;
-    //}
 }
 
 template<typename T>
