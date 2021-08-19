@@ -85,61 +85,101 @@ void CatchmentBuilder::SmoothPoints(QuadtreeManager<Coordinates>& quad, Quadtree
     double bottom = (quad.BottomRight().y);
     double left = (quad.TopLeft().x);
 
-    int numquads = quad.splitlevel * 2; //quad splits the area in half in the x and y axis
+    int numquads;
+
+    if (quad.type == TreeType::Split)
+    {
+        numquads = quad.splitlevel * 2; //quad splits the area in half in the x and y axis
+    }
+    else
+    {
+        numquads = 1; //if single tree quads at the split level is 1
+    }
     double boundsperquadx = boundsx / numquads;
     double boundsperquady = boundsy / numquads;
 
     std::vector<Coordinates> list;
+    int totalquads = numquads * numquads;
 
     //for loop for iterating through split level trees
+    for (int v = 0; v < numquads; v++)
+        for (int w = 0; w < numquads; w++)
+            for (int y = 0; y < boundsperquady; y++)
+                for (int x = 0; x < boundsperquadx; x++)
+                {
+                    auto time_start = std::chrono::steady_clock::now();
 
-    //for loops for iterating through coords in a split level tree
+                    Node<Coordinates>* node = quad.Search(Coordinates(x + v * boundsperquadx + left, y + w * boundsperquady + bottom));
 
-    for (int y = 0; y <= boundsy; y++)
-    {
-        std::cout << "\r" << (((y + 1) / (boundsy)) * 100) << "% Smoothed";
-        for (int x = 0; x <= boundsx; x++)
-        {
-            Node<Coordinates>* node = quad.Search(Coordinates(x + left, y + bottom));
-            if (node != nullptr)
-            {
-                Coordinates coord = node->pos;
+                    auto time_complete = std::chrono::steady_clock::now();
 
-                std::vector<Coordinates> vecCoords;
+                    auto time_diff = std::chrono::duration_cast<std::chrono::microseconds>(time_complete - time_start);
 
-                for (int j = y - 1; j <= y + 1; j++)
-                    for (int i = x - 1; i <= x + 1; i++)
+                    std::cout << "First Search: " << time_diff.count() << "ms\n";
+
+                    if (node != nullptr)
                     {
-                        Node<Coordinates>* n = quad.Search(Coordinates(i + left, j + bottom));
+                        time_start = std::chrono::steady_clock::now();
 
-                        if (n != nullptr)
+                        Coordinates coord = node->pos;
+
+                        std::vector<Coordinates> vecCoords;
+
+                        time_complete = std::chrono::steady_clock::now();
+
+                        time_diff = std::chrono::duration_cast<std::chrono::microseconds>(time_complete - time_start);
+
+                        std::cout << "Allocate: " << time_diff.count() << "us\n";
+
+                        time_start = std::chrono::steady_clock::now();
+
+                        for (int j = y - 1; j <= y + 1; j++)
+                            for (int i = x - 1; i <= x + 1; i++)
+                            {
+                                Node<Coordinates>* n = quad.Search(Coordinates(i + v * boundsperquadx + left, j + w * boundsperquady + bottom));
+
+                                if (n != nullptr)
+                                {
+                                    Coordinates coord = n->pos;
+                                    vecCoords.push_back(coord);
+                                }
+                            }
+
+                        time_complete = std::chrono::steady_clock::now();
+
+                        time_diff = std::chrono::duration_cast<std::chrono::microseconds>(time_complete - time_start);
+
+                        std::cout << "3x3 Search: " << time_diff.count() << "us\n";
+
+                        time_start = std::chrono::steady_clock::now();
+
+                        float zavg = 0.0f;
+
+                        for (auto const c : vecCoords)
                         {
-                            Coordinates coord = n->pos;
-                            vecCoords.push_back(coord);
+                            zavg += c.z;
                         }
+
+                        zavg /= vecCoords.size();
+
+                        coord.z = zavg;
+
+                        time_complete = std::chrono::steady_clock::now();
+
+                        time_diff = std::chrono::duration_cast<std::chrono::microseconds>(time_complete - time_start);
+
+                        std::cout << "Allocate2: " << time_diff.count() << "us\n";
+
+                        time_start = std::chrono::steady_clock::now();
+
+                        smooth.Insert(new Node<Coordinates>(coord));
+
+                        time_complete = std::chrono::steady_clock::now();
+
+                        time_diff = std::chrono::duration_cast<std::chrono::microseconds>(time_complete - time_start);
+
+                        std::cout << "Insert: " << time_diff.count() << "us\n";
+
                     }
-                if (vecCoords.size() == 0)
-                {
-                    float zavg = 0.0f;
-
-                    for (auto const c : vecCoords)
-                    {
-                        zavg += c.z;
-                    }
-
-                    zavg /= vecCoords.size();
-
-                    coord.z = zavg;
-
-                    smooth.Insert(new Node<Coordinates>(coord));
                 }
-                else
-                {
-                    smooth.Insert(new Node<Coordinates>(coord));
-                }
-            }
-        }
-    }
-
-    std::cout << "\n\n";
 }
