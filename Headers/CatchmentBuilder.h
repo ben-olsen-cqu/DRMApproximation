@@ -12,5 +12,7 @@ class CatchmentBuilder
 public:
     void CreateCatchments(QuadtreeManager<Coordinates> &quad);
 private:
-    void SmoothPoints(QuadtreeManager<Coordinates>& quad, QuadtreeManager<Coordinates>& smooth);
+    void SmoothPointsSingle(QuadtreeManager<Coordinates>& quad, QuadtreeManager<Coordinates>& smooth);
+    void SmoothPointsSplit(QuadtreeManager<Coordinates>& quad, QuadtreeManager<Coordinates>& smooth);
+    void CalculateNormals(QuadtreeManager<Coordinates>& quad, QuadtreeManager<Normal>& normal);
 };

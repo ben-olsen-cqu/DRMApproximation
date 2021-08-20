@@ -141,19 +141,19 @@ void FileWriter::WriteVecNormals3dWKT(std::string filename, Quadtree<Normal>* no
 	//	};
 }
 
-void FileWriter::WriteVecNormals2dWKT(std::string filename, Quadtree<Normal>* normals) {
-	//std::ofstream outfile(path + filename + ".csv");
+void FileWriter::WriteVecNormals2dWKT(std::string filename, QuadtreeManager<Normal>& normals) {
+	std::ofstream outfile(filename + ".csv");
 
-	//float boundsx = (normals->BottomRight().x) - (normals->TopLeft().x);
-	//float boundsy = (normals->TopLeft().y) - (normals->BottomRight().y);
-	//float bottom = (normals->BottomRight().y);
-	//float left = (normals->TopLeft().x);
+	float boundsx = (normals.BottomRight().x) - (normals.TopLeft().x);
+	float boundsy = (normals.TopLeft().y) - (normals.BottomRight().y);
+	float bottom = (normals.BottomRight().y);
+	float left = (normals.TopLeft().x);
 
-	//for (int x = 0; x <= boundsx; x++)
-	//	for (int y = 0; y <= boundsy; y++)
-	//	{
-	//		auto c = normals->search(Normal(x + left, y + bottom))->pos;
-	//		std::string line = "LINESTRING (" + std::to_string(c.x) + " " + std::to_string(c.y) + "," + std::to_string(c.norm.x) + " " + std::to_string(c.norm.y) + ")";
-	//		outfile << line << std::endl;
-	//	};
+	for (int x = 0; x <= boundsx; x++)
+		for (int y = 0; y <= boundsy; y++)
+		{
+			auto c = normals.Search(Normal(x + left, y + bottom))->pos;
+			std::string line = "LINESTRING (" + std::to_string(c.x) + " " + std::to_string(c.y) + "," + std::to_string(c.norm.x) + " " + std::to_string(c.norm.y) + ")";
+			outfile << line << std::endl;
+		};
 }

@@ -16,7 +16,7 @@ public:
 	static void WriteCoordTreeASC(std::string filename, QuadtreeManager<Coordinates>& quad);
     static void WriteVecNormals2d(std::string filename, Quadtree<Normal>* normals);
 	static void WriteVecNormals3d(std::string filename, Quadtree<Normal>* normals);
-	static void WriteVecNormals2dWKT(std::string filename, Quadtree<Normal>* normals);
+	static void WriteVecNormals2dWKT(std::string filename, QuadtreeManager<Normal>& normals);
 	static void WriteVecNormals3dWKT(std::string filename, Quadtree<Normal>* normals);
 private:
 	static void Write(std::string filename, std::string data);

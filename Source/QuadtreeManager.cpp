@@ -87,6 +87,7 @@ void QuadtreeManager<T>::Insert( Node<T>* n)
 
                             bottomnodes[k]->~Quadtree();
                             bottomnodes[k]->hasData = false;
+                            break;
                         }
                     }
 
@@ -108,6 +109,7 @@ void QuadtreeManager<T>::Insert( Node<T>* n)
                     }
                     //Insert the new node to the loaded tree
                     SubInsert(bottomnodes[j], n);
+                    break;
                 }
             }
         }
@@ -217,6 +219,7 @@ Node<T>* QuadtreeManager<T>::Search(T p)
                         {
                             bottomnodes[k]->~Quadtree();
                             bottomnodes[k]->hasData = false;
+                            break;
                         }
                     }
 
@@ -231,10 +234,6 @@ Node<T>* QuadtreeManager<T>::Search(T p)
                         bottomnodes[j]->hasData = true;
 
                         datastream2.close();
-                    }
-                    else
-                    {
-                        bottomnodes[j]->hasData = true;
                     }
                     //Insert the new node to the loaded tree
                     return Subsearch(bottomnodes[j], p);
@@ -282,6 +281,12 @@ void QuadtreeManager<T>::SetTreeType(TreeType t)
         {
             //Index the trees in the list for reference
             (bottomnodes[j])->index = j;
+
+#if defined(DEBUG)
+            std::cout << "\nSub Tree " << bottomnodes[j]->index << ": TL= " << bottomnodes[j]->TopLeft().x << "," << 
+                bottomnodes[j]->TopLeft().y << " ; BR= " << bottomnodes[j]->BottomRight().x << "," << bottomnodes[j]->BottomRight().y << "\n";
+#endif
+
         }
     }
 }
@@ -497,6 +502,7 @@ void QuadtreeManager<T>::CreateSplitTree(std::vector<std::string> files)
                 if (inBoundary(bottomnodes[j], n))
                 {
                     WriteTToFile(&n, outstreams[j]);
+                    break;
                 }
             }
             delete node;
@@ -522,7 +528,7 @@ Node<T>* QuadtreeManager<T>::Subsearch(Quadtree<T>* q, T p) const
 
     // We are at a quad of unit length 
     // We cannot subdivide this quad further 
-    if (q->n != nullptr && (p.x == q->n->pos.x && p.y == q->n->pos.y))
+    if (q->n != nullptr && ((p.x - q->n->pos.x) < (spacing/2)+.0001 && (p.y - q->n->pos.y) < (spacing/2)+.0001))
         return q->n;
 
     if (((q->topLeft.x + q->bottomRight.x) / 2) <= p.x)
@@ -582,11 +588,6 @@ void QuadtreeManager<T>::WriteQuadToFile(Quadtree<T>* q, std::ofstream* datastre
     {
         datastream->write((char*)&(q->n->pos), sizeof(T));
     }
-    else
-    {
-        T dummy(0, 0);
-        datastream->write((char*)&dummy, sizeof(T));
-    }
 }
 
 template<typename T>
@@ -595,11 +596,6 @@ void QuadtreeManager<T>::WriteTToFile(T* t, std::ofstream* datastream)
     if (t != nullptr)
     {
         datastream->write((char*)t, sizeof(T));
-    }
-    else
-    {
-        T dummy(0, 0);
-        datastream->write((char*)&dummy, sizeof(T));
     }
 }
 
