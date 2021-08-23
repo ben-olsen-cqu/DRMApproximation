@@ -190,13 +190,13 @@ void CatchmentBuilder::SmoothPointsSplit(QuadtreeManager<Coordinates>& quad, Qua
     std::vector< std::vector<std::vector<Node<Coordinates>*>>> listc; //list for coords along the perimetre to cache - bottom
 
     //for loops for iterating through split level trees
-    for (int v = 0; v < numquads; v++)
+    for (int v = 0; v < numquads; v++) //move vertically
     {
         lista = std::move(listb);
         listb = std::move(listc);
         listc.clear();
 
-        for (int w = 0; w < numquads; w++)
+        for (int w = 0; w < numquads; w++) //move horizontally
         {
             std::vector<Node<Coordinates>*> listTop;
             std::vector<Node<Coordinates>*> listBottom;
@@ -219,7 +219,7 @@ void CatchmentBuilder::SmoothPointsSplit(QuadtreeManager<Coordinates>& quad, Qua
                 {
                     if (y < storenum || (boundsperquady - y) <= storenum || x < storenum || (boundsperquadx - x) <= storenum)
                     {
-                        Node<Coordinates>* node = quad.Search(Coordinates(x + v * boundsperquadx + left, y + w * boundsperquady + bottom));
+                        Node<Coordinates>* node = quad.Search(Coordinates(x + w * boundsperquadx + left, y + v * boundsperquady + bottom));
                         
                         if (y < storenum) //Top side of quad
                         {
@@ -240,7 +240,7 @@ void CatchmentBuilder::SmoothPointsSplit(QuadtreeManager<Coordinates>& quad, Qua
                     }
                     else
                     {
-                        Node<Coordinates>* node = quad.Search(Coordinates(x + v * boundsperquadx + left, y + w * boundsperquady + bottom));
+                        Node<Coordinates>* node = quad.Search(Coordinates(x + w * boundsperquadx + left, y + v * boundsperquady + bottom));
 
                         if (node != nullptr)
                         {
@@ -251,7 +251,7 @@ void CatchmentBuilder::SmoothPointsSplit(QuadtreeManager<Coordinates>& quad, Qua
                             for (int j = y - storenum; j <= y + storenum; j++)
                                 for (int i = x - storenum; i <= x + storenum; i++)
                                 {
-                                    Node<Coordinates>* n = quad.Search(Coordinates(i + v * boundsperquadx + left, j + w * boundsperquady + bottom));
+                                    Node<Coordinates>* n = quad.Search(Coordinates(i + w * boundsperquadx + left, j + v * boundsperquady + bottom));
 
                                     if (n != nullptr)
                                     {
@@ -277,146 +277,605 @@ void CatchmentBuilder::SmoothPointsSplit(QuadtreeManager<Coordinates>& quad, Qua
                 }
         }
 
-        //EDGE OF SUB-QUAD PROCESSING
-        //process row here
-        if (v == 1) //first row of sub-quads: do not process the row above
-        {
-            //for loops for iterating through split level trees
+        ////EDGE OF SUB-QUAD PROCESSING
+        ////process row here
+        //if (v == 0) //first row of sub-quads: do not process the row above
+        //{
+        //    //for loops for iterating through split level trees
 
-                for (int w = 0; w < numquads; w++)
-                {
-                    //Bottom
-                    for (int x = 0; x < boundsperquadx; x++)
-                        for (int y = 0; y < storenum; y++)
-                        {
-                            Node<Coordinates>* node = quad.Search(Coordinates(x + v * boundsperquadx + left, y + w * boundsperquady + bottom));
+        //        for (int w = 0; w < numquads; w++)
+        //        {
+        //            //Bottom
+        //            for (int x = 0; x < boundsperquadx; x++)
+        //                for (int y = 0; y < storenum; y++)
+        //                {
+        //                    Node<Coordinates>* node = quad.Search(Coordinates(x + v * boundsperquadx + left, y + w * boundsperquady + bottom)); //Get Node at centre
 
-                            if (node != nullptr)
-                            {
-                                Coordinates coord = node->pos;
+        //                    if (node != nullptr) //if not nullptr continue
+        //                    {
+        //                        Coordinates coord = node->pos; //Get coord from Node
 
-                                std::vector<Coordinates> vecCoords;
+        //                        std::vector<Coordinates> vecCoords; //create a list to use as a container for all points to be blurred
 
-                                for (int j = y - 1; j <= y + 1; j++)
-                                    for (int i = x - 1; i <= x + 1; i++)
-                                    {
-                                        Node<Coordinates>* n = quad.Search(Coordinates(i + v * boundsperquadx + left, j + w * boundsperquady + bottom));
+        //                        for (int j = y - storenum; j <= y + storenum; j++)
+        //                            for (int i = x - storenum; i <= x + storenum; i++) //Iterate over the blur radius around the point
+        //                            {
+        //                                if (j > y) //if point is in another quad use the cached list otherwise read it from the loaded quad
+        //                                {
+        //                                    Node<Coordinates>* n = quad.Search(Coordinates(i + v * boundsperquadx + left, j + w * boundsperquady + bottom));
 
-                                        if (n != nullptr)
-                                        {
-                                            Coordinates coord = n->pos;
-                                            vecCoords.push_back(coord);
-                                        }
-                                    }
+        //                                    if (n != nullptr)
+        //                                    {
+        //                                        Coordinates coord = n->pos;
+        //                                        vecCoords.push_back(coord);
+        //                                    }
 
-                                float zavg = 0.0f;
+        //                                }
+        //                                else
+        //                                {
+        //                                    Coordinates coord(i + v * boundsperquadx + left, j + w * boundsperquady + bottom);
+        //                                    for (int a = 0; a < lista[w][0].size(); a++)
+        //                                    {
+        //                                        if (lista[w][0][a]->pos == coord)
+        //                                        {
+        //                                            coord = lista[w][0][a]->pos;
+        //                                            vecCoords.push_back(coord);
+        //                                        }
+        //                                    }
 
-                                for (auto const c : vecCoords)
-                                {
-                                    zavg += c.z;
-                                }
+        //                                }
+        //                            }
 
-                                zavg /= vecCoords.size();
+        //                        float zavg = 0.0f;
 
-                                coord.z = zavg;
+        //                        for (auto const c : vecCoords)
+        //                        {
+        //                            zavg += c.z;
+        //                        }
 
-                                smooth.Insert(new Node<Coordinates>(coord));
-                            }
-                        }
-                    //Right
-                    if (w != (numquads - 1))
-                    {
-                        for (int x = boundsperquadx - storenum - 1; x < boundsperquadx; x++)
-                            for (int y = storenum; y < boundsperquady - storenum - 1; y++)
-                            {
+        //                        zavg /= vecCoords.size();
 
-                            }
-                    }
-                    
-                    //Left
-                    if (w != 0)
-                    {
-                        for (int x = 0; x < storenum; x++)
-                            for (int y = storenum; y < boundsperquady - storenum - 1; y++)
-                            {
+        //                        coord.z = zavg;
 
-                            }
-                    }
-                }
-            
-        }
-        else if (v == numquads) //bottom row of sub-quads: do not process the row below
-        {
-            //for loops for iterating through split level trees
+        //                        smooth.Insert(new Node<Coordinates>(coord));
+        //                    }
+        //                }
+        //            //Right
+        //            if (w != (numquads - 1))
+        //            {
+        //                for (int x = boundsperquadx - storenum - 1; x < boundsperquadx; x++)
+        //                    for (int y = storenum; y < boundsperquady - storenum - 1; y++)
+        //                    {
+        //                        Node<Coordinates>* node = quad.Search(Coordinates(x + v * boundsperquadx + left, y + w * boundsperquady + bottom)); //Get Node at centre
 
-            for (int w = 0; w < numquads; w++)
-            {
-                //Top
-                for (int x = 0; x < boundsperquadx; x++)
-                    for (int y = boundsperquady-storenum-1; y < boundsperquady; y++)
-                    {
+        //                        if (node != nullptr) //if not nullptr continue
+        //                        {
+        //                            Coordinates coord = node->pos; //Get coord from Node
 
-                    }
-                //Right
-                if (w != (numquads - 1))
-                {
-                    for (int x = boundsperquadx - storenum - 1; x < boundsperquadx; x++)
-                        for (int y = storenum; y < boundsperquady - storenum - 1; y++)
-                        {
+        //                            std::vector<Coordinates> vecCoords; //create a list to use as a container for all points to be blurred
 
-                        }
-                }
+        //                            for (int j = y - storenum; j <= y + storenum; j++)
+        //                                for (int i = x - storenum; i <= x + storenum; i++) //Iterate over the blur radius around the point
+        //                                {
+        //                                    if (i > x) //if point is in another quad use the cached list otherwise read it from the loaded quad
+        //                                    {
+        //                                        Node<Coordinates>* n = quad.Search(Coordinates(i + v * boundsperquadx + left, j + w * boundsperquady + bottom));
 
-                //Left
-                if (w != 0)
-                {
-                    for (int x = 0; x < storenum; x++)
-                        for (int y = storenum; y < boundsperquady - storenum - 1; y++)
-                        {
+        //                                        if (n != nullptr)
+        //                                        {
+        //                                            Coordinates coord = n->pos;
+        //                                            vecCoords.push_back(coord);
+        //                                        }
 
-                        }
-                }
-            }
-        }
-        else if (v > 1 && v < numquads) //inbetween rows of sub-quads: process both above and below
-        {
-            //for loops for iterating through split level trees
+        //                                    }
+        //                                    else
+        //                                    {
+        //                                        Coordinates coord(i + v * boundsperquadx + left, j + w * boundsperquady + bottom);
+        //                                        for (int a = 0; a < listb[w][2].size(); a++)
+        //                                        {
+        //                                            if (listb[w][2][a]->pos == coord)
+        //                                            {
+        //                                                coord = listb[w][2][a]->pos;
+        //                                                vecCoords.push_back(coord);
+        //                                            }
+        //                                        }
 
-            for (int w = 0; w < numquads; w++)
-            {
-                //Top
-                for (int x = 0; x < boundsperquadx; x++)
-                    for (int y = boundsperquady - storenum - 1; y < boundsperquady; y++)
-                    {
+        //                                    }
+        //                                }
 
-                    }
-                //Bottom
-                for (int x = 0; x < boundsperquadx; x++)
-                    for (int y = 0; y < storenum; y++)
-                    {
+        //                            float zavg = 0.0f;
 
-                    }
-                //Right
-                if (w != (numquads - 1))
-                {
-                    for (int x = boundsperquadx - storenum - 1; x < boundsperquadx; x++)
-                        for (int y = storenum; y < boundsperquady - storenum - 1; y++)
-                        {
+        //                            for (auto const c : vecCoords)
+        //                            {
+        //                                zavg += c.z;
+        //                            }
 
-                        }
-                }
-                //Left
-                if (w != 0)
-                {
-                    for (int x = 0; x < storenum; x++)
-                        for (int y = 0; y < boundsperquady; y++)
-                        {
+        //                            zavg /= vecCoords.size();
 
-                        }
-                }
-            }
-            
-        }
+        //                            coord.z = zavg;
+
+        //                            smooth.Insert(new Node<Coordinates>(coord));
+        //                        }
+        //                    }
+        //            }
+        //            
+        //            //Left
+        //            if (w != 0)
+        //            {
+        //                for (int x = 0; x < storenum; x++)
+        //                    for (int y = storenum; y < boundsperquady - storenum - 1; y++)
+        //                    {
+        //                        Node<Coordinates>* node = quad.Search(Coordinates(x + v * boundsperquadx + left, y + w * boundsperquady + bottom)); //Get Node at centre
+
+        //                        if (node != nullptr) //if not nullptr continue
+        //                        {
+        //                            Coordinates coord = node->pos; //Get coord from Node
+
+        //                            std::vector<Coordinates> vecCoords; //create a list to use as a container for all points to be blurred
+
+        //                            for (int j = y - storenum; j <= y + storenum; j++)
+        //                                for (int i = x - storenum; i <= x + storenum; i++) //Iterate over the blur radius around the point
+        //                                {
+        //                                    if (i < x) //if point is in another quad use the cached list otherwise read it from the loaded quad
+        //                                    {
+        //                                        Node<Coordinates>* n = quad.Search(Coordinates(i + v * boundsperquadx + left, j + w * boundsperquady + bottom));
+
+        //                                        if (n != nullptr)
+        //                                        {
+        //                                            Coordinates coord = n->pos;
+        //                                            vecCoords.push_back(coord);
+        //                                        }
+
+        //                                    }
+        //                                    else
+        //                                    {
+        //                                        Coordinates coord(i + v * boundsperquadx + left, j + w * boundsperquady + bottom);
+        //                                        for (int a = 0; a < listb[w][3].size(); a++)
+        //                                        {
+        //                                            if (listb[w][3][a]->pos == coord)
+        //                                            {
+        //                                                coord = listb[w][3][a]->pos;
+        //                                                vecCoords.push_back(coord);
+        //                                            }
+        //                                        }
+
+        //                                    }
+        //                                }
+
+        //                            float zavg = 0.0f;
+
+        //                            for (auto const c : vecCoords)
+        //                            {
+        //                                zavg += c.z;
+        //                            }
+
+        //                            zavg /= vecCoords.size();
+
+        //                            coord.z = zavg;
+
+        //                            smooth.Insert(new Node<Coordinates>(coord));
+        //                        }
+        //                    }
+        //                    
+        //            }
+        //        }
+        //    
+        //}
+        //else if (v == numquads-1) //bottom row of sub-quads: do not process the row below
+        //{
+        //    //for loops for iterating through split level trees
+
+        //    for (int w = 0; w < numquads; w++)
+        //    {
+        //        //Top
+        //        for (int x = 0; x < boundsperquadx; x++)
+        //            for (int y = boundsperquady-storenum-1; y < boundsperquady; y++)
+        //            {
+        //                Node<Coordinates>* node = quad.Search(Coordinates(x + v * boundsperquadx + left, y + w * boundsperquady + bottom)); //Get Node at centre
+
+        //                if (node != nullptr) //if not nullptr continue
+        //                {
+        //                    Coordinates coord = node->pos; //Get coord from Node
+
+        //                    std::vector<Coordinates> vecCoords; //create a list to use as a container for all points to be blurred
+
+        //                    for (int j = y - storenum; j <= y + storenum; j++)
+        //                        for (int i = x - storenum; i <= x + storenum; i++) //Iterate over the blur radius around the point
+        //                        {
+        //                            if (j < y) //if point is in another quad use the cached list otherwise read it from the loaded quad
+        //                            {
+        //                                Node<Coordinates>* n = quad.Search(Coordinates(i + v * boundsperquadx + left, j + w * boundsperquady + bottom));
+
+        //                                if (n != nullptr)
+        //                                {
+        //                                    Coordinates coord = n->pos;
+        //                                    vecCoords.push_back(coord);
+        //                                }
+
+        //                            }
+        //                            else
+        //                            {
+        //                                Coordinates coord(i + v * boundsperquadx + left, j + w * boundsperquady + bottom);
+        //                                for (int a = 0; a < listc[w][1].size(); a++)
+        //                                {
+        //                                    if (listc[w][1][a]->pos == coord)
+        //                                    {
+        //                                        coord = listc[w][1][a]->pos;
+        //                                        vecCoords.push_back(coord);
+        //                                    }
+        //                                }
+
+        //                            }
+        //                        }
+
+        //                    float zavg = 0.0f;
+
+        //                    for (auto const c : vecCoords)
+        //                    {
+        //                        zavg += c.z;
+        //                    }
+
+        //                    zavg /= vecCoords.size();
+
+        //                    coord.z = zavg;
+
+        //                    smooth.Insert(new Node<Coordinates>(coord));
+        //                }
+        //            }
+        //        //Right
+        //        if (w != (numquads - 1))
+        //        {
+        //            for (int x = boundsperquadx - storenum - 1; x < boundsperquadx; x++)
+        //                for (int y = storenum; y < boundsperquady - storenum - 1; y++)
+        //                {
+        //                    Node<Coordinates>* node = quad.Search(Coordinates(x + v * boundsperquadx + left, y + w * boundsperquady + bottom)); //Get Node at centre
+
+        //                    if (node != nullptr) //if not nullptr continue
+        //                    {
+        //                        Coordinates coord = node->pos; //Get coord from Node
+
+        //                        std::vector<Coordinates> vecCoords; //create a list to use as a container for all points to be blurred
+
+        //                        for (int j = y - storenum; j <= y + storenum; j++)
+        //                            for (int i = x - storenum; i <= x + storenum; i++) //Iterate over the blur radius around the point
+        //                            {
+        //                                if (i > x) //if point is in another quad use the cached list otherwise read it from the loaded quad
+        //                                {
+        //                                    Node<Coordinates>* n = quad.Search(Coordinates(i + v * boundsperquadx + left, j + w * boundsperquady + bottom));
+
+        //                                    if (n != nullptr)
+        //                                    {
+        //                                        Coordinates coord = n->pos;
+        //                                        vecCoords.push_back(coord);
+        //                                    }
+
+        //                                }
+        //                                else
+        //                                {
+        //                                    Coordinates coord(i + v * boundsperquadx + left, j + w * boundsperquady + bottom);
+        //                                    for (int a = 0; a < listb[w][2].size(); a++)
+        //                                    {
+        //                                        if (listb[w][2][a]->pos == coord)
+        //                                        {
+        //                                            coord = listb[w][2][a]->pos;
+        //                                            vecCoords.push_back(coord);
+        //                                        }
+        //                                    }
+
+        //                                }
+        //                            }
+
+        //                        float zavg = 0.0f;
+
+        //                        for (auto const c : vecCoords)
+        //                        {
+        //                            zavg += c.z;
+        //                        }
+
+        //                        zavg /= vecCoords.size();
+
+        //                        coord.z = zavg;
+
+        //                        smooth.Insert(new Node<Coordinates>(coord));
+        //                    }
+        //                }
+        //        }
+
+        //        //Left
+        //        if (w != 0)
+        //        {
+        //            for (int x = 0; x < storenum; x++)
+        //                for (int y = storenum; y < boundsperquady - storenum - 1; y++)
+        //                {
+        //                    Node<Coordinates>* node = quad.Search(Coordinates(x + v * boundsperquadx + left, y + w * boundsperquady + bottom)); //Get Node at centre
+
+        //                    if (node != nullptr) //if not nullptr continue
+        //                    {
+        //                        Coordinates coord = node->pos; //Get coord from Node
+
+        //                        std::vector<Coordinates> vecCoords; //create a list to use as a container for all points to be blurred
+
+        //                        for (int j = y - storenum; j <= y + storenum; j++)
+        //                            for (int i = x - storenum; i <= x + storenum; i++) //Iterate over the blur radius around the point
+        //                            {
+        //                                if (i < x) //if point is in another quad use the cached list otherwise read it from the loaded quad
+        //                                {
+        //                                    Node<Coordinates>* n = quad.Search(Coordinates(i + v * boundsperquadx + left, j + w * boundsperquady + bottom));
+
+        //                                    if (n != nullptr)
+        //                                    {
+        //                                        Coordinates coord = n->pos;
+        //                                        vecCoords.push_back(coord);
+        //                                    }
+
+        //                                }
+        //                                else
+        //                                {
+        //                                    Coordinates coord(i + v * boundsperquadx + left, j + w * boundsperquady + bottom);
+        //                                    for (int a = 0; a < listb[w][3].size(); a++)
+        //                                    {
+        //                                        if (listb[w][3][a]->pos == coord)
+        //                                        {
+        //                                            coord = listb[w][3][a]->pos;
+        //                                            vecCoords.push_back(coord);
+        //                                        }
+        //                                    }
+
+        //                                }
+        //                            }
+
+        //                        float zavg = 0.0f;
+
+        //                        for (auto const c : vecCoords)
+        //                        {
+        //                            zavg += c.z;
+        //                        }
+
+        //                        zavg /= vecCoords.size();
+
+        //                        coord.z = zavg;
+
+        //                        smooth.Insert(new Node<Coordinates>(coord));
+        //                    }
+        //                }
+        //        }
+        //    }
+        //}
+        //else if (v > 1 && v < numquads) //inbetween rows of sub-quads: process both above and below
+        //{
+        //    //for loops for iterating through split level trees
+
+        //    for (int w = 0; w < numquads; w++)
+        //    {
+        //        //Top
+        //        for (int x = 0; x < boundsperquadx; x++)
+        //            for (int y = boundsperquady - storenum - 1; y < boundsperquady; y++)
+        //            {
+        //                Node<Coordinates>* node = quad.Search(Coordinates(x + v * boundsperquadx + left, y + w * boundsperquady + bottom)); //Get Node at centre
+
+        //                if (node != nullptr) //if not nullptr continue
+        //                {
+        //                    Coordinates coord = node->pos; //Get coord from Node
+
+        //                    std::vector<Coordinates> vecCoords; //create a list to use as a container for all points to be blurred
+
+        //                    for (int j = y - storenum; j <= y + storenum; j++)
+        //                        for (int i = x - storenum; i <= x + storenum; i++) //Iterate over the blur radius around the point
+        //                        {
+        //                            if (j < y) //if point is in another quad use the cached list otherwise read it from the loaded quad
+        //                            {
+        //                                Node<Coordinates>* n = quad.Search(Coordinates(i + v * boundsperquadx + left, j + w * boundsperquady + bottom));
+
+        //                                if (n != nullptr)
+        //                                {
+        //                                    Coordinates coord = n->pos;
+        //                                    vecCoords.push_back(coord);
+        //                                }
+
+        //                            }
+        //                            else
+        //                            {
+        //                                Coordinates coord(i + v * boundsperquadx + left, j + w * boundsperquady + bottom);
+        //                                for (int a = 0; a < listc[w][1].size(); a++)
+        //                                {
+        //                                    if (listc[w][1][a]->pos == coord)
+        //                                    {
+        //                                        coord = listc[w][1][a]->pos;
+        //                                        vecCoords.push_back(coord);
+        //                                    }
+        //                                }
+
+        //                            }
+        //                        }
+
+        //                    float zavg = 0.0f;
+
+        //                    for (auto const c : vecCoords)
+        //                    {
+        //                        zavg += c.z;
+        //                    }
+
+        //                    zavg /= vecCoords.size();
+
+        //                    coord.z = zavg;
+
+        //                    smooth.Insert(new Node<Coordinates>(coord));
+        //                }
+        //            }
+        //        //Bottom
+        //        for (int x = 0; x < boundsperquadx; x++)
+        //            for (int y = 0; y < storenum; y++)
+        //            {
+        //                Node<Coordinates>* node = quad.Search(Coordinates(x + v * boundsperquadx + left, y + w * boundsperquady + bottom)); //Get Node at centre
+
+        //                if (node != nullptr) //if not nullptr continue
+        //                {
+        //                    Coordinates coord = node->pos; //Get coord from Node
+
+        //                    std::vector<Coordinates> vecCoords; //create a list to use as a container for all points to be blurred
+
+        //                    for (int j = y - storenum; j <= y + storenum; j++)
+        //                        for (int i = x - storenum; i <= x + storenum; i++) //Iterate over the blur radius around the point
+        //                        {
+        //                            if (j > y) //if point is in another quad use the cached list otherwise read it from the loaded quad
+        //                            {
+        //                                Node<Coordinates>* n = quad.Search(Coordinates(i + v * boundsperquadx + left, j + w * boundsperquady + bottom));
+
+        //                                if (n != nullptr)
+        //                                {
+        //                                    Coordinates coord = n->pos;
+        //                                    vecCoords.push_back(coord);
+        //                                }
+
+        //                            }
+        //                            else
+        //                            {
+        //                                Coordinates coord(i + v * boundsperquadx + left, j + w * boundsperquady + bottom);
+        //                                for (int a = 0; a < lista[w][0].size(); a++)
+        //                                {
+        //                                    if (lista[w][0][a]->pos == coord)
+        //                                    {
+        //                                        coord = lista[w][0][a]->pos;
+        //                                        vecCoords.push_back(coord);
+        //                                    }
+        //                                }
+
+        //                            }
+        //                        }
+
+        //                    float zavg = 0.0f;
+
+        //                    for (auto const c : vecCoords)
+        //                    {
+        //                        zavg += c.z;
+        //                    }
+
+        //                    zavg /= vecCoords.size();
+
+        //                    coord.z = zavg;
+
+        //                    smooth.Insert(new Node<Coordinates>(coord));
+        //                }
+        //            }
+        //        //Right
+        //        if (w != (numquads - 1))
+        //        {
+        //            for (int x = boundsperquadx - storenum - 1; x < boundsperquadx; x++)
+        //                for (int y = storenum; y < boundsperquady - storenum - 1; y++)
+        //                {
+        //                    Node<Coordinates>* node = quad.Search(Coordinates(x + v * boundsperquadx + left, y + w * boundsperquady + bottom)); //Get Node at centre
+
+        //                    if (node != nullptr) //if not nullptr continue
+        //                    {
+        //                        Coordinates coord = node->pos; //Get coord from Node
+
+        //                        std::vector<Coordinates> vecCoords; //create a list to use as a container for all points to be blurred
+
+        //                        for (int j = y - storenum; j <= y + storenum; j++)
+        //                            for (int i = x - storenum; i <= x + storenum; i++) //Iterate over the blur radius around the point
+        //                            {
+        //                                if (i > x) //if point is in another quad use the cached list otherwise read it from the loaded quad
+        //                                {
+        //                                    Node<Coordinates>* n = quad.Search(Coordinates(i + v * boundsperquadx + left, j + w * boundsperquady + bottom));
+
+        //                                    if (n != nullptr)
+        //                                    {
+        //                                        Coordinates coord = n->pos;
+        //                                        vecCoords.push_back(coord);
+        //                                    }
+
+        //                                }
+        //                                else
+        //                                {
+        //                                    Coordinates coord(i + v * boundsperquadx + left, j + w * boundsperquady + bottom);
+        //                                    for (int a = 0; a < listb[w][2].size(); a++)
+        //                                    {
+        //                                        if (listb[w][2][a]->pos == coord)
+        //                                        {
+        //                                            coord = listb[w][2][a]->pos;
+        //                                            vecCoords.push_back(coord);
+        //                                        }
+        //                                    }
+
+        //                                }
+        //                            }
+
+        //                        float zavg = 0.0f;
+
+        //                        for (auto const c : vecCoords)
+        //                        {
+        //                            zavg += c.z;
+        //                        }
+
+        //                        zavg /= vecCoords.size();
+
+        //                        coord.z = zavg;
+
+        //                        smooth.Insert(new Node<Coordinates>(coord));
+        //                    }
+        //                }
+        //        }
+        //        //Left
+        //        if (w != 0)
+        //        {
+        //            for (int x = 0; x < storenum; x++)
+        //                for (int y = 0; y < boundsperquady; y++)
+        //                {
+        //                    Node<Coordinates>* node = quad.Search(Coordinates(x + v * boundsperquadx + left, y + w * boundsperquady + bottom)); //Get Node at centre
+
+        //                    if (node != nullptr) //if not nullptr continue
+        //                    {
+        //                        Coordinates coord = node->pos; //Get coord from Node
+
+        //                        std::vector<Coordinates> vecCoords; //create a list to use as a container for all points to be blurred
+
+        //                        for (int j = y - storenum; j <= y + storenum; j++)
+        //                            for (int i = x - storenum; i <= x + storenum; i++) //Iterate over the blur radius around the point
+        //                            {
+        //                                if (i < x) //if point is in another quad use the cached list otherwise read it from the loaded quad
+        //                                {
+        //                                    Node<Coordinates>* n = quad.Search(Coordinates(i + v * boundsperquadx + left, j + w * boundsperquady + bottom));
+
+        //                                    if (n != nullptr)
+        //                                    {
+        //                                        Coordinates coord = n->pos;
+        //                                        vecCoords.push_back(coord);
+        //                                    }
+
+        //                                }
+        //                                else
+        //                                {
+        //                                    Coordinates coord(i + v * boundsperquadx + left, j + w * boundsperquady + bottom);
+        //                                    for (int a = 0; a < listb[w][3].size(); a++)
+        //                                    {
+        //                                        if (listb[w][3][a]->pos == coord)
+        //                                        {
+        //                                            coord = listb[w][3][a]->pos;
+        //                                            vecCoords.push_back(coord);
+        //                                        }
+        //                                    }
+
+        //                                }
+        //                            }
+
+        //                        float zavg = 0.0f;
+
+        //                        for (auto const c : vecCoords)
+        //                        {
+        //                            zavg += c.z;
+        //                        }
+
+        //                        zavg /= vecCoords.size();
+
+        //                        coord.z = zavg;
+
+        //                        smooth.Insert(new Node<Coordinates>(coord));
+        //                    }
+        //                }
+        //        }
+        //    }
+        //    
+        //}
 
     }
     std::cout << "\n";
