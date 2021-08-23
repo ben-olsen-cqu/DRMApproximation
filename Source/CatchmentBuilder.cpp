@@ -178,8 +178,20 @@ void CatchmentBuilder::SmoothPointsSplit(QuadtreeManager<Coordinates>& quad, Qua
     int blurrad = 5; //odd numbers only
     int storenum = (blurrad - 1) / 2;
 
-    double boundsperquadx = boundsx / numquads;
-    double boundsperquady = boundsy / numquads;
+    double boundsperquadx = std::floor((boundsx / numquads) * 2) / 2;
+    double boundsperquady = std::floor((boundsy / numquads) * 2) / 2;
+
+    if (boundsperquadx - std::floor(boundsperquadx)-0.5 > 0.001)
+    {
+        boundsperquadx += 0.5;
+    }
+    if (boundsperquady - std::floor(boundsperquady) - 0.5 > 0.001)
+    {
+        boundsperquady += 0.5;
+    }
+
+    std::cout << boundsperquadx << "\n";
+    std::cout << boundsperquady << "\n";
 
     int totalquads = numquads * numquads;
 
@@ -193,62 +205,74 @@ void CatchmentBuilder::SmoothPointsSplit(QuadtreeManager<Coordinates>& quad, Qua
 
     //for loops for iterating through split level trees
     for (int v = 0; v < numquads; v++) //move vertically through sub trees
-    {
         for (int w = 0; w < numquads; w++) //move horizontally through sub trees
         {
-            std::cout << "\rQuad " << v * numquads + (w + 1) << " of " << totalquads << " Complete";
+            std::cout << "\rProcessing Quad " << v * numquads + (w + 1) << " of " << totalquads << " Complete";
 
             for (int y = 0; y < boundsperquady; y++) //move through each coord in the y direction of the subtree
                 for (int x = 0; x < boundsperquadx; x++)//move through each coord in the x direction of the subtree
                 {
-                    if (y < 10 || (boundsperquady - y) <= 10 || x < 10 || (boundsperquadx - x) <= 10)
-                    {
+                    Node<Coordinates>* node = quad.Search(Coordinates(x + w * boundsperquadx + left, y + v * boundsperquady + bottom));
 
+                    if (node != nullptr)
+                    {
+                        Coordinates coord = node->pos;
+
+                        smooth.Insert(new Node<Coordinates>(coord));
                     }
                     else
                     {
-                        Node<Coordinates>* node = quad.Search(Coordinates(x + w * boundsperquadx + left, y + v * boundsperquady + bottom));
-
-                        if (node != nullptr)
-                        {
-                            Coordinates coord = node->pos;
-
-                            std::vector<Coordinates> vecCoords;
-
-                            for (int j = -storenum; j <= storenum; j++)
-                                for (int i = -storenum; i <= storenum; i++)
-                                {
-                                    Node<Coordinates>* n = quad.Search(Coordinates((i + x) + (w * boundsperquadx) + left, (j + y) + (v * boundsperquady) + bottom));
-
-                                    if (n != nullptr)
-                                    {
-                                        Coordinates coord = n->pos;
-                                        vecCoords.push_back(coord);
-                                    }
-                                }
-
-                            float zavg = 0.0f;
-
-                            for (auto const c : vecCoords)
-                            {
-                                zavg += c.z;
-                            }
-
-                            zavg /= vecCoords.size();
-
-                            coord.z = zavg;
-
-                            smooth.Insert(new Node<Coordinates>(coord));
-                        }
+                        std::cout << "Nullptr found at: " << x + w * boundsperquadx + left << "," << y + v * boundsperquady + bottom << "\n";
                     }
+                    //if (y <= storenum || (boundsperquady - y) <= storenum || x <= storenum || (boundsperquadx - x) <= storenum) //filter out the 
+                    //{
+
+                    //}
+                    //else
+                    //{
+                    //    Node<Coordinates>* node = quad.Search(Coordinates(x + w * boundsperquadx + left, y + v * boundsperquady + bottom));
+
+                    //    if (node != nullptr)
+                    //    {
+                    //        Coordinates coord = node->pos;
+
+                    //        std::vector<Coordinates> vecCoords;
+
+                    //        for (int j = -storenum; j <= storenum; j++)
+                    //            for (int i = -storenum; i <= storenum; i++)
+                    //            {
+                    //                Node<Coordinates>* n = quad.Search(Coordinates((i + x) + (w * boundsperquadx) + left, (j + y) + (v * boundsperquady) + bottom));
+
+                    //                if (n != nullptr)
+                    //                {
+                    //                    Coordinates coord = n->pos;
+                    //                    vecCoords.push_back(coord);
+                    //                }
+                    //            }
+
+                    //        float zavg = 0.0f;
+
+                    //        for (auto const c : vecCoords)
+                    //        {
+                    //            zavg += c.z;
+                    //        }
+
+                    //        zavg /= vecCoords.size();
+
+                    //        coord.z = zavg;
+
+                    //        smooth.Insert(new Node<Coordinates>(coord));
+                    //    }
+                    //}
+                    //}
+                    //}
                 }
 
         }
-
-    }
+    
     std::cout << "\n";
-
-
+    std::cout << "Complete\n";
+    std::cout << "Filling Gaps...\n";
 
     for (int v = 0; v < numquads; v++) //move vertically through sub trees
     {
@@ -365,5 +389,5 @@ void CatchmentBuilder::SmoothPointsSplit(QuadtreeManager<Coordinates>& quad, Qua
             }
         }
     }
-
+    std::cout << "Complete\n";
 }
