@@ -4,6 +4,7 @@
 #include "Coordinates.h"
 #include "Bit.h"
 #include "CatchMath.h"
+#include "FlowClassification.h"
 
 #include <vector>
 #include <string>
@@ -18,7 +19,7 @@ private:
 	Quadtree<T>* quad;
 	int levelreq; //Depth of tree required to hold a square data set that covers the extent of the imported data
 	int memlevel; //The maximum amount of levels that the memory restriction will allow
-	std::vector<Quadtree<T>*> bottomnodes;
+
 
 public:
 	std::string prePath = "Temp/Tree/Tree";
@@ -27,6 +28,7 @@ public:
 	T topLeft;
 	T bottomRight;
 	TreeType type; //Split or Single
+	std::vector<Quadtree<T>*> bottomnodes;
 
 public:
 	QuadtreeManager();

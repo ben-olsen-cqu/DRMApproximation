@@ -39,6 +39,9 @@
     <ClInclude Include="Headers\Quadtree.h">
       <Filter>Headers</Filter>
     </ClInclude>
+    <ClInclude Include="Headers\FlowClassification.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Source\main.cpp">

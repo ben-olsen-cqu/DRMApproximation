@@ -691,3 +691,5 @@ template class QuadtreeManager<Coordinates>;
 template class QuadtreeManager<Bit>;
 template class QuadtreeManager<Vec3>;
 template class QuadtreeManager<Normal>;
+template class QuadtreeManager<FlowDirection>;
+template class QuadtreeManager<FlowAccumulation>;

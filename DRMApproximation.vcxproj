@@ -93,6 +93,7 @@
     <ClInclude Include="Headers\Coordinates.h" />
     <ClInclude Include="Headers\FileReader.h" />
     <ClInclude Include="Headers\FileWriter.h" />
+    <ClInclude Include="Headers\FlowClassification.h" />
     <ClInclude Include="Headers\os.h" />
     <ClInclude Include="Headers\Params.h" />
     <ClInclude Include="Headers\Quadtree.h" />

@@ -34,38 +34,83 @@ void FileWriter::WriteCoordTree(std::string filename, QuadtreeManager<Coordinate
 
 void FileWriter::WriteCoordTreeASC(std::string filename, QuadtreeManager<Coordinates>& quad)
 {
-	std::ofstream outfile(filename + ".asc");
-
-	float boundsx = (quad.BottomRight().x) - (quad.TopLeft().x);
-	float boundsy = (quad.TopLeft().y) - (quad.BottomRight().y);
-	float bottom = (quad.BottomRight().y);
-	float left = (quad.TopLeft().x);
-	int ncols = int(boundsx);
-	int nrows = int(boundsy);
-
-	outfile << std::fixed;
-	outfile << "ncols\t\t\t" << (ncols) << "\n";
-	outfile << "nrows\t\t\t" << (nrows) << "\n";
-	outfile << "xllcorner\t\t" << left << "\n";
-	outfile << "yllcorner\t\t" << bottom << "\n";
-	outfile << "cellsize\t\t" << 1.0f << "\n";
-	outfile << "NODATA_value\t" << -9999 << "\n ";
-
-	for (int y = 0; y < boundsy; y++)
+	if (quad.type == TreeType::Single)
 	{
-		for (int x = 0; x < boundsx; x++)
+		std::ofstream outfile(filename + ".asc");
+
+		float boundsx = (quad.BottomRight().x) - (quad.TopLeft().x);
+		float boundsy = (quad.TopLeft().y) - (quad.BottomRight().y);
+		float bottom = (quad.BottomRight().y);
+		float left = (quad.TopLeft().x);
+		int ncols = int(boundsx);
+		int nrows = int(boundsy);
+
+		outfile << std::fixed;
+		outfile << "ncols\t\t\t" << (ncols) << "\n";
+		outfile << "nrows\t\t\t" << (nrows) << "\n";
+		outfile << "xllcorner\t\t" << left << "\n";
+		outfile << "yllcorner\t\t" << bottom << "\n";
+		outfile << "cellsize\t\t" << 1.0f << "\n";
+		outfile << "NODATA_value\t" << -9999 << "\n ";
+
+		for (int y = 0; y < boundsy; y++)
 		{
-			auto row = (boundsy - y) + bottom;
-			auto column = x + left;
-			if ((quad.Search(Coordinates(column, row))) != nullptr)
+			for (int x = 0; x < boundsx; x++)
 			{
-				Coordinates c = quad.Search(Coordinates(column, row))->pos;
-				std::string line = std::to_string(c.z) + " ";
-				outfile << line;
+				auto row = (boundsy - y) + bottom;
+				auto column = x + left;
+				if ((quad.Search(Coordinates(column, row))) != nullptr)
+				{
+					Coordinates c = quad.Search(Coordinates(column, row))->pos;
+					std::string line = std::to_string(c.z) + " ";
+					outfile << line;
+				}
+			}
+			outfile << std::endl << " ";
+		}
+	}
+	else
+	{
+		for (int i = 0; quad.bottomnodes.size(); i++)
+		{
+			std::ofstream outfile(filename + std::to_string(i) + ".asc");
+
+			double boundsx = (quad.bottomnodes[i]->BottomRight().x) - (quad.bottomnodes[i]->TopLeft().x);
+			double boundsy = (quad.bottomnodes[i]->TopLeft().y) - (quad.bottomnodes[i]->BottomRight().y);
+			double bottom = (quad.bottomnodes[i]->BottomRight().y);
+			double left = (quad.bottomnodes[i]->TopLeft().x);
+			int ncols = int(boundsx);
+			int nrows = int(boundsy);
+
+			outfile << std::fixed;
+			outfile << "ncols\t\t\t" << (ncols) << "\n";
+			outfile << "nrows\t\t\t" << (nrows) << "\n";
+			outfile << "xllcorner\t\t" << left << "\n";
+			outfile << "yllcorner\t\t" << bottom << "\n";
+			outfile << "cellsize\t\t" << quad.spacing << "\n";
+			outfile << "NODATA_value\t" << -9999 << "\n ";
+
+			for (int y = 0; y < boundsy; y++)
+			{
+				for (int x = 0; x < boundsx; x++)
+				{
+					auto row = (boundsy - y) + bottom;
+					auto column = x + left;
+
+					auto n = quad.Search(Coordinates(column, row));
+
+					if ( n != nullptr)
+					{
+						Coordinates c = n->pos;
+						std::string line = std::to_string(c.z) + " ";
+						outfile << line;
+					}
+				}
+				outfile << std::endl << " ";
 			}
 		}
-		outfile << std::endl << " ";
 	}
+
 }
 
 void FileWriter::Write(std::string filename, std::string data)
@@ -123,37 +168,52 @@ void FileWriter::WriteVecNormals2d(std::string filename, Quadtree<Normal>* norma
 	//	};
 }
 
-void FileWriter::WriteVecNormals3dWKT(std::string filename, Quadtree<Normal>* normals) {
-	//std::ofstream outfile(path + filename + ".csv");
+void FileWriter::WriteVecNormals3dWKT(std::string filename, QuadtreeManager<Normal>& normals) {
+	if (normals.type == TreeType::Single)
+	{
+		std::ofstream outfile(filename + ".csv");
 
-	//float boundsx = (normals->BottomRight().x) - (normals->TopLeft().x);
-	//float boundsy = (normals->TopLeft().y) - (normals->BottomRight().y);
-	//float bottom = (normals->BottomRight().y);
-	//float left = (normals->TopLeft().x);
+		float boundsx = (normals.BottomRight().x) - (normals.TopLeft().x);
+		float boundsy = (normals.TopLeft().y) - (normals.BottomRight().y);
+		float bottom = (normals.BottomRight().y);
+		float left = (normals.TopLeft().x);
 
-	//for (int x = 0; x <= boundsx; x++)
-	//	for (int y = 0; y <= boundsy; y++)
-	//	{
-	//		auto c = normals->search(Normal(x + left, y + bottom))->pos;
-	//		std::string line = "LINESTRING (" + std::to_string(c.x) + " " + std::to_string(c.y) + " " + std::to_string(c.z) + ","
-	//			+ std::to_string(c.norm.x) + " " + std::to_string(c.norm.y) + " " + std::to_string(c.norm.z) + ")";
-	//		outfile << line << std::endl;
-	//	};
+		for (int x = 0; x <= boundsx; x++)
+			for (int y = 0; y <= boundsy; y++)
+			{
+				auto c = normals.Search(Normal(x + left, y + bottom))->pos;
+				std::string line = "LINESTRING (" + std::to_string(c.x) + " " + std::to_string(c.y) + " " + std::to_string(c.z) + ","
+					+ std::to_string(c.norm.x) + " " + std::to_string(c.norm.y) + " " + std::to_string(c.norm.z) + ")";
+				outfile << line << std::endl;
+			}
+	}
+	else
+	{
+
+	}
 }
 
 void FileWriter::WriteVecNormals2dWKT(std::string filename, QuadtreeManager<Normal>& normals) {
-	std::ofstream outfile(filename + ".csv");
+	
+	if (normals.type == TreeType::Single)
+	{
+		std::ofstream outfile(filename + ".csv");
 
-	float boundsx = (normals.BottomRight().x) - (normals.TopLeft().x);
-	float boundsy = (normals.TopLeft().y) - (normals.BottomRight().y);
-	float bottom = (normals.BottomRight().y);
-	float left = (normals.TopLeft().x);
+		float boundsx = (normals.BottomRight().x) - (normals.TopLeft().x);
+		float boundsy = (normals.TopLeft().y) - (normals.BottomRight().y);
+		float bottom = (normals.BottomRight().y);
+		float left = (normals.TopLeft().x);
 
-	for (int x = 0; x <= boundsx; x++)
-		for (int y = 0; y <= boundsy; y++)
-		{
-			auto c = normals.Search(Normal(x + left, y + bottom))->pos;
-			std::string line = "LINESTRING (" + std::to_string(c.x) + " " + std::to_string(c.y) + "," + std::to_string(c.norm.x) + " " + std::to_string(c.norm.y) + ")";
-			outfile << line << std::endl;
-		};
+		for (int x = 0; x <= boundsx; x++)
+			for (int y = 0; y <= boundsy; y++)
+			{
+				auto c = normals.Search(Normal(x + left, y + bottom))->pos;
+				std::string line = "LINESTRING (" + std::to_string(c.x) + " " + std::to_string(c.y) + "," + std::to_string(c.norm.x) + " " + std::to_string(c.norm.y) + ")";
+				outfile << line << std::endl;
+			}
+	}
+	else
+	{
+
+	}
 }

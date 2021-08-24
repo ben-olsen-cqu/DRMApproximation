@@ -4,6 +4,7 @@
 #include "QuadtreeManager.h"
 #include "Coordinates.h"
 #include "CatchMath.h"
+#include "FlowClassification.h"
 
 #include <vector>
 
@@ -14,5 +15,13 @@ public:
 private:
     void SmoothPointsSingle(QuadtreeManager<Coordinates>& quad, QuadtreeManager<Coordinates>& smooth);
     void SmoothPointsSplit(QuadtreeManager<Coordinates>& quad, QuadtreeManager<Coordinates>& smooth);
-    void CalculateNormals(QuadtreeManager<Coordinates>& quad, QuadtreeManager<Normal>& normal);
+
+    void CalculateNormalsSingle(QuadtreeManager<Coordinates>& smooth, QuadtreeManager<Normal>& normal);
+    void CalculateNormalsSplit(QuadtreeManager<Coordinates>& smooth, QuadtreeManager<Normal>& normal);
+
+    void CalculateFlowDirectionSingle(QuadtreeManager<FlowDirection>& flowdirection, QuadtreeManager<Normal>& normal);
+
+    void CalculateFlowAccumulationSingle(QuadtreeManager<FlowDirection>& flowdirection, QuadtreeManager<FlowAccumulation>& flowaccum);
+
+    void CalculateStreamLinkingSingle(QuadtreeManager<FlowAccumulation>& flowaccum);
 };
