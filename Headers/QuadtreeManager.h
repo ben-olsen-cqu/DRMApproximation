@@ -39,6 +39,7 @@ public:
 	T BottomRight() const;
 	void CreateTreestoLevel();
 	void SetTreeType(TreeType t);
+	void Cleanup();
 	~QuadtreeManager();
 private:
 	void CreatetoLevel(Quadtree<T>* q, int target);

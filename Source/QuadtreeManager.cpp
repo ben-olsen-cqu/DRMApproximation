@@ -292,6 +292,29 @@ void QuadtreeManager<T>::SetTreeType(TreeType t)
 }
 
 template<typename T>
+void QuadtreeManager<T>::Cleanup()
+{
+    for (int k = 0; k < bottomnodes.size(); k++)
+    {
+        if (bottomnodes[k]->hasData == true) //deloads only if a tree is loaded
+        {
+            std::ofstream datastream;
+
+            datastream.open("./" + prePath + std::to_string(bottomnodes[k]->index) + ".bin", std::ios::binary);
+
+            WriteQuadToFile(bottomnodes[k], &datastream);
+
+            datastream.close();
+
+            bottomnodes[k]->~Quadtree();
+            bottomnodes[k]->hasData = false;
+            break;
+        }
+    }
+
+}
+
+template<typename T>
 QuadtreeManager<T>::~QuadtreeManager()
 {
     if (quad != nullptr)

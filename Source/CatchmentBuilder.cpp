@@ -9,7 +9,7 @@ void CatchmentBuilder::CreateCatchments(QuadtreeManager<Coordinates>& quad)
 
     QuadtreeManager<Coordinates> smooth(quad.topLeft,quad.bottomRight);
 
-    smooth.prePath = "Temp/SmoothTree/Tree";
+    smooth.prePath = "Temp/SmoothTree/SmoothTree";
     smooth.spacing = quad.spacing;
     smooth.splitlevel = quad.splitlevel;
     smooth.SetTreeType(quad.type);
@@ -108,30 +108,13 @@ void CatchmentBuilder::SmoothPointsSingle(QuadtreeManager<Coordinates>& quad, Qu
     double bottom = (quad.BottomRight().y);
     double left = (quad.TopLeft().x);
 
-    int numquads;
+    int blurrad = 5; //odd numbers only
+    int storenum = (blurrad - 1) / 2;
 
-    if (quad.type == TreeType::Split)
-    {
-        numquads = quad.splitlevel * 2; //quad splits the area in half in the x and y axis
-    }
-    else
-    {
-        numquads = 1; //if single tree quads at the split level is 1
-    }
-    double boundsperquadx = boundsx / numquads;
-    double boundsperquady = boundsy / numquads;
-
-    std::vector<Coordinates> list;
-    int totalquads = numquads * numquads;
-
-    //for loop for iterating through split level trees
-    for (int v = 0; v < numquads; v++)
-        for (int w = 0; w < numquads; w++)
-            for (int y = 0; y < boundsperquady; y++)
-                for (int x = 0; x < boundsperquadx; x++)
+    for (int y = 0; y <= boundsy; y++)
+        for (int x = 0; x <= boundsx; x++)
                 {
-
-                    Node<Coordinates>* node = quad.Search(Coordinates(x + v * boundsperquadx + left, y + w * boundsperquady + bottom));
+                    Node<Coordinates>* node = quad.Search(Coordinates(x + left, y + bottom));
 
                     if (node != nullptr)
                     {
@@ -139,10 +122,10 @@ void CatchmentBuilder::SmoothPointsSingle(QuadtreeManager<Coordinates>& quad, Qu
 
                         std::vector<Coordinates> vecCoords;
 
-                        for (int j = y - 1; j <= y + 1; j++)
-                            for (int i = x - 1; i <= x + 1; i++)
+                        for (int j = -storenum; j <= storenum; j++)
+                            for (int i = -storenum; i <= storenum; i++)
                             {
-                                Node<Coordinates>* n = quad.Search(Coordinates(i + v * boundsperquadx + left, j + w * boundsperquady + bottom));
+                                Node<Coordinates>* n = quad.Search(Coordinates(double(i) + double(x) + left, double(j) + double(y) + bottom));
 
                                 if (n != nullptr)
                                 {
@@ -178,22 +161,20 @@ void CatchmentBuilder::SmoothPointsSplit(QuadtreeManager<Coordinates>& quad, Qua
     int blurrad = 5; //odd numbers only
     int storenum = (blurrad - 1) / 2;
 
-    double boundsperquadx = boundsx / numquads;
-    double boundsperquady = boundsy / numquads;
+    int boundsperquadx = std::floor(boundsx / numquads) + 1;
+    int boundsperquady = std::floor(boundsy / numquads) + 1;
 
     int totalquads = numquads * numquads;
 
     ////Create quadtree for storing edge cases
-    //QuadtreeManager<Coordinates> smooth(quad.topLeft, quad.bottomRight);
-
-    //smooth.prePath = "Temp/SmoothTree/Tree";
-    //smooth.spacing = quad.spacing;
-    //smooth.splitlevel = quad.splitlevel;
-    //smooth.SetTreeType(quad.type);
+    QuadtreeManager<Coordinates> gaps(quad.topLeft, quad.bottomRight);
+    gaps.prePath = "Temp/SmoothTree/GapTree";
+    gaps.spacing = quad.spacing;
+    gaps.splitlevel = quad.splitlevel;
+    gaps.SetTreeType(quad.type);
 
     //for loops for iterating through split level trees
     for (int v = 0; v < numquads; v++) //move vertically through sub trees
-    {
         for (int w = 0; w < numquads; w++) //move horizontally through sub trees
         {
             std::cout << "\rQuad " << v * numquads + (w + 1) << " of " << totalquads << " Complete";
@@ -201,9 +182,15 @@ void CatchmentBuilder::SmoothPointsSplit(QuadtreeManager<Coordinates>& quad, Qua
             for (int y = 0; y < boundsperquady; y++) //move through each coord in the y direction of the subtree
                 for (int x = 0; x < boundsperquadx; x++)//move through each coord in the x direction of the subtree
                 {
-                    if (y < 10 || (boundsperquady - y) <= 10 || x < 10 || (boundsperquadx - x) <= 10)
+                    if (y < storenum || (boundsperquady - y) <= storenum || x < storenum || (boundsperquadx - x) <= storenum)
                     {
+                        Node<Coordinates>* node = quad.Search(Coordinates(x + w * boundsperquadx + left, y + v * boundsperquady + bottom));
 
+                        if (node != nullptr)
+                        {
+                            Coordinates coord = node->pos;
+                            gaps.Insert(new Node<Coordinates>(coord));
+                        }
                     }
                     else
                     {
@@ -222,8 +209,8 @@ void CatchmentBuilder::SmoothPointsSplit(QuadtreeManager<Coordinates>& quad, Qua
 
                                     if (n != nullptr)
                                     {
-                                        Coordinates coord = n->pos;
-                                        vecCoords.push_back(coord);
+                                        Coordinates c = n->pos;
+                                        vecCoords.push_back(c);
                                     }
                                 }
 
@@ -245,125 +232,447 @@ void CatchmentBuilder::SmoothPointsSplit(QuadtreeManager<Coordinates>& quad, Qua
 
         }
 
-    }
-    std::cout << "\n";
+    smooth.Cleanup();
+    gaps.Cleanup();
+    quad.Cleanup();
 
+    std::cout << "\nComplete\nFilling Gaps...\n";
 
+    //for (int v = 0; v < numquads; v++) //move vertically through sub trees
+    //{
+    //    for (int w = 0; w < numquads; w++) //move horizontally through sub trees
+    //    {
+    //        //EDGE OF SUB-QUAD PROCESSING
+    //        //process row here
+    //        if (v == 0) //first row of sub-quads: do not process the row above
+    //        {
+    //            //for loops for iterating through split level trees
 
-    for (int v = 0; v < numquads; v++) //move vertically through sub trees
-    {
-        for (int w = 0; w < numquads; w++) //move horizontally through sub trees
-        {
-            //EDGE OF SUB-QUAD PROCESSING
-            //process row here
-            if (v == 0) //first row of sub-quads: do not process the row above
-            {
-                //for loops for iterating through split level trees
+    //            for (int w = 0; w < numquads; w++)
+    //            {
+    //                //Bottom
+    //                for (int x = 0; x < boundsperquadx; x++)
+    //                    for (int y = 0; y < storenum; y++)
+    //                    {
+    //                        Node<Coordinates>* node = gaps.Search(Coordinates(x + w * boundsperquadx + left, y + v * boundsperquady + bottom));
 
-                for (int w = 0; w < numquads; w++)
-                {
-                    //Bottom
-                    for (int x = 0; x < boundsperquadx; x++)
-                        for (int y = 0; y < storenum; y++)
-                        {
+    //                        if (node != nullptr)
+    //                        {
+    //                                Coordinates coord = node->pos;
 
-                        }
-                    //Right
-                    if (w != (numquads - 1))
-                    {
-                        for (int x = boundsperquadx - storenum - 1; x < boundsperquadx; x++)
-                            for (int y = storenum; y < boundsperquady - storenum - 1; y++)
-                            {
+    //                                std::vector<Coordinates> vecCoords;
 
-                            }
-                    }
+    //                                for (int j = -storenum; j <= storenum; j++)
+    //                                    for (int i = -storenum; i <= storenum; i++)
+    //                                    {
+    //                                        Node<Coordinates>* n = gaps.Search(Coordinates((i + x) + (w * boundsperquadx) + left, (j + y) + (v * boundsperquady) + bottom));
 
-                    //Left
-                    if (w != 0)
-                    {
-                        for (int x = 0; x < storenum; x++)
-                            for (int y = storenum; y < boundsperquady - storenum - 1; y++)
-                            {
+    //                                        if (n != nullptr)
+    //                                        {
+    //                                            Coordinates c = n->pos;
+    //                                            vecCoords.push_back(c);
+    //                                        }
+    //                                    }
 
-                            }
+    //                            float zavg = 0.0f;
 
-                    }
-                }
+    //                            for (auto const c : vecCoords)
+    //                            {
+    //                                zavg += c.z;
+    //                            }
 
-            }
-            else if (v == numquads - 1) //bottom row of sub-quads: do not process the row below
-            {
-                //for loops for iterating through split level trees
+    //                            zavg /= vecCoords.size();
 
-                for (int w = 0; w < numquads; w++)
-                {
-                    //Top
-                    for (int x = 0; x < boundsperquadx; x++)
-                        for (int y = boundsperquady - storenum - 1; y < boundsperquady; y++)
-                        {
+    //                            coord.z = zavg;
 
-                        }
-                    //Right
-                    if (w != (numquads - 1))
-                    {
-                        for (int x = boundsperquadx - storenum - 1; x < boundsperquadx; x++)
-                            for (int y = storenum; y < boundsperquady - storenum - 1; y++)
-                            {
+    //                            smooth.Insert(new Node<Coordinates>(coord));
+    //                        }
+    //                    }
+    //                //Right
+    //                if (w != (numquads - 1))
+    //                {
+    //                    for (int x = boundsperquadx - storenum - 1; x < boundsperquadx; x++)
+    //                        for (int y = storenum; y < boundsperquady - storenum - 1; y++)
+    //                        {
+    //                            Node<Coordinates>* node = gaps.Search(Coordinates(x + w * boundsperquadx + left, y + v * boundsperquady + bottom));
 
-                            }
-                    }
+    //                            if (node != nullptr)
+    //                            {
+    //                                Coordinates coord = node->pos;
 
-                    //Left
-                    if (w != 0)
-                    {
-                        for (int x = 0; x < storenum; x++)
-                            for (int y = storenum; y < boundsperquady - storenum - 1; y++)
-                            {
+    //                                std::vector<Coordinates> vecCoords;
 
-                            }
-                    }
-                }
-            }
-            else if (v > 1 && v < numquads) //inbetween rows of sub-quads: process both above and below
-            {
-                //for loops for iterating through split level trees
+    //                                for (int j = -storenum; j <= storenum; j++)
+    //                                    for (int i = -storenum; i <= storenum; i++)
+    //                                    {
+    //                                        Node<Coordinates>* n = gaps.Search(Coordinates((i + x) + (w * boundsperquadx) + left, (j + y) + (v * boundsperquady) + bottom));
 
-                for (int w = 0; w < numquads; w++)
-                {
-                    //Top
-                    for (int x = 0; x < boundsperquadx; x++)
-                        for (int y = boundsperquady - storenum - 1; y < boundsperquady; y++)
-                        {
+    //                                        if (n != nullptr)
+    //                                        {
+    //                                            Coordinates c = n->pos;
+    //                                            vecCoords.push_back(c);
+    //                                        }
+    //                                    }
 
-                        }
-                    //Bottom
-                    for (int x = 0; x < boundsperquadx; x++)
-                        for (int y = 0; y < storenum; y++)
-                        {
+    //                                float zavg = 0.0f;
 
-                        }
-                    //Right
-                    if (w != (numquads - 1))
-                    {
-                        for (int x = boundsperquadx - storenum - 1; x < boundsperquadx; x++)
-                            for (int y = storenum; y < boundsperquady - storenum - 1; y++)
-                            {
+    //                                for (auto const c : vecCoords)
+    //                                {
+    //                                    zavg += c.z;
+    //                                }
 
-                            }
-                    }
-                    //Left
-                    if (w != 0)
-                    {
-                        for (int x = 0; x < storenum; x++)
-                            for (int y = 0; y < boundsperquady; y++)
-                            {
+    //                                zavg /= vecCoords.size();
 
-                            }
-                    }
-                }
+    //                                coord.z = zavg;
 
-            }
-        }
-    }
+    //                                smooth.Insert(new Node<Coordinates>(coord));
+    //                            }
+    //                        }
+    //                }
 
+    //                //Left
+    //                if (w != 0)
+    //                {
+    //                    for (int x = 0; x < storenum; x++)
+    //                        for (int y = storenum; y < boundsperquady - storenum - 1; y++)
+    //                        {
+    //                            Node<Coordinates>* node = gaps.Search(Coordinates(x + w * boundsperquadx + left, y + v * boundsperquady + bottom));
+
+    //                            if (node != nullptr)
+    //                            {
+    //                                Coordinates coord = node->pos;
+
+    //                                std::vector<Coordinates> vecCoords;
+
+    //                                for (int j = -storenum; j <= storenum; j++)
+    //                                    for (int i = -storenum; i <= storenum; i++)
+    //                                    {
+    //                                        Node<Coordinates>* n = gaps.Search(Coordinates((i + x) + (w * boundsperquadx) + left, (j + y) + (v * boundsperquady) + bottom));
+
+    //                                        if (n != nullptr)
+    //                                        {
+    //                                            Coordinates c = n->pos;
+    //                                            vecCoords.push_back(c);
+    //                                        }
+    //                                    }
+
+    //                                float zavg = 0.0f;
+
+    //                                for (auto const c : vecCoords)
+    //                                {
+    //                                    zavg += c.z;
+    //                                }
+
+    //                                zavg /= vecCoords.size();
+
+    //                                coord.z = zavg;
+
+    //                                smooth.Insert(new Node<Coordinates>(coord));
+    //                            }
+    //                        }
+
+    //                }
+    //            }
+
+    //        }
+    //        else if (v == numquads - 1) //bottom row of sub-quads: do not process the row below
+    //        {
+    //            //for loops for iterating through split level trees
+
+    //            for (int w = 0; w < numquads; w++)
+    //            {
+    //                //Top
+    //                for (int x = 0; x < boundsperquadx; x++)
+    //                    for (int y = boundsperquady - storenum - 1; y < boundsperquady; y++)
+    //                    {
+    //                        Node<Coordinates>* node = gaps.Search(Coordinates(x + w * boundsperquadx + left, y + v * boundsperquady + bottom));
+
+    //                        if (node != nullptr)
+    //                        {
+    //                            Coordinates coord = node->pos;
+
+    //                            std::vector<Coordinates> vecCoords;
+
+    //                            for (int j = -storenum; j <= storenum; j++)
+    //                                for (int i = -storenum; i <= storenum; i++)
+    //                                {
+    //                                    Node<Coordinates>* n = gaps.Search(Coordinates((i + x) + (w * boundsperquadx) + left, (j + y) + (v * boundsperquady) + bottom));
+
+    //                                    if (n != nullptr)
+    //                                    {
+    //                                        Coordinates c = n->pos;
+    //                                        vecCoords.push_back(c);
+    //                                    }
+    //                                }
+
+    //                            float zavg = 0.0f;
+
+    //                            for (auto const c : vecCoords)
+    //                            {
+    //                                zavg += c.z;
+    //                            }
+
+    //                            zavg /= vecCoords.size();
+
+    //                            coord.z = zavg;
+
+    //                            smooth.Insert(new Node<Coordinates>(coord));
+    //                        }
+    //                    }
+    //                //Right
+    //                if (w != (numquads - 1))
+    //                {
+    //                    for (int x = boundsperquadx - storenum - 1; x < boundsperquadx; x++)
+    //                        for (int y = storenum; y < boundsperquady - storenum - 1; y++)
+    //                        {
+    //                            Node<Coordinates>* node = gaps.Search(Coordinates(x + w * boundsperquadx + left, y + v * boundsperquady + bottom));
+
+    //                            if (node != nullptr)
+    //                            {
+    //                                Coordinates coord = node->pos;
+
+    //                                std::vector<Coordinates> vecCoords;
+
+    //                                for (int j = -storenum; j <= storenum; j++)
+    //                                    for (int i = -storenum; i <= storenum; i++)
+    //                                    {
+    //                                        Node<Coordinates>* n = gaps.Search(Coordinates((i + x) + (w * boundsperquadx) + left, (j + y) + (v * boundsperquady) + bottom));
+
+    //                                        if (n != nullptr)
+    //                                        {
+    //                                            Coordinates c = n->pos;
+    //                                            vecCoords.push_back(c);
+    //                                        }
+    //                                    }
+
+    //                                float zavg = 0.0f;
+
+    //                                for (auto const c : vecCoords)
+    //                                {
+    //                                    zavg += c.z;
+    //                                }
+
+    //                                zavg /= vecCoords.size();
+
+    //                                coord.z = zavg;
+
+    //                                smooth.Insert(new Node<Coordinates>(coord));
+    //                            }
+    //                        }
+    //                }
+
+    //                //Left
+    //                if (w != 0)
+    //                {
+    //                    for (int x = 0; x < storenum; x++)
+    //                        for (int y = storenum; y < boundsperquady - storenum - 1; y++)
+    //                        {
+    //                            Node<Coordinates>* node = gaps.Search(Coordinates(x + w * boundsperquadx + left, y + v * boundsperquady + bottom));
+
+    //                            if (node != nullptr)
+    //                            {
+    //                                Coordinates coord = node->pos;
+
+    //                                std::vector<Coordinates> vecCoords;
+
+    //                                for (int j = -storenum; j <= storenum; j++)
+    //                                    for (int i = -storenum; i <= storenum; i++)
+    //                                    {
+    //                                        Node<Coordinates>* n = gaps.Search(Coordinates((i + x) + (w * boundsperquadx) + left, (j + y) + (v * boundsperquady) + bottom));
+
+    //                                        if (n != nullptr)
+    //                                        {
+    //                                            Coordinates c = n->pos;
+    //                                            vecCoords.push_back(c);
+    //                                        }
+    //                                    }
+
+    //                                float zavg = 0.0f;
+
+    //                                for (auto const c : vecCoords)
+    //                                {
+    //                                    zavg += c.z;
+    //                                }
+
+    //                                zavg /= vecCoords.size();
+
+    //                                coord.z = zavg;
+
+    //                                smooth.Insert(new Node<Coordinates>(coord));
+    //                            }
+    //                        }
+    //                }
+    //            }
+    //        }
+    //        else if (v > 1 && v < numquads) //inbetween rows of sub-quads: process both above and below
+    //        {
+    //            //for loops for iterating through split level trees
+
+    //            for (int w = 0; w < numquads; w++)
+    //            {
+    //                //Top
+    //                for (int x = 0; x < boundsperquadx; x++)
+    //                    for (int y = boundsperquady - storenum - 1; y < boundsperquady; y++)
+    //                    {
+    //                        Node<Coordinates>* node = gaps.Search(Coordinates(x + w * boundsperquadx + left, y + v * boundsperquady + bottom));
+
+    //                        if (node != nullptr)
+    //                        {
+    //                            Coordinates coord = node->pos;
+
+    //                            std::vector<Coordinates> vecCoords;
+
+    //                            for (int j = -storenum; j <= storenum; j++)
+    //                                for (int i = -storenum; i <= storenum; i++)
+    //                                {
+    //                                    Node<Coordinates>* n = gaps.Search(Coordinates((i + x) + (w * boundsperquadx) + left, (j + y) + (v * boundsperquady) + bottom));
+
+    //                                    if (n != nullptr)
+    //                                    {
+    //                                        Coordinates c = n->pos;
+    //                                        vecCoords.push_back(c);
+    //                                    }
+    //                                }
+
+    //                            float zavg = 0.0f;
+
+    //                            for (auto const c : vecCoords)
+    //                            {
+    //                                zavg += c.z;
+    //                            }
+
+    //                            zavg /= vecCoords.size();
+
+    //                            coord.z = zavg;
+
+    //                            smooth.Insert(new Node<Coordinates>(coord));
+    //                        }
+    //                    }
+    //                //Bottom
+    //                for (int x = 0; x < boundsperquadx; x++)
+    //                    for (int y = 0; y < storenum; y++)
+    //                    {
+    //                        Node<Coordinates>* node = gaps.Search(Coordinates(x + w * boundsperquadx + left, y + v * boundsperquady + bottom));
+
+    //                        if (node != nullptr)
+    //                        {
+    //                            Coordinates coord = node->pos;
+
+    //                            std::vector<Coordinates> vecCoords;
+
+    //                            for (int j = -storenum; j <= storenum; j++)
+    //                                for (int i = -storenum; i <= storenum; i++)
+    //                                {
+    //                                    Node<Coordinates>* n = gaps.Search(Coordinates((i + x) + (w * boundsperquadx) + left, (j + y) + (v * boundsperquady) + bottom));
+
+    //                                    if (n != nullptr)
+    //                                    {
+    //                                        Coordinates c = n->pos;
+    //                                        vecCoords.push_back(c);
+    //                                    }
+    //                                }
+
+    //                            float zavg = 0.0f;
+
+    //                            for (auto const c : vecCoords)
+    //                            {
+    //                                zavg += c.z;
+    //                            }
+
+    //                            zavg /= vecCoords.size();
+
+    //                            coord.z = zavg;
+
+    //                            smooth.Insert(new Node<Coordinates>(coord));
+    //                        }
+    //                    }
+    //                //Right
+    //                if (w != (numquads - 1))
+    //                {
+    //                    for (int x = boundsperquadx - storenum - 1; x < boundsperquadx; x++)
+    //                        for (int y = storenum; y < boundsperquady - storenum - 1; y++)
+    //                        {
+    //                            Node<Coordinates>* node = gaps.Search(Coordinates(x + w * boundsperquadx + left, y + v * boundsperquady + bottom));
+
+    //                            if (node != nullptr)
+    //                            {
+    //                                Coordinates coord = node->pos;
+
+    //                                std::vector<Coordinates> vecCoords;
+
+    //                                for (int j = -storenum; j <= storenum; j++)
+    //                                    for (int i = -storenum; i <= storenum; i++)
+    //                                    {
+    //                                        Node<Coordinates>* n = gaps.Search(Coordinates((i + x) + (w * boundsperquadx) + left, (j + y) + (v * boundsperquady) + bottom));
+
+    //                                        if (n != nullptr)
+    //                                        {
+    //                                            Coordinates c = n->pos;
+    //                                            vecCoords.push_back(c);
+    //                                        }
+    //                                    }
+
+    //                                float zavg = 0.0f;
+
+    //                                for (auto const c : vecCoords)
+    //                                {
+    //                                    zavg += c.z;
+    //                                }
+
+    //                                zavg /= vecCoords.size();
+
+    //                                coord.z = zavg;
+
+    //                                smooth.Insert(new Node<Coordinates>(coord));
+    //                            }
+    //                        }
+    //                }
+    //                //Left
+    //                if (w != 0)
+    //                {
+    //                    for (int x = 0; x < storenum; x++)
+    //                        for (int y = 0; y < boundsperquady; y++)
+    //                        {
+    //                            Node<Coordinates>* node = gaps.Search(Coordinates(x + w * boundsperquadx + left, y + v * boundsperquady + bottom));
+
+    //                            if (node != nullptr)
+    //                            {
+    //                                Coordinates coord = node->pos;
+
+    //                                std::vector<Coordinates> vecCoords;
+
+    //                                for (int j = -storenum; j <= storenum; j++)
+    //                                    for (int i = -storenum; i <= storenum; i++)
+    //                                    {
+    //                                        Node<Coordinates>* n = gaps.Search(Coordinates((i + x) + (w * boundsperquadx) + left, (j + y) + (v * boundsperquady) + bottom));
+
+    //                                        if (n != nullptr)
+    //                                        {
+    //                                            Coordinates c = n->pos;
+    //                                            vecCoords.push_back(c);
+    //                                        }
+    //                                    }
+
+    //                                float zavg = 0.0f;
+
+    //                                for (auto const c : vecCoords)
+    //                                {
+    //                                    zavg += c.z;
+    //                                }
+
+    //                                zavg /= vecCoords.size();
+
+    //                                coord.z = zavg;
+
+    //                                smooth.Insert(new Node<Coordinates>(coord));
+    //                            }
+    //                        }
+    //                }
+    //            }
+
+    //        }
+    //    }
+    //}
+    
+    std::cout << "Complete\n";
 }
