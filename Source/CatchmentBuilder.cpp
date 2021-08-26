@@ -476,17 +476,22 @@ void CatchmentBuilder::CalculateFlowDirectionSingle(QuadtreeManager<FlowDirectio
     for (int x = 0; x < boundsx; x++)
         for (int y = 0; y < boundsy; y++)
         {
-            auto n = normal.Search(Normal(x + left, y + bottom))->pos;
+            auto f = normal.Search(Normal(x + left, y + bottom));
 
-            Vec2 translated(n.norm.x - n.x, n.norm.y - n.y);
+            if (f != nullptr)
+            {
+                auto n = f->pos;
 
-            float angle = std::atan2(translated.x,translated.y);
+                Vec2 translated(n.norm.x - n.x, n.norm.y - n.y);
 
-            int octant = (int)std::round(8 * angle / (2 * PI) + 8) % 8;
+                float angle = std::atan2(translated.x, translated.y);
 
-            Direction dir = (Direction)octant;
+                int octant = (int)std::round(8 * angle / (2 * PI) + 8) % 8;
 
-            flowdirection.Insert(new Node<FlowDirection>(FlowDirection(x + left, y + bottom, dir)));
+                Direction dir = (Direction)octant;
+
+                flowdirection.Insert(new Node<FlowDirection>(FlowDirection(x + left, y + bottom, dir)));
+            }
         }
     std::cout << "Complete\n";
 }
@@ -494,6 +499,105 @@ void CatchmentBuilder::CalculateFlowDirectionSingle(QuadtreeManager<FlowDirectio
 void CatchmentBuilder::CalculateFlowAccumulationSingle(QuadtreeManager<FlowDirection>& flowdirection, QuadtreeManager<FlowAccumulation>& flowaccum)
 {
     std::cout << "Calculating Flow Accumulations\n";
+
+    QuadtreeManager<FlowAccumulation> NIDP(flowaccum.TopLeft(), flowaccum.BottomRight());
+
+    //  NIDP quadtree for storing the number of cells that flow into a given cell
+    //  If the NIDP value is 0 then the cell is a source cell and is the top of the flow path
+    //  If the NIDP value is 1 then the cell is an interior cell and simply take the flow and passes it to the next cell
+    //  If the NIDP value is >=2 then the cell is an intersectionm of flow paths
+    
+
+    NIDP.prePath = "Temp/AccumulationTree/Tree";
+    NIDP.spacing = flowaccum.spacing;
+    NIDP.splitlevel = flowaccum.splitlevel;
+    NIDP.SetTreeType(flowaccum.type);
+
+    double boundsx = (flowaccum.BottomRight().x) - (flowaccum.TopLeft().x);
+    double boundsy = (flowaccum.TopLeft().y) - (flowaccum.BottomRight().y);
+    double bottom = (flowaccum.BottomRight().y);
+    double left = (flowaccum.TopLeft().x);
+
+    //Initialise the accumulation grid at 1
+    for (int x = 0; x < boundsx; x++)
+        for (int y = 0; y < boundsy; y++)
+        {
+             auto n = flowaccum.Search(FlowAccumulation(x + left, y + bottom));
+             if(n != nullptr)
+                 n->pos.flow = 1;
+        }
+
+    //Calculate the NIDP grid
+    for (int x = 0; x < boundsx; x++)
+        for (int y = 0; y < boundsy; y++)
+        {
+            Node<FlowDirection>* node = flowdirection.Search(FlowDirection(x + left, y + bottom));
+
+            if (node != nullptr)
+            {
+                std::vector<FlowDirection> vecDir;
+
+                {
+                    FlowDirection coord = node->pos;
+                    vecDir.push_back(coord);
+                }
+
+                for (int j = -1; j <= 1; j++)
+                    for (int i = -1; i <= 1; i++)
+                    {
+                        if (i != 0 && j != 0)
+                        {
+                            Node<FlowDirection>* n = flowdirection.Search(FlowDirection(double(i) + double(x) + left, double(j) + double(y) + bottom));
+
+                            if (n != nullptr)
+                            {
+                                FlowDirection coord = n->pos;
+                                vecDir.push_back(coord);
+                            }
+                        }
+                    }
+
+                int NIDPval = 0;
+
+                if (vecDir[1].direction == Direction::NE)
+                    NIDPval++;
+                if (vecDir[2].direction == Direction::N)
+                    NIDPval++;
+                if (vecDir[3].direction == Direction::NW)
+                    NIDPval++;
+                if (vecDir[4].direction == Direction::E)
+                    NIDPval++;
+                if (vecDir[5].direction == Direction::W)
+                    NIDPval++;
+                if (vecDir[6].direction == Direction::SE)
+                    NIDPval++;
+                if (vecDir[7].direction == Direction::S)
+                    NIDPval++;
+                if (vecDir[8].direction == Direction::SW)
+                    NIDPval++;
+
+                NIDP.Insert(new Node<FlowAccumulation>(FlowAccumulation(x + left, y + bottom, NIDPval)));
+            }
+        }
+
+    for (int x = 0; x < boundsx; x++)
+        for (int y = 0; y < boundsy; y++)
+        {
+            Node<FlowAccumulation>* node = NIDP.Search(FlowAccumulation(x + left, y + bottom));
+
+            if (node != nullptr)
+            {
+                if (node->pos.flow == 0)
+                {
+                    //Source node found, trace to the downstream intersection node or boundary of the data
+                    do
+                    {
+                        
+                    } 
+                    while (NIDP.Search(FlowAccumulation(x + left, y + bottom)) != nullptr);
+                }
+            }
+        }
 }
 
 void CatchmentBuilder::CalculateStreamLinkingSingle(QuadtreeManager<FlowAccumulation>& flowaccum)
