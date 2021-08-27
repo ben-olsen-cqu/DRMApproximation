@@ -244,6 +244,68 @@ Node<T>* QuadtreeManager<T>::Search(T p)
 }
 
 template<typename T>
+Node<T>* QuadtreeManager<T>::SearchW(T p)
+{
+    if (!inBoundary(quad, p))
+        return nullptr;
+
+    if (type == TreeType::Single)
+    {
+        return Subsearch(quad, p);
+    }
+    else
+    {
+        for (int j = 0; j < bottomnodes.size(); j++)
+        {
+            if (inBoundary(bottomnodes[j], p))
+            {
+                if (bottomnodes[j]->hasData == true)
+                {
+                    //tree already loaded
+                    return Subsearch(bottomnodes[j], p);
+                }
+                else
+                {
+                    //deload the previous tree
+                    for (int k = 0; k < bottomnodes.size(); k++)
+                    {
+                        if (bottomnodes[k]->hasData == true) //deloads only if a tree is loaded
+                        {
+                            std::ofstream datastream;
+
+                            datastream.open("./" + prePath + std::to_string(bottomnodes[k]->index) + ".bin", std::ios::binary);
+
+                            WriteQuadToFile(bottomnodes[k], &datastream);
+
+                            datastream.close();
+
+                            bottomnodes[k]->~Quadtree();
+                            bottomnodes[k]->hasData = false;
+                            break;
+                        }
+                    }
+
+                    //load the tree if the file exists
+                    if (std::filesystem::exists("./" + prePath + std::to_string(bottomnodes[j]->index) + ".bin"))
+                    {
+                        std::ifstream datastream2;
+
+                        datastream2.open("./" + prePath + std::to_string(bottomnodes[j]->index) + ".bin", std::ios::binary);
+
+                        ReadFromFile(bottomnodes[j], &datastream2);
+                        bottomnodes[j]->hasData = true;
+
+                        datastream2.close();
+                    }
+                    //Insert the new node to the loaded tree
+                    return Subsearch(bottomnodes[j], p);
+                }
+            }
+        }
+    }
+}
+
+template<typename T>
 bool QuadtreeManager<T>::inBoundary(Quadtree<T>* q, T p) const
 {
     return (p.x >= q->topLeft.x && p.x <= q->bottomRight.x && p.y <= q->topLeft.y && p.y >= q->bottomRight.y);

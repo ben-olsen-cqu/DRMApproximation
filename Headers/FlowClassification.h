@@ -2,7 +2,16 @@
 
 #include <cmath>
 
-enum class Direction { E = 0, NE = 1, N = 2, NW = 3, W = 4, SW = 5, S = 6, SE = 7 };
+enum class Direction { 
+    N = 4,
+    NE = 5,
+    E = 6,
+    SE = 7,
+    S = 0,
+    SW = 1,
+    W = 2,
+    NW = 3
+};
 
 struct FlowDirection
 {

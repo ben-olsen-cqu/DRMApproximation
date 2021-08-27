@@ -9,7 +9,7 @@ void CatchmentBuilder::CreateCatchments(QuadtreeManager<Coordinates>& quad)
 {
     std::cout << "Smoothing Surface\n";
 
-    QuadtreeManager<Coordinates> smooth(quad.topLeft,quad.bottomRight);
+    QuadtreeManager<Coordinates> smooth(quad.topLeft, quad.bottomRight);
 
     smooth.prePath = "Temp/SmoothTree/SmoothTree";
     smooth.spacing = quad.spacing;
@@ -19,24 +19,30 @@ void CatchmentBuilder::CreateCatchments(QuadtreeManager<Coordinates>& quad)
     if (quad.type == TreeType::Single)
     {
         SmoothPointsSingle(quad, smooth);
+
+        std::cout << "Exporting Original Surface\n";
+        FileWriter::WriteCoordTreeASC("./Exports/Surfaces/Original", quad);
+
+        std::cout << "Exporting Smoothed Surface\n";
+        FileWriter::WriteCoordTreeASC("./Exports/Surfaces/Smooth", smooth);
     }
     else
     {
         SmoothPointsSplit(quad, smooth);
+
+        //std::cout << "Exporting Original Surface\n";
+        //FileWriter::WriteCoordTreeASC("./Exports/Surfaces/Original", quad);
+
+        //std::cout << "Exporting Smoothed Surface\n";
+        //FileWriter::WriteCoordTreeASC("./Exports/Surfaces/Smooth", smooth);
     }
-
-    //std::cout << "Exporting Original Surface\n";
-    //FileWriter::WriteCoordTreeASC("./Exports/Surfaces/Original", quad);
-
-    //std::cout << "Exporting Smoothed Surface\n";
-    //FileWriter::WriteCoordTreeASC("./Exports/Surfaces/Smooth", smooth);
 
     quad.~QuadtreeManager();
 
     Normal tL(quad.topLeft.x + quad.spacing / 2, quad.topLeft.y - quad.spacing / 2);
     Normal bR(quad.bottomRight.x - quad.spacing / 2, quad.bottomRight.y + quad.spacing / 2);
-    
-    QuadtreeManager<Normal> normal(tL,bR);
+
+    QuadtreeManager<Normal> normal(tL, bR);
 
     normal.prePath = "Temp/NormalTree/Tree";
     normal.spacing = quad.spacing;
@@ -46,6 +52,10 @@ void CatchmentBuilder::CreateCatchments(QuadtreeManager<Coordinates>& quad)
     if (quad.type == TreeType::Single)
     {
         CalculateNormalsSingle(smooth, normal);
+
+        std::cout << "Writing Normals to File.\n";
+        //FileWriter::WriteVecNormals3dWKT("./Exports/Vectors/SmoothNormals3dWKT", normal);
+        FileWriter::WriteVecNormals2dWKT("./Exports/Vectors/SmoothNormals2dWKT", normal);
     }
     else
     {
@@ -67,6 +77,9 @@ void CatchmentBuilder::CreateCatchments(QuadtreeManager<Coordinates>& quad)
     if (quad.type == TreeType::Single)
     {
         CalculateFlowDirectionSingle(flowdirection, normal);
+
+        std::cout << "Writing Flow Directions to File.\n";
+        FileWriter::WriteFlowDirection2dWKT("./Exports/Vectors/FlowDirections2dWKT", flowdirection);
     }
     else
     {
@@ -86,12 +99,14 @@ void CatchmentBuilder::CreateCatchments(QuadtreeManager<Coordinates>& quad)
     if (quad.type == TreeType::Single)
     {
         CalculateFlowAccumulationSingle(flowdirection, flowaccum);
+
+        std::cout << "Exporting Flow Accumulation Surface\n";
+        FileWriter::WriteAccumTreeASC("./Exports/Surfaces/Accum", flowaccum);
     }
     else
     {
         //CalculateFlowAccumulationSplit(flowdirection, flowaccum);
     }
-    
 }
 
 void CatchmentBuilder::SmoothPointsSingle(QuadtreeManager<Coordinates>& quad, QuadtreeManager<Coordinates>& smooth)
@@ -299,7 +314,7 @@ void CatchmentBuilder::SmoothPointsSplit(QuadtreeManager<Coordinates>& quad, Qua
                                 }
                             }
 
-                        float zavg = 0.0f;
+                        double zavg = 0.0f;
 
                         for (auto const c : vecCoords)
                         {
@@ -454,10 +469,6 @@ void CatchmentBuilder::CalculateNormalsSingle(QuadtreeManager<Coordinates>& smoo
             
             normal.Insert(new Node<Normal>(Normal(translation, normalq)));
         }
-
-    //std::cout << "Writing Normals to File.\n";
-    //FileWriter::WriteVecNormals3dWKT("./Exports/Normals/SmoothNormals3dWKT", normal);
-    //FileWriter::WriteVecNormals2dWKT("./Exports/Normals/SmoothNormals2dWKT", normal);
 }
 
 void CatchmentBuilder::CalculateNormalsSplit(QuadtreeManager<Coordinates>& quad, QuadtreeManager<Normal>& normal)
@@ -580,24 +591,94 @@ void CatchmentBuilder::CalculateFlowAccumulationSingle(QuadtreeManager<FlowDirec
             }
         }
 
+    std::cout << "Exporting NIDP Surface\n";
+    FileWriter::WriteAccumTreeASC("./Exports/Surfaces/NIDP", NIDP);
+    std::cout << "Complete\n";
+
     for (int x = 0; x < boundsx; x++)
         for (int y = 0; y < boundsy; y++)
         {
-            Node<FlowAccumulation>* node = NIDP.Search(FlowAccumulation(x + left, y + bottom));
+            Node<FlowAccumulation>* nNIDP = NIDP.Search(FlowAccumulation(x + left, y + bottom));
 
-            if (node != nullptr)
+            if (nNIDP != nullptr)
             {
-                if (node->pos.flow == 0)
+                if (nNIDP->pos.flow == 0)
                 {
                     //Source node found, trace to the downstream intersection node or boundary of the data
+                    int Accum = 0;
+                    int i = x;
+                    int j = y;
+
                     do
                     {
-                        
+                        auto nAcc = flowaccum.Search(FlowAccumulation(i + left, j + bottom));
+
+                        nAcc->pos.flow += Accum;
+                        Accum = nAcc->pos.flow;
+
+                        Direction d = flowdirection.Search(FlowDirection(i + left, j + bottom))->pos.direction;
+
+                        //Increment i or j based on the flow direction to get the next cell
+                        switch (d)
+                        {
+                        case Direction::N:
+                        {
+                            j++;
+                        };
+                        case Direction::NE:
+                        {
+                            j++;
+                            i++;
+                        };
+                        case Direction::E:
+                        {
+                            i++;
+                        };
+                        case Direction::SE:
+                        {
+                            j--;
+                            i++;
+                        };
+                        case Direction::S:
+                        {
+                            j--;
+                        };
+                        case Direction::SW:
+                        {
+                            j--;
+                            i--;
+                        };
+                        case Direction::W:
+                        {
+                            i--;
+                        };
+                        case Direction::NW:
+                        {
+                            j++;
+                            i--;
+                        };
+                        } 
+
+                        if (i == x && j == y)
+                        {
+                            std::cout << "Circular flow path found";
+                            break;
+                        }
+
+                        if (nNIDP->pos.flow >= 2)
+                        {
+                            nNIDP->pos.flow--;
+                            break;
+                        }
+
+                        nNIDP = NIDP.Search(FlowAccumulation(i + left, j + bottom));
                     } 
-                    while (NIDP.Search(FlowAccumulation(x + left, y + bottom)) != nullptr);
+                    while (nNIDP != nullptr);
                 }
             }
         }
+
+    NIDP.~QuadtreeManager();
 }
 
 void CatchmentBuilder::CalculateStreamLinkingSingle(QuadtreeManager<FlowAccumulation>& flowaccum)

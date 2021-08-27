@@ -36,6 +36,7 @@ public:
 	void CreateQuadtree(const std::vector<std::string> files, const float _spacing, const int mem);
 	void Insert(Node<T>* n);
 	Node<T>* Search(T p);
+	Node<T>* SearchW(T p); //Same as search but used for operations where the loaded tree has been modified and needs to be written to file instead of destructed
 	bool inBoundary(Quadtree<T>* q, T p) const;
 	T TopLeft() const;
 	T BottomRight() const;
