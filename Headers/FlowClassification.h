@@ -3,14 +3,14 @@
 #include <cmath>
 
 enum class Direction { 
-    N = 4,
-    NE = 5,
-    E = 6,
-    SE = 7,
-    S = 0,
-    SW = 1,
-    W = 2,
-    NW = 3
+    N = 0,
+    NE = 1,
+    E = 2,
+    SE = 3,
+    S = 4,
+    SW = 5,
+    W = 6,
+    NW = 7
 };
 
 struct FlowDirection

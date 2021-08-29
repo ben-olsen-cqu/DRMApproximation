@@ -23,8 +23,8 @@ void FileWriter::WriteCoordTree(std::string filename, QuadtreeManager<Coordinate
 	float bottom = (quad.BottomRight().y);
 	float left = (quad.TopLeft().x);
 
-	for (int x = 0; x <= boundsx; x++)
-		for (int y = 0; y <= boundsy; y++)
+	for (int x = 0; x < boundsx; x++)
+		for (int y = 0; y < boundsy; y++)
 		{
 			Coordinates c = quad.Search(Coordinates(x + left, y + bottom))->pos;
 			std::string line = std::to_string(c.x) + "," + std::to_string(c.y) + "," + std::to_string(c.z) + ",";
@@ -59,12 +59,19 @@ void FileWriter::WriteCoordTreeASC(std::string filename, QuadtreeManager<Coordin
 			{
 				auto row = (boundsy - y) + bottom;
 				auto column = x + left;
-				if ((quad.Search(Coordinates(column, row))) != nullptr)
+				auto n = quad.Search(Coordinates(column, row));
+
+				if (n != nullptr)
 				{
-					Coordinates c = quad.Search(Coordinates(column, row))->pos;
+					Coordinates c = n->pos;
 					std::string line = std::to_string(c.z) + " ";
 					outfile << line;
 				}
+				else
+				{
+					outfile << "-9999";
+				}
+
 			}
 			outfile << std::endl << " ";
 		}
@@ -104,6 +111,10 @@ void FileWriter::WriteCoordTreeASC(std::string filename, QuadtreeManager<Coordin
 						Coordinates c = n->pos;
 						std::string line = std::to_string(c.z) + " ";
 						outfile << line;
+					}
+					else
+					{
+						outfile << "-9999";
 					}
 				}
 				outfile << std::endl << " ";
@@ -145,6 +156,10 @@ void FileWriter::WriteAccumTreeASC(std::string filename, QuadtreeManager<FlowAcc
 					FlowAccumulation c = quad.Search(FlowAccumulation(column, row))->pos;
 					std::string line = std::to_string(c.flow) + " ";
 					outfile << line;
+				}
+				else
+				{
+					outfile << "-9999";
 				}
 			}
 			outfile << std::endl << " ";

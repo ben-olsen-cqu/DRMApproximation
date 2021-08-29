@@ -20,11 +20,11 @@ void CatchmentBuilder::CreateCatchments(QuadtreeManager<Coordinates>& quad)
     {
         SmoothPointsSingle(quad, smooth);
 
-        std::cout << "Exporting Original Surface\n";
-        FileWriter::WriteCoordTreeASC("./Exports/Surfaces/Original", quad);
+       std::cout << "Exporting Original Surface\n";
+       FileWriter::WriteCoordTreeASC("./Exports/Surfaces/Original", quad);
 
-        std::cout << "Exporting Smoothed Surface\n";
-        FileWriter::WriteCoordTreeASC("./Exports/Surfaces/Smooth", smooth);
+       std::cout << "Exporting Smoothed Surface\n";
+       FileWriter::WriteCoordTreeASC("./Exports/Surfaces/Smooth", smooth);
     }
     else
     {
@@ -116,7 +116,7 @@ void CatchmentBuilder::SmoothPointsSingle(QuadtreeManager<Coordinates>& quad, Qu
     double bottom = (quad.BottomRight().y);
     double left = (quad.TopLeft().x);
 
-    int blurrad = 5; //odd numbers only
+    int blurrad = 7; //odd numbers only
     int storenum = (blurrad - 1) / 2;
 
     for (int y = 0; y <= boundsy; y++)
@@ -419,14 +419,15 @@ void CatchmentBuilder::SmoothPointsSplit(QuadtreeManager<Coordinates>& quad, Qua
 void CatchmentBuilder::CalculateNormalsSingle(QuadtreeManager<Coordinates>& smooth, QuadtreeManager<Normal>& normal)
 {
     std::cout << "Generating Normals\n";
-    double boundsx = (smooth.BottomRight().x) - (smooth.TopLeft().x);
-    double boundsy = (smooth.TopLeft().y) - (smooth.BottomRight().y);
+    double boundsx = (smooth.BottomRight().x) - (smooth.TopLeft().x)-1;
+    double boundsy = (smooth.TopLeft().y) - (smooth.BottomRight().y)-1;
     double bottom = (smooth.BottomRight().y);
     double left = (smooth.TopLeft().x);
 
-    for (int x = 0; x < boundsx; x++)
-        for (int y = 0; y < boundsy; y++)
+    for (int y = 0; y <= boundsx; y++)
+        for (int x = 0; x <= boundsy; x++)
         {
+
             //Get points in a quad going clockwise starting from the BL
 
             Vec3 p1, p2, p3, p4, vec1, vec2, vec3, vec4, translation, normal1, normal2;
@@ -464,6 +465,9 @@ void CatchmentBuilder::CalculateNormalsSingle(QuadtreeManager<Coordinates>& smoo
             //average normals to get normal for quad
             Vec3 normalq = Vec3((normal1.x + normal2.x) / 2, (normal1.y + normal2.y) / 2, (normal1.z + normal2.z) / 2);
             normalq.Normalize();
+            normalq.x = -normalq.x;
+            normalq.y = -normalq.y;
+            normalq.z = -normalq.z;
 
             normalq += translation;
             
@@ -484,8 +488,8 @@ void CatchmentBuilder::CalculateFlowDirectionSingle(QuadtreeManager<FlowDirectio
     double bottom = (normal.BottomRight().y);
     double left = (normal.TopLeft().x);
 
-    for (int x = 0; x < boundsx; x++)
-        for (int y = 0; y < boundsy; y++)
+    for (int x = 0; x <= boundsx; x++)
+        for (int y = 0; y <= boundsy; y++)
         {
             auto f = normal.Search(Normal(x + left, y + bottom));
 
@@ -530,62 +534,77 @@ void CatchmentBuilder::CalculateFlowAccumulationSingle(QuadtreeManager<FlowDirec
     double left = (flowaccum.TopLeft().x);
 
     //Initialise the accumulation grid at 1
-    for (int x = 0; x < boundsx; x++)
-        for (int y = 0; y < boundsy; y++)
+    for (int x = 0; x <= boundsx; x++)
+        for (int y = 0; y <= boundsy; y++)
         {
-             auto n = flowaccum.Search(FlowAccumulation(x + left, y + bottom));
-             if(n != nullptr)
-                 n->pos.flow = 1;
+            flowaccum.Insert(new Node<FlowAccumulation>(FlowAccumulation(x + left, y + bottom, 1)));
         }
 
     //Calculate the NIDP grid
-    for (int x = 0; x < boundsx; x++)
-        for (int y = 0; y < boundsy; y++)
+    for (int x = 0; x <= boundsx; x++)
+        for (int y = 0; y <= boundsy; y++)
         {
             Node<FlowDirection>* node = flowdirection.Search(FlowDirection(x + left, y + bottom));
 
             if (node != nullptr)
             {
-                std::vector<FlowDirection> vecDir;
-
-                {
-                    FlowDirection coord = node->pos;
-                    vecDir.push_back(coord);
-                }
-
-                for (int j = -1; j <= 1; j++)
-                    for (int i = -1; i <= 1; i++)
-                    {
-                        if (i != 0 && j != 0)
-                        {
-                            Node<FlowDirection>* n = flowdirection.Search(FlowDirection(double(i) + double(x) + left, double(j) + double(y) + bottom));
-
-                            if (n != nullptr)
-                            {
-                                FlowDirection coord = n->pos;
-                                vecDir.push_back(coord);
-                            }
-                        }
-                    }
-
                 int NIDPval = 0;
 
-                if (vecDir[1].direction == Direction::NE)
-                    NIDPval++;
-                if (vecDir[2].direction == Direction::N)
-                    NIDPval++;
-                if (vecDir[3].direction == Direction::NW)
-                    NIDPval++;
-                if (vecDir[4].direction == Direction::E)
-                    NIDPval++;
-                if (vecDir[5].direction == Direction::W)
-                    NIDPval++;
-                if (vecDir[6].direction == Direction::SE)
-                    NIDPval++;
-                if (vecDir[7].direction == Direction::S)
-                    NIDPval++;
-                if (vecDir[8].direction == Direction::SW)
-                    NIDPval++;
+                node = flowdirection.Search(FlowDirection(x-1 + left, y-1 + bottom));
+                if (node != nullptr)
+                {
+                    if (node->pos.direction == Direction::NE)
+                        NIDPval++;
+                }
+
+                node = flowdirection.Search(FlowDirection(x + left, y - 1 + bottom));
+                if (node != nullptr)
+                {
+                    if (node->pos.direction == Direction::N)
+                        NIDPval++;
+                }
+
+                node = flowdirection.Search(FlowDirection(x + 1 + left, y - 1 + bottom));
+                if (node != nullptr)
+                {
+                    if (node->pos.direction == Direction::NW)
+                        NIDPval++;
+                }
+
+                node = flowdirection.Search(FlowDirection(x - 1 + left, y + bottom));
+                if (node != nullptr)
+                {
+                    if (node->pos.direction == Direction::E)
+                        NIDPval++;
+                }
+
+                 node = flowdirection.Search(FlowDirection(x + 1 + left, y + bottom));
+                if (node != nullptr)
+                {
+                    if (node->pos.direction == Direction::W)
+                        NIDPval++;
+                }
+
+                node = flowdirection.Search(FlowDirection(x - 1 + left, y + 1 + bottom));
+                if (node != nullptr)
+                {
+                    if (node->pos.direction == Direction::SE)
+                        NIDPval++;
+                }
+
+                node = flowdirection.Search(FlowDirection(x + left, y + 1 + bottom));
+                if (node != nullptr)
+                {
+                    if (node->pos.direction == Direction::S)
+                        NIDPval++;
+                }
+
+                node = flowdirection.Search(FlowDirection(x + 1 + left, y + 1 + bottom));
+                if (node != nullptr)
+                {
+                    if (node->pos.direction == Direction::SW)
+                        NIDPval++;
+                }
 
                 NIDP.Insert(new Node<FlowAccumulation>(FlowAccumulation(x + left, y + bottom, NIDPval)));
             }
@@ -595,8 +614,8 @@ void CatchmentBuilder::CalculateFlowAccumulationSingle(QuadtreeManager<FlowDirec
     FileWriter::WriteAccumTreeASC("./Exports/Surfaces/NIDP", NIDP);
     std::cout << "Complete\n";
 
-    for (int x = 0; x < boundsx; x++)
-        for (int y = 0; y < boundsy; y++)
+    for (int x = 0; x <= boundsx; x++)
+        for (int y = 0; y <= boundsy; y++)
         {
             Node<FlowAccumulation>* nNIDP = NIDP.Search(FlowAccumulation(x + left, y + bottom));
 
@@ -624,52 +643,63 @@ void CatchmentBuilder::CalculateFlowAccumulationSingle(QuadtreeManager<FlowDirec
                         case Direction::N:
                         {
                             j++;
+                            break;
                         };
                         case Direction::NE:
                         {
                             j++;
                             i++;
+                            break;
                         };
                         case Direction::E:
                         {
                             i++;
+                            break;
                         };
                         case Direction::SE:
                         {
                             j--;
                             i++;
+                            break;
                         };
                         case Direction::S:
                         {
                             j--;
+                            break;
                         };
                         case Direction::SW:
                         {
                             j--;
                             i--;
+                            break;
                         };
                         case Direction::W:
                         {
                             i--;
+                            break;
                         };
                         case Direction::NW:
                         {
                             j++;
                             i--;
+                            break;
                         };
                         } 
-
-                        if (i == x && j == y)
-                        {
-                            std::cout << "Circular flow path found";
-                            break;
-                        }
 
                         if (nNIDP->pos.flow >= 2)
                         {
                             nNIDP->pos.flow--;
                             break;
                         }
+
+                        //for each (Vec2 fp in flowpath)
+                        //{
+                        //    if (fp == Vec2(i, j))
+                        //    {
+                        //        //std::cout << "Circular flow path found\n";
+                        //        break;
+                        //    }
+                        //}
 
                         nNIDP = NIDP.Search(FlowAccumulation(i + left, j + bottom));
                     } 
