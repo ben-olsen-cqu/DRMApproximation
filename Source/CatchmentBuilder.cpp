@@ -107,6 +107,19 @@ void CatchmentBuilder::CreateCatchments(QuadtreeManager<Coordinates>& quad)
     {
         //CalculateFlowAccumulationSplit(flowdirection, flowaccum);
     }
+    
+    std::vector<std::vector<Vec2>> flowpaths;
+    if (quad.type == TreeType::Single)
+    {
+        StreamLinkingSingle(flowaccum, flowpaths);
+
+        std::cout << "Exporting Flow Accumulation Surface\n";
+        //FileWriter::WriteAccumTreeASC("./Exports/Surfaces/Accum", flowaccum);
+    }
+    else
+    {
+        //CalculateFlowAccumulationSplit(flowdirection, flowaccum);
+    }
 }
 
 void CatchmentBuilder::SmoothPointsSingle(QuadtreeManager<Coordinates>& quad, QuadtreeManager<Coordinates>& smooth)
@@ -711,7 +724,8 @@ void CatchmentBuilder::CalculateFlowAccumulationSingle(QuadtreeManager<FlowDirec
     NIDP.~QuadtreeManager();
 }
 
-void CatchmentBuilder::CalculateStreamLinkingSingle(QuadtreeManager<FlowAccumulation>& flowaccum)
+void CatchmentBuilder::StreamLinkingSingle(QuadtreeManager<FlowAccumulation>& flowaccum, std::vector<std::vector<Vec2>>& flowpaths)
 {
+
 }
 

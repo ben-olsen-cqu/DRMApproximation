@@ -23,5 +23,5 @@ private:
 
     void CalculateFlowAccumulationSingle(QuadtreeManager<FlowDirection>& flowdirection, QuadtreeManager<FlowAccumulation>& flowaccum);
 
-    void CalculateStreamLinkingSingle(QuadtreeManager<FlowAccumulation>& flowaccum);
+    void StreamLinkingSingle(QuadtreeManager<FlowAccumulation>& flowaccum, std::vector<std::vector<Vec2>>& flowpaths);
 };
