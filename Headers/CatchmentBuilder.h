@@ -23,5 +23,7 @@ private:
 
     void CalculateFlowAccumulationSingle(QuadtreeManager<FlowDirection>& flowdirection, QuadtreeManager<FlowAccumulation>& flowaccum);
 
-    void StreamLinkingSingle(QuadtreeManager<FlowAccumulation>& flowaccum, std::vector<std::vector<Vec2>>& flowpaths);
+    std::vector<std::vector<Vec2>> StreamLinkingSingle(QuadtreeManager<FlowAccumulation>& flowaccum, QuadtreeManager<FlowDirection>& flowdirection);
+
+    void TraceFlowPath(QuadtreeManager<FlowDirection>& flowdirection, std::vector<std::vector<Vec2>>* flowpaths, int x, int y);
 };

@@ -30,6 +30,7 @@ void FileWriter::WriteCoordTree(std::string filename, QuadtreeManager<Coordinate
 			std::string line = std::to_string(c.x) + "," + std::to_string(c.y) + "," + std::to_string(c.z) + ",";
             outfile << line << std::endl;
 		}
+	outfile.close();
 }
 
 void FileWriter::WriteCoordTreeASC(std::string filename, QuadtreeManager<Coordinates>& quad)
@@ -75,6 +76,7 @@ void FileWriter::WriteCoordTreeASC(std::string filename, QuadtreeManager<Coordin
 			}
 			outfile << std::endl << " ";
 		}
+		outfile.close();
 	}
 	else
 	{
@@ -119,6 +121,7 @@ void FileWriter::WriteCoordTreeASC(std::string filename, QuadtreeManager<Coordin
 				}
 				outfile << std::endl << " ";
 			}
+			outfile.close();
 		}
 	}
 
@@ -164,6 +167,7 @@ void FileWriter::WriteAccumTreeASC(std::string filename, QuadtreeManager<FlowAcc
 			}
 			outfile << std::endl << " ";
 		}
+		outfile.close();
 	}
 	//else
 	//{
@@ -281,6 +285,7 @@ void FileWriter::WriteVecNormals3dWKT(std::string filename, QuadtreeManager<Norm
 					+ std::to_string(c.norm.x) + " " + std::to_string(c.norm.y) + " " + std::to_string(c.norm.z) + ")";
 				outfile << line << std::endl;
 			}
+		outfile.close();
 	}
 	else
 	{
@@ -360,6 +365,7 @@ void FileWriter::WriteFlowDirection2dWKT(std::string filename, QuadtreeManager<F
 					outfile << line << std::endl;
 				}
 			}
+		outfile.close();
 	}
 	else
 	{
@@ -385,9 +391,29 @@ void FileWriter::WriteVecNormals2dWKT(std::string filename, QuadtreeManager<Norm
 				std::string line = "LINESTRING (" + std::to_string(c.x) + " " + std::to_string(c.y) + "," + std::to_string(c.norm.x) + " " + std::to_string(c.norm.y) + ")";
 				outfile << line << std::endl;
 			}
+		outfile.close();
 	}
 	else
 	{
 
 	}
+}
+
+void FileWriter::WriteStreamPaths2dWKT(std::string filename, std::vector<std::vector<Vec2>>& flowpaths)
+{
+	std::ofstream outfile(filename + ".csv");
+
+	for each (std::vector<Vec2> list in flowpaths)
+	{
+		std::string line = "LINESTRING (";
+
+		for each (Vec2 point in list)
+		{
+			line += std::to_string(point.x) + " " + std::to_string(point.y) + ",";
+		}
+		line.erase(line.size() - 1, 1);
+		line += ")";
+		outfile << line << std::endl;
+	}
+	outfile.close();
 }

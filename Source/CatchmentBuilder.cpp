@@ -86,6 +86,8 @@ void CatchmentBuilder::CreateCatchments(QuadtreeManager<Coordinates>& quad)
         //CalculateFlowDirectionSingle(smooth, normal);
     }
 
+    normal.~QuadtreeManager();
+
     FlowAccumulation tL3(quad.topLeft.x + quad.spacing / 2, quad.topLeft.y - quad.spacing / 2);
     FlowAccumulation bR3(quad.bottomRight.x - quad.spacing / 2, quad.bottomRight.y + quad.spacing / 2);
 
@@ -108,13 +110,14 @@ void CatchmentBuilder::CreateCatchments(QuadtreeManager<Coordinates>& quad)
         //CalculateFlowAccumulationSplit(flowdirection, flowaccum);
     }
     
-    std::vector<std::vector<Vec2>> flowpaths;
+
+
     if (quad.type == TreeType::Single)
     {
-        StreamLinkingSingle(flowaccum, flowpaths);
+        std::vector<std::vector<Vec2>> flowpaths =  StreamLinkingSingle(flowaccum, flowdirection);
 
-        std::cout << "Exporting Flow Accumulation Surface\n";
-        //FileWriter::WriteAccumTreeASC("./Exports/Surfaces/Accum", flowaccum);
+        std::cout << "Exporting Stream Paths\n";
+        FileWriter::WriteStreamPaths2dWKT("./Exports/Vectors/FlowPaths2dWKT", flowpaths);
     }
     else
     {
@@ -625,7 +628,6 @@ void CatchmentBuilder::CalculateFlowAccumulationSingle(QuadtreeManager<FlowDirec
 
     std::cout << "Exporting NIDP Surface\n";
     FileWriter::WriteAccumTreeASC("./Exports/Surfaces/NIDP", NIDP);
-    std::cout << "Complete\n";
 
     for (int x = 0; x <= boundsx; x++)
         for (int y = 0; y <= boundsy; y++)
@@ -724,8 +726,144 @@ void CatchmentBuilder::CalculateFlowAccumulationSingle(QuadtreeManager<FlowDirec
     NIDP.~QuadtreeManager();
 }
 
-void CatchmentBuilder::StreamLinkingSingle(QuadtreeManager<FlowAccumulation>& flowaccum, std::vector<std::vector<Vec2>>& flowpaths)
+std::vector<std::vector<Vec2>> CatchmentBuilder::StreamLinkingSingle(QuadtreeManager<FlowAccumulation> & flowaccum, QuadtreeManager<FlowDirection>& flowdirection)
 {
+    std::cout << "Stream Linking\n";
 
+    double boundsx = (flowaccum.BottomRight().x) - (flowaccum.TopLeft().x);
+    double boundsy = (flowaccum.TopLeft().y) - (flowaccum.BottomRight().y);
+    double bottom = (flowaccum.BottomRight().y);
+    double left = (flowaccum.TopLeft().x);
+
+    std::vector<std::vector<Vec2>> flowpaths;
+    int acctarget = 500; //500 for Test Data 4, 200 for TD 5
+
+    for (int y = 0; y <= boundsy; y++)
+        for (int x = 0; x <= boundsx; x++)
+        {
+            Node<FlowAccumulation>* flowacc = flowaccum.Search(FlowAccumulation(x + left, y + bottom));
+
+            if (flowacc != nullptr)
+            {
+                if (flowpaths.size() == 0)
+                {
+                    if (flowacc->pos.flow >= acctarget)
+                        TraceFlowPath(flowdirection, &flowpaths, x, y);
+                }
+                else
+                {
+                    bool match = false; //check if a coord matches in the already defined paths
+                    for(int a = 0; a < flowpaths.size(); a++)
+                    {
+                        for each (Vec2 vec in flowpaths[a])
+                        {
+                            if (vec == Vec2(x, y))
+                            {
+                                match = true;
+                            }
+                        }
+                    }
+
+                    if (!match && flowacc->pos.flow > acctarget)
+                        TraceFlowPath(flowdirection, &flowpaths, x, y);
+                }
+            }
+        }
+    std::vector<std::vector<Vec2>> joinedflowpaths;
+
+
+
+    return joinedflowpaths;
 }
+
+void CatchmentBuilder::TraceFlowPath(QuadtreeManager<FlowDirection>& flowdirection, std::vector<std::vector<Vec2>>* flowpaths, int x, int y)
+{
+    double bottom = (flowdirection.BottomRight().y);
+    double left = (flowdirection.TopLeft().x);
+
+    int i = x;
+    int j = y;
+    std::vector<Vec2> path;
+    bool end = false;
+
+    auto d = flowdirection.Search(FlowDirection(i + left, j + bottom));
+
+    while (d != nullptr)
+    {
+        path.push_back(Vec2(i + left, j + bottom));
+
+        //Increment i or j based on the flow direction to get the next cell
+        switch (d->pos.direction)
+        {
+        case Direction::N:
+        {
+            j++;
+            break;
+        };
+        case Direction::NE:
+        {
+            j++;
+            i++;
+            break;
+        };
+        case Direction::E:
+        {
+            i++;
+            break;
+        };
+        case Direction::SE:
+        {
+            j--;
+            i++;
+            break;
+        };
+        case Direction::S:
+        {
+            j--;
+            break;
+        };
+        case Direction::SW:
+        {
+            j--;
+            i--;
+            break;
+        };
+        case Direction::W:
+        {
+            i--;
+            break;
+        };
+        case Direction::NW:
+        {
+            j++;
+            i--;
+            break;
+        };
+        }
+
+        bool match = false; //check if a coord matches in the already defined paths
+        for (int a = 0; a < flowpaths->size(); a++)
+        {
+            for each (Vec2 vec in (*flowpaths)[a])
+            {
+                if (vec == Vec2(i, j))
+                {
+                    match = true;
+                }
+            }
+        }
+
+        if (!match)
+        {
+            path.push_back(Vec2(i + left, j + bottom));
+            break;
+        }
+
+        d = flowdirection.Search(FlowDirection(i + left, j + bottom));
+    } 
+
+
+    flowpaths->push_back(path);
+}
+
 
