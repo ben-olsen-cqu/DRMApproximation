@@ -735,7 +735,7 @@ std::vector<std::vector<Vec2>> CatchmentBuilder::StreamLinkingSingle(QuadtreeMan
     double left = (flowaccum.TopLeft().x);
 
     std::vector<std::vector<Vec2>> flowpaths;
-    int acctarget = 500; //500 for Test Data 1, 200 for TD 4
+    int acctarget = 2250; //500 for Test Data 1, 200 for TD 4
 
     for (int y = 0; y <= boundsy; y++)
         for (int x = 0; x <= boundsx; x++)
