@@ -132,7 +132,7 @@ void CatchmentBuilder::SmoothPointsSingle(QuadtreeManager<Coordinates>& quad, Qu
     double bottom = (quad.BottomRight().y);
     double left = (quad.TopLeft().x);
 
-    int blurrad = 7; //odd numbers only
+    int blurrad = 13; //odd numbers only
     int storenum = (blurrad - 1) / 2;
 
     for (int y = 0; y <= boundsy; y++)
@@ -524,7 +524,6 @@ void CatchmentBuilder::CalculateFlowDirectionSingle(QuadtreeManager<FlowDirectio
                 flowdirection.Insert(new Node<FlowDirection>(FlowDirection(x + left, y + bottom, dir)));
             }
         }
-    std::cout << "Complete\n";
 }
 
 void CatchmentBuilder::CalculateFlowAccumulationSingle(QuadtreeManager<FlowDirection>& flowdirection, QuadtreeManager<FlowAccumulation>& flowaccum)
@@ -726,7 +725,7 @@ void CatchmentBuilder::CalculateFlowAccumulationSingle(QuadtreeManager<FlowDirec
     NIDP.~QuadtreeManager();
 }
 
-std::vector<std::vector<Vec2>> CatchmentBuilder::StreamLinkingSingle(QuadtreeManager<FlowAccumulation> & flowaccum, QuadtreeManager<FlowDirection>& flowdirection)
+std::vector<std::vector<Vec2>> CatchmentBuilder::StreamLinkingSingle(QuadtreeManager<FlowAccumulation>& flowaccum, QuadtreeManager<FlowDirection>& flowdirection)
 {
     std::cout << "Stream Linking\n";
 
@@ -736,42 +735,59 @@ std::vector<std::vector<Vec2>> CatchmentBuilder::StreamLinkingSingle(QuadtreeMan
     double left = (flowaccum.TopLeft().x);
 
     std::vector<std::vector<Vec2>> flowpaths;
-    int acctarget = 500; //500 for Test Data 4, 200 for TD 5
+    int acctarget = 500; //500 for Test Data 1, 200 for TD 4
 
     for (int y = 0; y <= boundsy; y++)
         for (int x = 0; x <= boundsx; x++)
         {
             Node<FlowAccumulation>* flowacc = flowaccum.Search(FlowAccumulation(x + left, y + bottom));
 
-            if (flowacc != nullptr)
-            {
-                if (flowpaths.size() == 0)
-                {
-                    if (flowacc->pos.flow >= acctarget)
-                        TraceFlowPath(flowdirection, &flowpaths, x, y);
-                }
-                else
-                {
-                    bool match = false; //check if a coord matches in the already defined paths
-                    for(int a = 0; a < flowpaths.size(); a++)
-                    {
-                        for each (Vec2 vec in flowpaths[a])
-                        {
-                            if (vec == Vec2(x, y))
-                            {
-                                match = true;
-                            }
-                        }
-                    }
-
-                    if (!match && flowacc->pos.flow > acctarget)
-                        TraceFlowPath(flowdirection, &flowpaths, x, y);
-                }
-            }
+            if (flowacc->pos.flow > acctarget)
+                TraceFlowPath(flowdirection, &flowpaths, x, y);
         }
     std::vector<std::vector<Vec2>> joinedflowpaths;
 
+    joinedflowpaths.push_back(flowpaths[0]);
+    flowpaths.erase(std::begin(flowpaths));
 
+
+    while (flowpaths.size() != 0)
+    {
+        bool added;
+        do //repeat until no more segments are added
+        {
+            added = false;
+            for (int a = 0; a < flowpaths.size(); a++) //for loop for searching through all remaining 
+            {
+                bool reset = false;
+
+                if (flowpaths[a][1] == joinedflowpaths[joinedflowpaths.size()-1][0])
+                {
+                    //If true then add the flowpaths line before the joined paths line in joined paths
+                    joinedflowpaths[joinedflowpaths.size() - 1].insert(joinedflowpaths[joinedflowpaths.size() - 1].begin(), flowpaths[a][0]);
+                    flowpaths.erase(flowpaths.begin() + a);
+                    added = true;
+                    reset = true;
+                }
+                else if (flowpaths[a][0] == joinedflowpaths[joinedflowpaths.size() - 1][(joinedflowpaths[joinedflowpaths.size() - 1].size() - 1)])
+                {
+                    joinedflowpaths[joinedflowpaths.size() - 1].push_back(flowpaths[a][1]);
+                    flowpaths.erase(flowpaths.begin() + a);
+                    added = true;
+                    reset = true;
+                }
+
+                if (reset)
+                    a = 0;
+            }
+        } while (added);
+
+        if (flowpaths.size() != 0)
+        {
+            joinedflowpaths.push_back(flowpaths[0]);
+            flowpaths.erase(std::begin(flowpaths));
+        }
+    }
 
     return joinedflowpaths;
 }
