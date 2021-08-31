@@ -127,7 +127,7 @@ void FileWriter::WriteCoordTreeASC(std::string filename, QuadtreeManager<Coordin
 
 }
 
-void FileWriter::WriteAccumTreeASC(std::string filename, QuadtreeManager<FlowAccumulation>& quad)
+void FileWriter::WriteFlowGeneralTreeASC(std::string filename, QuadtreeManager<FlowGeneral>& quad)
 {
 	if (quad.type == TreeType::Single)
 	{
@@ -154,10 +154,10 @@ void FileWriter::WriteAccumTreeASC(std::string filename, QuadtreeManager<FlowAcc
 			{
 				auto row = (boundsy - y) + bottom;
 				auto column = x + left;
-				if ((quad.Search(FlowAccumulation(column, row))) != nullptr)
+				if ((quad.Search(FlowGeneral(column, row))) != nullptr)
 				{
-					FlowAccumulation c = quad.Search(FlowAccumulation(column, row))->pos;
-					std::string line = std::to_string(c.flow) + " ";
+					FlowGeneral c = quad.Search(FlowGeneral(column, row))->pos;
+					std::string line = std::to_string(c.iValue) + " ";
 					outfile << line;
 				}
 				else
@@ -399,15 +399,15 @@ void FileWriter::WriteVecNormals2dWKT(std::string filename, QuadtreeManager<Norm
 	}
 }
 
-void FileWriter::WriteStreamPaths2dWKT(std::string filename, std::vector<std::vector<Vec2>>& flowpaths)
+void FileWriter::WriteStreamPaths2dWKT(std::string filename, std::vector<FlowPath>& flowpaths)
 {
 	std::ofstream outfile(filename + ".csv");
 
-	for each (std::vector<Vec2> list in flowpaths)
+	for each (FlowPath list in flowpaths)
 	{
 		std::string line = "LINESTRING (";
 
-		for each (Vec2 point in list)
+		for each (Vec2 point in list.path)
 		{
 			line += std::to_string(point.x) + " " + std::to_string(point.y) + ",";
 		}

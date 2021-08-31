@@ -88,10 +88,10 @@ void CatchmentBuilder::CreateCatchments(QuadtreeManager<Coordinates>& quad)
 
     normal.~QuadtreeManager();
 
-    FlowAccumulation tL3(quad.topLeft.x + quad.spacing / 2, quad.topLeft.y - quad.spacing / 2);
-    FlowAccumulation bR3(quad.bottomRight.x - quad.spacing / 2, quad.bottomRight.y + quad.spacing / 2);
+    FlowGeneral tL3(quad.topLeft.x + quad.spacing / 2, quad.topLeft.y - quad.spacing / 2);
+    FlowGeneral bR3(quad.bottomRight.x - quad.spacing / 2, quad.bottomRight.y + quad.spacing / 2);
 
-    QuadtreeManager<FlowAccumulation> flowaccum(tL3, bR3);
+    QuadtreeManager<FlowGeneral> flowaccum(tL3, bR3);
 
     flowaccum.prePath = "Temp/AccumulationTree/Tree";
     flowaccum.spacing = quad.spacing;
@@ -103,18 +103,18 @@ void CatchmentBuilder::CreateCatchments(QuadtreeManager<Coordinates>& quad)
         CalculateFlowAccumulationSingle(flowdirection, flowaccum);
 
         std::cout << "Exporting Flow Accumulation Surface\n";
-        FileWriter::WriteAccumTreeASC("./Exports/Surfaces/Accum", flowaccum);
+        FileWriter::WriteFlowGeneralTreeASC("./Exports/Surfaces/Accum", flowaccum);
     }
     else
     {
         //CalculateFlowAccumulationSplit(flowdirection, flowaccum);
     }
-    
 
+    std::vector<FlowPath> flowpaths;
 
     if (quad.type == TreeType::Single)
     {
-        std::vector<std::vector<Vec2>> flowpaths =  StreamLinkingSingle(flowaccum, flowdirection);
+        flowpaths =  StreamLinkingSingle(flowaccum, flowdirection);
 
         std::cout << "Exporting Stream Paths\n";
         FileWriter::WriteStreamPaths2dWKT("./Exports/Vectors/FlowPaths2dWKT", flowpaths);
@@ -123,6 +123,29 @@ void CatchmentBuilder::CreateCatchments(QuadtreeManager<Coordinates>& quad)
     {
         //CalculateFlowAccumulationSplit(flowdirection, flowaccum);
     }
+
+    flowaccum.~QuadtreeManager();
+
+    QuadtreeManager<FlowGeneral> catchclass(tL3, bR3);
+
+    catchclass.prePath = "Temp/CatchmentClassification/Tree";
+    catchclass.spacing = quad.spacing;
+    catchclass.splitlevel = quad.splitlevel;
+    catchclass.SetTreeType(quad.type);
+
+    if (quad.type == TreeType::Single)
+    {
+        CatchmentClassificationSingle(catchclass, flowdirection, flowpaths);
+
+        std::cout << "Exporting Flow Accumulation Surface\n";
+        FileWriter::WriteFlowGeneralTreeASC("./Exports/Surfaces/CatchmentClassification", catchclass);
+    }
+    else
+    {
+        //CalculateFlowAccumulationSplit(flowdirection, flowaccum);
+    }
+
+    flowdirection.~QuadtreeManager();
 }
 
 void CatchmentBuilder::SmoothPointsSingle(QuadtreeManager<Coordinates>& quad, QuadtreeManager<Coordinates>& smooth)
@@ -526,11 +549,11 @@ void CatchmentBuilder::CalculateFlowDirectionSingle(QuadtreeManager<FlowDirectio
         }
 }
 
-void CatchmentBuilder::CalculateFlowAccumulationSingle(QuadtreeManager<FlowDirection>& flowdirection, QuadtreeManager<FlowAccumulation>& flowaccum)
+void CatchmentBuilder::CalculateFlowAccumulationSingle(QuadtreeManager<FlowDirection>& flowdirection, QuadtreeManager<FlowGeneral>& flowaccum)
 {
     std::cout << "Calculating Flow Accumulations\n";
 
-    QuadtreeManager<FlowAccumulation> NIDP(flowaccum.TopLeft(), flowaccum.BottomRight());
+    QuadtreeManager<FlowGeneral> NIDP(flowaccum.TopLeft(), flowaccum.BottomRight());
 
     //  NIDP quadtree for storing the number of cells that flow into a given cell
     //  If the NIDP value is 0 then the cell is a source cell and is the top of the flow path
@@ -552,7 +575,7 @@ void CatchmentBuilder::CalculateFlowAccumulationSingle(QuadtreeManager<FlowDirec
     for (int x = 0; x <= boundsx; x++)
         for (int y = 0; y <= boundsy; y++)
         {
-            flowaccum.Insert(new Node<FlowAccumulation>(FlowAccumulation(x + left, y + bottom, 1)));
+            flowaccum.Insert(new Node<FlowGeneral>(FlowGeneral(x + left, y + bottom, 1)));
         }
 
     //Calculate the NIDP grid
@@ -621,21 +644,21 @@ void CatchmentBuilder::CalculateFlowAccumulationSingle(QuadtreeManager<FlowDirec
                         NIDPval++;
                 }
 
-                NIDP.Insert(new Node<FlowAccumulation>(FlowAccumulation(x + left, y + bottom, NIDPval)));
+                NIDP.Insert(new Node<FlowGeneral>(FlowGeneral(x + left, y + bottom, NIDPval)));
             }
         }
 
     std::cout << "Exporting NIDP Surface\n";
-    FileWriter::WriteAccumTreeASC("./Exports/Surfaces/NIDP", NIDP);
+    FileWriter::WriteFlowGeneralTreeASC("./Exports/Surfaces/NIDP", NIDP);
 
     for (int x = 0; x <= boundsx; x++)
         for (int y = 0; y <= boundsy; y++)
         {
-            Node<FlowAccumulation>* nNIDP = NIDP.Search(FlowAccumulation(x + left, y + bottom));
+            Node<FlowGeneral>* nNIDP = NIDP.Search(FlowGeneral(x + left, y + bottom));
 
             if (nNIDP != nullptr)
             {
-                if (nNIDP->pos.flow == 0)
+                if (nNIDP->pos.iValue == 0)
                 {
                     //Source node found, trace to the downstream intersection node or boundary of the data
                     int Accum = 0;
@@ -644,10 +667,10 @@ void CatchmentBuilder::CalculateFlowAccumulationSingle(QuadtreeManager<FlowDirec
 
                     do
                     {
-                        auto nAcc = flowaccum.Search(FlowAccumulation(i + left, j + bottom));
+                        auto nAcc = flowaccum.Search(FlowGeneral(i + left, j + bottom));
 
-                        nAcc->pos.flow += Accum;
-                        Accum = nAcc->pos.flow;
+                        nAcc->pos.iValue += Accum;
+                        Accum = nAcc->pos.iValue;
 
                         Direction d = flowdirection.Search(FlowDirection(i + left, j + bottom))->pos.direction;
 
@@ -700,9 +723,9 @@ void CatchmentBuilder::CalculateFlowAccumulationSingle(QuadtreeManager<FlowDirec
                         };
                         } 
 
-                        if (nNIDP->pos.flow >= 2)
+                        if (nNIDP->pos.iValue >= 2)
                         {
-                            nNIDP->pos.flow--;
+                            nNIDP->pos.iValue--;
                             break;
                         }
 
@@ -715,7 +738,7 @@ void CatchmentBuilder::CalculateFlowAccumulationSingle(QuadtreeManager<FlowDirec
                         //    }
                         //}
 
-                        nNIDP = NIDP.Search(FlowAccumulation(i + left, j + bottom));
+                        nNIDP = NIDP.Search(FlowGeneral(i + left, j + bottom));
                     } 
                     while (nNIDP != nullptr);
                 }
@@ -725,7 +748,7 @@ void CatchmentBuilder::CalculateFlowAccumulationSingle(QuadtreeManager<FlowDirec
     NIDP.~QuadtreeManager();
 }
 
-std::vector<std::vector<Vec2>> CatchmentBuilder::StreamLinkingSingle(QuadtreeManager<FlowAccumulation>& flowaccum, QuadtreeManager<FlowDirection>& flowdirection)
+std::vector<FlowPath> CatchmentBuilder::StreamLinkingSingle(QuadtreeManager<FlowGeneral>& flowaccum, QuadtreeManager<FlowDirection>& flowdirection)
 {
     std::cout << "Stream Linking\n";
 
@@ -740,9 +763,9 @@ std::vector<std::vector<Vec2>> CatchmentBuilder::StreamLinkingSingle(QuadtreeMan
     for (int y = 0; y <= boundsy; y++)
         for (int x = 0; x <= boundsx; x++)
         {
-            Node<FlowAccumulation>* flowacc = flowaccum.Search(FlowAccumulation(x + left, y + bottom));
+            Node<FlowGeneral>* flowacc = flowaccum.Search(FlowGeneral(x + left, y + bottom));
 
-            if (flowacc->pos.flow > acctarget)
+            if (flowacc->pos.iValue > acctarget)
                 TraceFlowPath(flowdirection, &flowpaths, x, y);
         }
     std::vector<std::vector<Vec2>> joinedflowpaths;
@@ -789,7 +812,19 @@ std::vector<std::vector<Vec2>> CatchmentBuilder::StreamLinkingSingle(QuadtreeMan
         }
     }
 
-    return joinedflowpaths;
+    std::vector<FlowPath> copypaths;
+
+    for (int i = 0; i < joinedflowpaths.size(); i++)
+    {
+        FlowPath fp;
+        for (int j = 0; j < joinedflowpaths[i].size(); j++)
+        {
+            fp.path.push_back(joinedflowpaths[i][j]);
+        }
+        copypaths.push_back(fp);
+    }
+
+    return copypaths;
 }
 
 void CatchmentBuilder::TraceFlowPath(QuadtreeManager<FlowDirection>& flowdirection, std::vector<std::vector<Vec2>>* flowpaths, int x, int y)
@@ -880,6 +915,147 @@ void CatchmentBuilder::TraceFlowPath(QuadtreeManager<FlowDirection>& flowdirecti
 
 
     flowpaths->push_back(path);
+}
+
+void CatchmentBuilder::CatchmentClassificationSingle(QuadtreeManager<FlowGeneral>& catchclass, QuadtreeManager<FlowDirection>& flowdirection, std::vector<FlowPath>& fps)
+{
+    std::cout << "Classifying Catchment Areas\n";
+
+    double boundsx = (catchclass.BottomRight().x) - (catchclass.TopLeft().x);
+    double boundsy = (catchclass.TopLeft().y) - (catchclass.BottomRight().y);
+    double bottom = (catchclass.BottomRight().y);
+    double left = (catchclass.TopLeft().x);
+
+    //Initialise the accumulation grid at 1
+    for (int x = 0; x <= boundsx; x++)
+        for (int y = 0; y <= boundsy; y++)
+        {
+            if (flowdirection.Search(FlowDirection(x + left, y + bottom)) != nullptr)
+                catchclass.Insert(new Node<FlowGeneral>(FlowGeneral(x + left, y + bottom, 0)));
+        }
+
+    for (int i = 0; i < fps.size(); i++)
+    {
+        float length = fps[i].Length();
+        for (int dist = 0; dist < length+50; dist += 50)//add 50m to the length so last node is definitely captured
+        {
+            ClassifySubCatchment(catchclass, flowdirection, i + 1, fps[i].GetPointAtDist(dist));
+        }
+        break; //DELETE THIS AFTER TESTING 1 CATCHMENT
+    }
+}
+
+void CatchmentBuilder::ClassifySubCatchment(QuadtreeManager<FlowGeneral>& catchclass, QuadtreeManager<FlowDirection>& flowdirection, int id, Vec2 point)
+{
+    //Start with the discharge coord
+    //Add the coord to a vec(1)
+    //do while loop for finding number of cells that flow into the current cell and storing coords in a second vec(2) in the scope of the loop
+    //if just one cell flows into the current cell set the current cell id and iterate to the next one
+        //once entire path is traced, remove the source point from (1)
+    //else if two or more store the additional coords into (1)
+        //once the first coord has been traced remove the source coord from (1)
+        //load the 0th element from 1 and repeat the do while loop
+    //terminate the do while loop when either no cells flow into the current or the cell already has an id
+
+    std::vector<Vec2> missed;
+    missed.push_back(point);
+
+    while (missed.size() > 0)
+    {
+        std::vector<Vec2> inflowcells;
+
+        double x = missed[0].x;
+        double y = missed[0].y;
+
+        Node<FlowGeneral>* nCatch = catchclass.Search(FlowGeneral(x, y));
+
+        do
+        {
+            inflowcells.clear();
+
+            if (nCatch != nullptr)
+            {
+                {
+                    auto node = flowdirection.Search(FlowDirection(x - 1, y - 1));
+                    if (node != nullptr)
+                    {
+                        if (node->pos.direction == Direction::NE)
+                            inflowcells.push_back(Vec2(x - 1, y - 1));
+                    }
+
+                    node = flowdirection.Search(FlowDirection(x, y - 1));
+                    if (node != nullptr)
+                    {
+                        if (node->pos.direction == Direction::N)
+                            inflowcells.push_back(Vec2(x, y - 1));
+                    }
+
+                    node = flowdirection.Search(FlowDirection(x + 1, y - 1));
+                    if (node != nullptr)
+                    {
+                        if (node->pos.direction == Direction::NW)
+                            inflowcells.push_back(Vec2(x + 1, y - 1));
+                    }
+
+                    node = flowdirection.Search(FlowDirection(x - 1, y));
+                    if (node != nullptr)
+                    {
+                        if (node->pos.direction == Direction::E)
+                            inflowcells.push_back(Vec2(x + 1, y - 1));
+                    }
+
+                    node = flowdirection.Search(FlowDirection(x + 1, y));
+                    if (node != nullptr)
+                    {
+                        if (node->pos.direction == Direction::W)
+                            inflowcells.push_back(Vec2(x + 1, y));
+                    }
+
+                    node = flowdirection.Search(FlowDirection(x - 1, y + 1));
+                    if (node != nullptr)
+                    {
+                        if (node->pos.direction == Direction::SE)
+                            inflowcells.push_back(Vec2(x - 1, y + 1));
+                    }
+
+                    node = flowdirection.Search(FlowDirection(x, y + 1));
+                    if (node != nullptr)
+                    {
+                        if (node->pos.direction == Direction::S)
+                            inflowcells.push_back(Vec2(x, y + 1));
+                    }
+
+                    node = flowdirection.Search(FlowDirection(x + 1, y + 1));
+                    if (node != nullptr)
+                    {
+                        if (node->pos.direction == Direction::SW)
+                            inflowcells.push_back(Vec2(x + 1, y + 1));
+                    }
+                }
+
+                if (inflowcells.size() > 1)
+                {
+                    for (int i = 1; i < inflowcells.size(); i++)
+                    {
+                        missed.push_back(inflowcells[i]);
+                        inflowcells.erase(std::begin(inflowcells) + i);
+                    }
+                }
+
+                nCatch->pos.iValue = id;
+
+                if (inflowcells.size() > 0)
+                {
+                    x = inflowcells[0].x;
+                    y = inflowcells[0].y;
+                    Node<FlowGeneral>* nCatch = catchclass.Search(FlowGeneral(x, y));
+                }
+            }
+        }
+        while (nCatch != nullptr || nCatch->pos.iValue != 0 || inflowcells.size() == 0); // This is broken
+
+        missed.erase(std::begin(missed));
+    } 
 }
 
 
