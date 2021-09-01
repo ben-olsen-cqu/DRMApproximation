@@ -7,8 +7,6 @@
 
 void CatchmentBuilder::CreateCatchments(QuadtreeManager<Coordinates>& quad)
 {
-    std::cout << "Smoothing Surface\n";
-
     QuadtreeManager<Coordinates> smooth(quad.topLeft, quad.bottomRight);
 
     smooth.prePath = "Temp/SmoothTree/SmoothTree";
@@ -53,9 +51,9 @@ void CatchmentBuilder::CreateCatchments(QuadtreeManager<Coordinates>& quad)
     {
         CalculateNormalsSingle(smooth, normal);
 
-        std::cout << "Writing Normals to File.\n";
-        //FileWriter::WriteVecNormals3dWKT("./Exports/Vectors/SmoothNormals3dWKT", normal);
-        FileWriter::WriteVecNormals2dWKT("./Exports/Vectors/SmoothNormals2dWKT", normal);
+        //std::cout << "Writing Normals to File.\n";
+        ////FileWriter::WriteVecNormals3dWKT("./Exports/Vectors/SmoothNormals3dWKT", normal);
+        //FileWriter::WriteVecNormals2dWKT("./Exports/Vectors/SmoothNormals2dWKT", normal);
     }
     else
     {
@@ -78,8 +76,8 @@ void CatchmentBuilder::CreateCatchments(QuadtreeManager<Coordinates>& quad)
     {
         CalculateFlowDirectionSingle(flowdirection, normal);
 
-        std::cout << "Writing Flow Directions to File.\n";
-        FileWriter::WriteFlowDirection2dWKT("./Exports/Vectors/FlowDirections2dWKT", flowdirection);
+        //std::cout << "Writing Flow Directions to File.\n";
+        //FileWriter::WriteFlowDirection2dWKT("./Exports/Vectors/FlowDirections2dWKT", flowdirection);
     }
     else
     {
@@ -150,6 +148,7 @@ void CatchmentBuilder::CreateCatchments(QuadtreeManager<Coordinates>& quad)
 
 void CatchmentBuilder::SmoothPointsSingle(QuadtreeManager<Coordinates>& quad, QuadtreeManager<Coordinates>& smooth)
 {
+    std::cout << "Smoothing Surface\n";
     double boundsx = (quad.BottomRight().x) - (quad.TopLeft().x);
     double boundsy = (quad.TopLeft().y) - (quad.BottomRight().y);
     double bottom = (quad.BottomRight().y);
@@ -199,6 +198,7 @@ void CatchmentBuilder::SmoothPointsSingle(QuadtreeManager<Coordinates>& quad, Qu
 
 void CatchmentBuilder::SmoothPointsSplit(QuadtreeManager<Coordinates>& quad, QuadtreeManager<Coordinates>& smooth)
 {
+    std::cout << "Smoothing Surface\n";
     double boundsx = (quad.BottomRight().x) - (quad.TopLeft().x);
     double boundsy = (quad.TopLeft().y) - (quad.BottomRight().y);
     double bottom = (quad.BottomRight().y);
@@ -758,7 +758,7 @@ std::vector<FlowPath> CatchmentBuilder::StreamLinkingSingle(QuadtreeManager<Flow
     double left = (flowaccum.TopLeft().x);
 
     std::vector<std::vector<Vec2>> flowpaths;
-    int acctarget = 2250; //500 for Test Data 1, 200 for TD 4
+    int acctarget = 2250; //2250 for Test Data 1, 200 for TD 4
 
     for (int y = 0; y <= boundsy; y++)
         for (int x = 0; x <= boundsx; x++)
@@ -921,6 +921,8 @@ void CatchmentBuilder::CatchmentClassificationSingle(QuadtreeManager<FlowGeneral
 {
     std::cout << "Classifying Catchment Areas\n";
 
+    int breakdist = 20; //Distance along the flow paths to split the catchment
+
     double boundsx = (catchclass.BottomRight().x) - (catchclass.TopLeft().x);
     double boundsy = (catchclass.TopLeft().y) - (catchclass.BottomRight().y);
     double bottom = (catchclass.BottomRight().y);
@@ -937,9 +939,9 @@ void CatchmentBuilder::CatchmentClassificationSingle(QuadtreeManager<FlowGeneral
     for (int i = 0; i < fps.size(); i++)
     {
         float length = fps[i].Length();
-        for (int dist = 0; dist < length+50; dist += 50)//add 50m to the length so last node is definitely captured
+        for (int dist = 0; dist < length+breakdist; dist += breakdist)//add 50m to the length so last node is definitely captured
         {
-            ClassifySubCatchment(catchclass, flowdirection, i + 1, fps[i].GetPointAtDist(dist));
+             ClassifySubCatchment(catchclass, flowdirection, i + 1, fps[i].GetPointAtDist(dist));
         }
         break; //DELETE THIS AFTER TESTING 1 CATCHMENT
     }
@@ -975,63 +977,63 @@ void CatchmentBuilder::ClassifySubCatchment(QuadtreeManager<FlowGeneral>& catchc
 
             if (nCatch != nullptr)
             {
+
+                auto node = flowdirection.Search(FlowDirection(x - 1, y - 1));
+                if (node != nullptr)
                 {
-                    auto node = flowdirection.Search(FlowDirection(x - 1, y - 1));
-                    if (node != nullptr)
-                    {
-                        if (node->pos.direction == Direction::NE)
-                            inflowcells.push_back(Vec2(x - 1, y - 1));
-                    }
-
-                    node = flowdirection.Search(FlowDirection(x, y - 1));
-                    if (node != nullptr)
-                    {
-                        if (node->pos.direction == Direction::N)
-                            inflowcells.push_back(Vec2(x, y - 1));
-                    }
-
-                    node = flowdirection.Search(FlowDirection(x + 1, y - 1));
-                    if (node != nullptr)
-                    {
-                        if (node->pos.direction == Direction::NW)
-                            inflowcells.push_back(Vec2(x + 1, y - 1));
-                    }
-
-                    node = flowdirection.Search(FlowDirection(x - 1, y));
-                    if (node != nullptr)
-                    {
-                        if (node->pos.direction == Direction::E)
-                            inflowcells.push_back(Vec2(x + 1, y - 1));
-                    }
-
-                    node = flowdirection.Search(FlowDirection(x + 1, y));
-                    if (node != nullptr)
-                    {
-                        if (node->pos.direction == Direction::W)
-                            inflowcells.push_back(Vec2(x + 1, y));
-                    }
-
-                    node = flowdirection.Search(FlowDirection(x - 1, y + 1));
-                    if (node != nullptr)
-                    {
-                        if (node->pos.direction == Direction::SE)
-                            inflowcells.push_back(Vec2(x - 1, y + 1));
-                    }
-
-                    node = flowdirection.Search(FlowDirection(x, y + 1));
-                    if (node != nullptr)
-                    {
-                        if (node->pos.direction == Direction::S)
-                            inflowcells.push_back(Vec2(x, y + 1));
-                    }
-
-                    node = flowdirection.Search(FlowDirection(x + 1, y + 1));
-                    if (node != nullptr)
-                    {
-                        if (node->pos.direction == Direction::SW)
-                            inflowcells.push_back(Vec2(x + 1, y + 1));
-                    }
+                    if (node->pos.direction == Direction::NE)
+                        inflowcells.push_back(Vec2(x - 1, y - 1));
                 }
+
+                node = flowdirection.Search(FlowDirection(x, y - 1));
+                if (node != nullptr)
+                {
+                    if (node->pos.direction == Direction::N)
+                        inflowcells.push_back(Vec2(x, y - 1));
+                }
+
+                node = flowdirection.Search(FlowDirection(x + 1, y - 1));
+                if (node != nullptr)
+                {
+                    if (node->pos.direction == Direction::NW)
+                        inflowcells.push_back(Vec2(x + 1, y - 1));
+                }
+
+                node = flowdirection.Search(FlowDirection(x - 1, y));
+                if (node != nullptr)
+                {
+                    if (node->pos.direction == Direction::E)
+                        inflowcells.push_back(Vec2(x + 1, y - 1));
+                }
+
+                node = flowdirection.Search(FlowDirection(x + 1, y));
+                if (node != nullptr)
+                {
+                    if (node->pos.direction == Direction::W)
+                        inflowcells.push_back(Vec2(x + 1, y));
+                }
+
+                node = flowdirection.Search(FlowDirection(x - 1, y + 1));
+                if (node != nullptr)
+                {
+                    if (node->pos.direction == Direction::SE)
+                        inflowcells.push_back(Vec2(x - 1, y + 1));
+                }
+
+                node = flowdirection.Search(FlowDirection(x, y + 1));
+                if (node != nullptr)
+                {
+                    if (node->pos.direction == Direction::S)
+                        inflowcells.push_back(Vec2(x, y + 1));
+                }
+
+                node = flowdirection.Search(FlowDirection(x + 1, y + 1));
+                if (node != nullptr)
+                {
+                    if (node->pos.direction == Direction::SW)
+                        inflowcells.push_back(Vec2(x + 1, y + 1));
+                }
+
 
                 if (inflowcells.size() > 1)
                 {
@@ -1052,7 +1054,7 @@ void CatchmentBuilder::ClassifySubCatchment(QuadtreeManager<FlowGeneral>& catchc
                 }
             }
         }
-        while (nCatch != nullptr || nCatch->pos.iValue != 0 || inflowcells.size() == 0); // This is broken
+        while (inflowcells.size() != 0); // This is broken
 
         missed.erase(std::begin(missed));
     } 
