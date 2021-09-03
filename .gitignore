@@ -349,3 +349,7 @@ Temp/Tree/Tree.dat
 *.asc
 *.tif
 *.rar
+Exports/Surfaces/CatchmentClassification.asc.aux.xml
+Exports/Surfaces/Smooth.asc.aux.xml
+Exports/Surfaces/Original.asc.aux.xml
+Exports/Surfaces/NIDP.asc.aux.xml

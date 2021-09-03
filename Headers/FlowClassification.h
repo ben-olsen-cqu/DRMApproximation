@@ -221,36 +221,9 @@ struct DischargePoint
 {
     Vec2 location;
     int index;
-    std::vector<int> flowpathids;
 
-    DischargePoint(Vec2 loc, int flowpath)
+    DischargePoint(Vec2 loc)
     {
         location = loc;
-
-        //bool exists = false;
-        //for (int i = 0; i < flowpathids.size(); i++)
-        //{
-        //    if (flowpath == flowpathids[i])
-        //    {
-        //        exists = true;
-        //    }
-        //}
-
-        //if(!exists)
-            flowpathids.push_back(flowpath);
-    }
-    void AddFlowPath(int flowpath)
-    {
-        bool exists = false;
-        for (int i = 0; i < flowpathids.size(); i++)
-        {
-            if (flowpath == flowpathids[i])
-            {
-                exists = true;
-            }
-        }
-
-        if (!exists)
-            flowpathids.push_back(flowpath);
     }
 };

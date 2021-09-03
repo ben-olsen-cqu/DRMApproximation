@@ -761,8 +761,8 @@ std::vector<FlowPath> CatchmentBuilder::StreamLinkingSingle(QuadtreeManager<Flow
     std::vector<std::vector<Vec2>> flowpaths;
     int acctarget = 2250; //2250 for Test Data 1, 200 for TD 4
 
-    for (int y = 0; y <= boundsy; y++)
-        for (int x = 0; x <= boundsx; x++)
+    for (int y = 0; y < boundsy; y++)
+        for (int x = 0; x < boundsx; x++)
         {
             Node<FlowGeneral>* flowacc = flowaccum.Search(FlowGeneral(x + left, y + bottom));
 
@@ -930,7 +930,7 @@ void CatchmentBuilder::CatchmentClassification(QuadtreeManager<FlowGeneral>& cat
 {
     std::cout << "Classifying Catchment Areas\n";
 
-    int breakdist = 50; //Distance along the flow paths to split the catchment
+    int breakdist = 100; //Distance along the flow paths to split the catchment
 
     double boundsx = (catchclass.BottomRight().x) - (catchclass.TopLeft().x);
     double boundsy = (catchclass.TopLeft().y) - (catchclass.BottomRight().y);
@@ -946,50 +946,46 @@ void CatchmentBuilder::CatchmentClassification(QuadtreeManager<FlowGeneral>& cat
         }
 
     std::vector<DischargePoint> dischargepoints;
+    
     //*****************************************************************************************************************************************************
-    //2 part process
+    //  2 part process
     // 1. Add all end of flow paths that aren't already defined by the intersection points
     // 2. Add points on segments longer than the breakdist
 
     //End points
     for (int i = 0; i < fps.size(); i++)
     {
-        float length = fps[i].Length();//get the length of the drainage path
-        if (length > breakdist) //if the length is less than the breakdist then don't process any further
+        Vec2 end = fps[i].GetPointAtDist(0); //Get end point of each flow path
+
+        for (int j = 0; j < fps.size(); j++)
         {
-            Vec2 end = fps[i].GetPointAtDist(0); //Get end point of each flow path
-
-            for (int j = 0; j < fps.size(); j++)
+            if (fps[j].PointonPath(end)) //check if the end point matches any other points in any other flow path
             {
-                if (fps[j].PointonPath(end)) //check if the end point matches any other points in any other flow path
-                {
-                    if (dischargepoints.size() > 0) {
+                if (dischargepoints.size() > 0) {
 
-                        bool added = false;
+                    bool added = false;
 
-                        for (int j = 0; j < dischargepoints.size(); j++) //check if the intersection has already been added
-                        {
-                            if (dischargepoints[j].location == end)
-                            {
-                                dischargepoints[j].AddFlowPath(fps[i].id);
-                                bool added = true;
-                            }
-                        }
-                        if (!added)
-                            dischargepoints.push_back(DischargePoint(end, fps[i].id));
-
-                    }
-                    else
+                    for (int j = 0; j < dischargepoints.size(); j++) //check if the intersection has already been added
                     {
-                        dischargepoints.push_back(DischargePoint(end, fps[i].id));
+                        if (dischargepoints[j].location == end)
+                        {
+                            bool added = true;
+                        }
                     }
+                    if (!added)
+                        dischargepoints.push_back(DischargePoint(end));
+
+                }
+                else
+                {
+                    dischargepoints.push_back(DischargePoint(end));
                 }
             }
+
         }
     }
 
-
-    //Add points to long segments
+    //Add inter-points to long segments
     for (int i = 0; i < fps.size(); i++)
     {
         float length = fps[i].Length();//get the length of the drainage path
@@ -1012,21 +1008,41 @@ void CatchmentBuilder::CatchmentClassification(QuadtreeManager<FlowGeneral>& cat
                     }
                 }
                 if(insert)
-                    dischargepoints.push_back(DischargePoint(point, fps[i].id)); //insert the point
+                    dischargepoints.push_back(DischargePoint(point)); //insert the point
             }
     }
-    //*****************************************************************************************************************************************************
+
+    //Clean up duplicates
+    std::vector<DischargePoint> temppoints;
+    for (int i = 0; i < dischargepoints.size(); i++)
+    {
+        bool unique = true;
+        for (int j = 0; j < temppoints.size(); j++)
+        {
+            if (dischargepoints[i].location == temppoints[j].location)
+                unique = false;
+        }
+        if(unique)
+            temppoints.push_back(dischargepoints[i]);
+    }
+    dischargepoints = temppoints;
+
+    //Asign point indexes
+    for (int j = 1; j < dischargepoints.size()+1; j++)
+    {
+        dischargepoints[j-1].index = j;
+    }
 
     FileWriter::WriteVec2Points("./Exports/Points/DischargePoints2dWKT", dischargepoints);
 
-    int i = 1;
+    std::reverse(dischargepoints.begin(), dischargepoints.end());
 
-    for each (DischargePoint point in dischargepoints)
+    for (int i = 0; i < dischargepoints.size(); i++)
     {
-        point.index = i;
-        ClassifySubCatchment(catchclass, flowdirection, i, point.location);
-        i++;
+        ClassifySubCatchment(catchclass, flowdirection, dischargepoints[i].index, dischargepoints[i].location);
+        std::cout << "\rProcessing Catchment " << i+1 << " of " << dischargepoints.size();
     }
+    std::cout << "\n";
 }
 
 void CatchmentBuilder::ClassifySubCatchment(QuadtreeManager<FlowGeneral>& catchclass, QuadtreeManager<FlowDirection>& flowdirection, int id, Vec2 point)
@@ -1051,92 +1067,98 @@ void CatchmentBuilder::ClassifySubCatchment(QuadtreeManager<FlowGeneral>& catchc
         double x = missed[0].x;
         double y = missed[0].y;
 
+        Node<FlowGeneral>* nCatchPrev;
         Node<FlowGeneral>* nCatch = catchclass.Search(FlowGeneral(x, y));
-
+        
         do
         {
             inflowcells.clear();
 
             if (nCatch != nullptr)
             {
-
-                auto node = flowdirection.Search(FlowDirection(x - 1, y - 1));
-                if (node != nullptr)
-                {
-                    if (node->pos.direction == Direction::NE)
-                        inflowcells.push_back(Vec2(x - 1, y - 1));
-                }
-
-                node = flowdirection.Search(FlowDirection(x, y - 1));
-                if (node != nullptr)
-                {
-                    if (node->pos.direction == Direction::N)
-                        inflowcells.push_back(Vec2(x, y - 1));
-                }
-
-                node = flowdirection.Search(FlowDirection(x + 1, y - 1));
-                if (node != nullptr)
-                {
-                    if (node->pos.direction == Direction::NW)
-                        inflowcells.push_back(Vec2(x + 1, y - 1));
-                }
-
-                node = flowdirection.Search(FlowDirection(x - 1, y));
-                if (node != nullptr)
-                {
-                    if (node->pos.direction == Direction::E)
-                        inflowcells.push_back(Vec2(x + 1, y - 1));
-                }
-
-                node = flowdirection.Search(FlowDirection(x + 1, y));
-                if (node != nullptr)
-                {
-                    if (node->pos.direction == Direction::W)
-                        inflowcells.push_back(Vec2(x + 1, y));
-                }
-
-                node = flowdirection.Search(FlowDirection(x - 1, y + 1));
-                if (node != nullptr)
-                {
-                    if (node->pos.direction == Direction::SE)
-                        inflowcells.push_back(Vec2(x - 1, y + 1));
-                }
-
-                node = flowdirection.Search(FlowDirection(x, y + 1));
-                if (node != nullptr)
-                {
-                    if (node->pos.direction == Direction::S)
-                        inflowcells.push_back(Vec2(x, y + 1));
-                }
-
-                node = flowdirection.Search(FlowDirection(x + 1, y + 1));
-                if (node != nullptr)
-                {
-                    if (node->pos.direction == Direction::SW)
-                        inflowcells.push_back(Vec2(x + 1, y + 1));
-                }
+                if (nCatch == nCatchPrev)
+                    break;
 
 
-                if (inflowcells.size() > 1)
-                {
-                    for (int i = 1; i < inflowcells.size(); i++)
+                    auto node = flowdirection.Search(FlowDirection(x - 1, y - 1));
+                    if (node != nullptr)
                     {
-                        missed.push_back(inflowcells[i]);
-                        inflowcells.erase(std::begin(inflowcells) + i);
+                        if (node->pos.direction == Direction::NE)
+                            inflowcells.push_back(Vec2(x - 1, y - 1));
+                    }
+
+                    node = flowdirection.Search(FlowDirection(x, y - 1));
+                    if (node != nullptr)
+                    {
+                        if (node->pos.direction == Direction::N)
+                            inflowcells.push_back(Vec2(x, y - 1));
+                    }
+
+                    node = flowdirection.Search(FlowDirection(x + 1, y - 1));
+                    if (node != nullptr)
+                    {
+                        if (node->pos.direction == Direction::NW)
+                            inflowcells.push_back(Vec2(x + 1, y - 1));
+                    }
+
+                    node = flowdirection.Search(FlowDirection(x - 1, y));
+                    if (node != nullptr)
+                    {
+                        if (node->pos.direction == Direction::E)
+                            inflowcells.push_back(Vec2(x + 1, y - 1));
+                    }
+
+                    node = flowdirection.Search(FlowDirection(x + 1, y));
+                    if (node != nullptr)
+                    {
+                        if (node->pos.direction == Direction::W)
+                            inflowcells.push_back(Vec2(x + 1, y));
+                    }
+
+                    node = flowdirection.Search(FlowDirection(x - 1, y + 1));
+                    if (node != nullptr)
+                    {
+                        if (node->pos.direction == Direction::SE)
+                            inflowcells.push_back(Vec2(x - 1, y + 1));
+                    }
+
+                    node = flowdirection.Search(FlowDirection(x, y + 1));
+                    if (node != nullptr)
+                    {
+                        if (node->pos.direction == Direction::S)
+                            inflowcells.push_back(Vec2(x, y + 1));
+                    }
+
+                    node = flowdirection.Search(FlowDirection(x + 1, y + 1));
+                    if (node != nullptr)
+                    {
+                        if (node->pos.direction == Direction::SW)
+                            inflowcells.push_back(Vec2(x + 1, y + 1));
+                    }
+
+
+                    if (inflowcells.size() > 1)
+                    {
+                        for (int i = 1; i < inflowcells.size(); i++)
+                        {
+                            missed.push_back(inflowcells[i]);
+                            inflowcells.erase(std::begin(inflowcells) + i);
+                        }
+                    }
+
+                    if (nCatch->pos.iValue == 0)
+                        nCatch->pos.iValue = id;
+
+                    if (inflowcells.size() > 0)
+                    {
+                        x = inflowcells[0].x;
+                        y = inflowcells[0].y;
+                        nCatchPrev = nCatch;
+                        nCatch = catchclass.Search(FlowGeneral(x, y));
                     }
                 }
-
-                nCatch->pos.iValue = id;
-
-                if (inflowcells.size() > 0)
-                {
-                    x = inflowcells[0].x;
-                    y = inflowcells[0].y;
-                    nCatch = catchclass.Search(FlowGeneral(x, y));
-                }
-            }
         }
-        while (inflowcells.size() != 0 /*&& nCatch != nullptr && nCatch->pos.iValue == 0*/);
+        while (inflowcells.size() != 0);
 
         missed.erase(std::begin(missed));
     } 
