@@ -2,6 +2,7 @@
 #include "../Headers/FileWriter.h"
 
 #include <iostream>
+#include <algorithm>
 
 #define PI 3.14159265
 
@@ -18,21 +19,21 @@ void CatchmentBuilder::CreateCatchments(QuadtreeManager<Coordinates>& quad)
     {
         SmoothPointsSingle(quad, smooth);
 
-       std::cout << "Exporting Original Surface\n";
-       FileWriter::WriteCoordTreeASC("./Exports/Surfaces/Original", quad);
+        std::cout << "Exporting Original Surface\n";
+        FileWriter::WriteCoordTreeASC("./Exports/Surfaces/Original", quad);
 
-       std::cout << "Exporting Smoothed Surface\n";
-       FileWriter::WriteCoordTreeASC("./Exports/Surfaces/Smooth", smooth);
+        std::cout << "Exporting Smoothed Surface\n";
+        FileWriter::WriteCoordTreeASC("./Exports/Surfaces/Smooth", smooth);
     }
     else
     {
         SmoothPointsSplit(quad, smooth);
 
-        //std::cout << "Exporting Original Surface\n";
-        //FileWriter::WriteCoordTreeASC("./Exports/Surfaces/Original", quad);
+        std::cout << "Exporting Original Surface\n";
+        FileWriter::WriteCoordTreeASC("./Exports/Surfaces/Original", quad);
 
-        //std::cout << "Exporting Smoothed Surface\n";
-        //FileWriter::WriteCoordTreeASC("./Exports/Surfaces/Smooth", smooth);
+        std::cout << "Exporting Smoothed Surface\n";
+        FileWriter::WriteCoordTreeASC("./Exports/Surfaces/Smooth", smooth);
     }
 
     quad.~QuadtreeManager();
@@ -51,9 +52,9 @@ void CatchmentBuilder::CreateCatchments(QuadtreeManager<Coordinates>& quad)
     {
         CalculateNormalsSingle(smooth, normal);
 
-        //std::cout << "Writing Normals to File.\n";
+        std::cout << "Writing Normals to File.\n";
         ////FileWriter::WriteVecNormals3dWKT("./Exports/Vectors/SmoothNormals3dWKT", normal);
-        //FileWriter::WriteVecNormals2dWKT("./Exports/Vectors/SmoothNormals2dWKT", normal);
+        FileWriter::WriteVecNormals2dWKT("./Exports/Vectors/SmoothNormals2dWKT", normal);
     }
     else
     {
@@ -76,8 +77,8 @@ void CatchmentBuilder::CreateCatchments(QuadtreeManager<Coordinates>& quad)
     {
         CalculateFlowDirectionSingle(flowdirection, normal);
 
-        //std::cout << "Writing Flow Directions to File.\n";
-        //FileWriter::WriteFlowDirection2dWKT("./Exports/Vectors/FlowDirections2dWKT", flowdirection);
+        std::cout << "Writing Flow Directions to File.\n";
+        FileWriter::WriteFlowDirection2dWKT("./Exports/Vectors/FlowDirections2dWKT", flowdirection);
     }
     else
     {
@@ -112,7 +113,7 @@ void CatchmentBuilder::CreateCatchments(QuadtreeManager<Coordinates>& quad)
 
     if (quad.type == TreeType::Single)
     {
-        flowpaths =  StreamLinkingSingle(flowaccum, flowdirection);
+        flowpaths = StreamLinkingSingle(flowaccum, flowdirection);
 
         std::cout << "Exporting Stream Paths\n";
         FileWriter::WriteStreamPaths2dWKT("./Exports/Vectors/FlowPaths2dWKT", flowpaths);
@@ -131,10 +132,10 @@ void CatchmentBuilder::CreateCatchments(QuadtreeManager<Coordinates>& quad)
     catchclass.splitlevel = quad.splitlevel;
     catchclass.SetTreeType(quad.type);
 
+
+    CatchmentClassification(catchclass, flowdirection, flowpaths);
     if (quad.type == TreeType::Single)
     {
-        CatchmentClassificationSingle(catchclass, flowdirection, flowpaths);
-
         std::cout << "Exporting Flow Accumulation Surface\n";
         FileWriter::WriteFlowGeneralTreeASC("./Exports/Surfaces/CatchmentClassification", catchclass);
     }
@@ -824,6 +825,14 @@ std::vector<FlowPath> CatchmentBuilder::StreamLinkingSingle(QuadtreeManager<Flow
         copypaths.push_back(fp);
     }
 
+    std::sort(copypaths.begin(),copypaths.end());
+    std::reverse(copypaths.begin(), copypaths.end());
+
+    for (int i = 0; i < copypaths.size(); i++)
+    {
+        copypaths[i].id = i;
+    }
+
     return copypaths;
 }
 
@@ -917,11 +926,11 @@ void CatchmentBuilder::TraceFlowPath(QuadtreeManager<FlowDirection>& flowdirecti
     flowpaths->push_back(path);
 }
 
-void CatchmentBuilder::CatchmentClassificationSingle(QuadtreeManager<FlowGeneral>& catchclass, QuadtreeManager<FlowDirection>& flowdirection, std::vector<FlowPath>& fps)
+void CatchmentBuilder::CatchmentClassification(QuadtreeManager<FlowGeneral>& catchclass, QuadtreeManager<FlowDirection>& flowdirection, std::vector<FlowPath>& fps)
 {
     std::cout << "Classifying Catchment Areas\n";
 
-    int breakdist = 20; //Distance along the flow paths to split the catchment
+    int breakdist = 50; //Distance along the flow paths to split the catchment
 
     double boundsx = (catchclass.BottomRight().x) - (catchclass.TopLeft().x);
     double boundsy = (catchclass.TopLeft().y) - (catchclass.BottomRight().y);
@@ -936,14 +945,87 @@ void CatchmentBuilder::CatchmentClassificationSingle(QuadtreeManager<FlowGeneral
                 catchclass.Insert(new Node<FlowGeneral>(FlowGeneral(x + left, y + bottom, 0)));
         }
 
+    std::vector<DischargePoint> dischargepoints;
+    //*****************************************************************************************************************************************************
+    //2 part process
+    // 1. Add all end of flow paths that aren't already defined by the intersection points
+    // 2. Add points on segments longer than the breakdist
+
+    //End points
     for (int i = 0; i < fps.size(); i++)
     {
-        float length = fps[i].Length();
-        for (int dist = 0; dist < length+breakdist; dist += breakdist)//add 50m to the length so last node is definitely captured
+        float length = fps[i].Length();//get the length of the drainage path
+        if (length > breakdist) //if the length is less than the breakdist then don't process any further
         {
-             ClassifySubCatchment(catchclass, flowdirection, i + 1, fps[i].GetPointAtDist(dist));
+            Vec2 end = fps[i].GetPointAtDist(0); //Get end point of each flow path
+
+            for (int j = 0; j < fps.size(); j++)
+            {
+                if (fps[j].PointonPath(end)) //check if the end point matches any other points in any other flow path
+                {
+                    if (dischargepoints.size() > 0) {
+
+                        bool added = false;
+
+                        for (int j = 0; j < dischargepoints.size(); j++) //check if the intersection has already been added
+                        {
+                            if (dischargepoints[j].location == end)
+                            {
+                                dischargepoints[j].AddFlowPath(fps[i].id);
+                                bool added = true;
+                            }
+                        }
+                        if (!added)
+                            dischargepoints.push_back(DischargePoint(end, fps[i].id));
+
+                    }
+                    else
+                    {
+                        dischargepoints.push_back(DischargePoint(end, fps[i].id));
+                    }
+                }
+            }
         }
-        break; //DELETE THIS AFTER TESTING 1 CATCHMENT
+    }
+
+
+    //Add points to long segments
+    for (int i = 0; i < fps.size(); i++)
+    {
+        float length = fps[i].Length();//get the length of the drainage path
+        if(length > breakdist) //if the length is less than the breakdist then don't process any further
+            for (int dist = breakdist; dist < length; dist += breakdist) 
+            {
+                Vec2 point = fps[i].GetPointAtDist(dist);//get a point on the flow path at breakdist intervals
+
+                //check if the generated point is within the breakdist from any other already added point
+                bool insert = true;
+                for (int j = 0; j < dischargepoints.size(); j++) //iterate through all discharge points
+                {
+                    if (fps[i].PointonPath(dischargepoints[j].location)) //check if the discharge point is on the current flowpath
+                    {
+                        double dist = fps[i].FlowLengthBetween(point, dischargepoints[j].location);
+                        if (dist < breakdist) //if it is on the flow path, check if it's within breakdist from the point we want to insert
+                        {
+                            insert = false;
+                        }
+                    }
+                }
+                if(insert)
+                    dischargepoints.push_back(DischargePoint(point, fps[i].id)); //insert the point
+            }
+    }
+    //*****************************************************************************************************************************************************
+
+    FileWriter::WriteVec2Points("./Exports/Points/DischargePoints2dWKT", dischargepoints);
+
+    int i = 1;
+
+    for each (DischargePoint point in dischargepoints)
+    {
+        point.index = i;
+        ClassifySubCatchment(catchclass, flowdirection, i, point.location);
+        i++;
     }
 }
 
@@ -1050,11 +1132,11 @@ void CatchmentBuilder::ClassifySubCatchment(QuadtreeManager<FlowGeneral>& catchc
                 {
                     x = inflowcells[0].x;
                     y = inflowcells[0].y;
-                    Node<FlowGeneral>* nCatch = catchclass.Search(FlowGeneral(x, y));
+                    nCatch = catchclass.Search(FlowGeneral(x, y));
                 }
             }
         }
-        while (inflowcells.size() != 0); // This is broken
+        while (inflowcells.size() != 0 /*&& nCatch != nullptr && nCatch->pos.iValue == 0*/);
 
         missed.erase(std::begin(missed));
     } 

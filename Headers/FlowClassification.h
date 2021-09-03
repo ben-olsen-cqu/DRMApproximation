@@ -136,7 +136,9 @@ public:
 struct FlowPath
 {
     std::vector<Vec2> path;
-    float Length()
+    int id;
+
+    float Length() const
     {
         float length = 0;
         for (int i = 0; i < path.size()-1; i++)
@@ -149,18 +151,18 @@ struct FlowPath
     {
         if (dist > this->Length())
         {
-            return path[path.size() - 1];
+            return path[0];
         }
         if (dist <= 0)
         {
-            return path[0];
+            return path[path.size() - 1];
         }
 
         float length = 0;
         
-        for (int i = 0; i < path.size() - 1; i++)
+        for (int i = path.size()-1; i > 0; i--)
         {
-            length += std::sqrt(std::pow(path[i + 1].x - path[i].x, 2) + std::pow(path[i + 1].y - path[i].y, 2));
+            length += std::sqrt(std::pow(path[i - 1].x - path[i].x, 2) + std::pow(path[i - 1].y - path[i].y, 2));
             if (length > dist)
             {
                 return path[i];
@@ -168,10 +170,87 @@ struct FlowPath
         }
 
     };
+
+    inline bool PointonPath(Vec2 point)
+    {
+        for (int i = path.size() - 1; i > 0; i--)
+        {
+            if (path[i] == point)
+                return true;
+        }
+        return false;
+    }
+
+    inline double FlowLengthBetween(Vec2 p1, Vec2 p2)
+    {
+        int index1 = 0;
+        int index2 = 0;
+
+        for (int i = path.size() - 1; i > 0; i--)
+        {
+            if (path[i] == p1)
+                index1 = i;
+            if (path[i] == p2)
+                index2 = i;
+        }
+
+        if (index1 > index2) //index 1 is always the lowest
+            std::swap(index1, index2);
+
+        double length = 0;
+
+        for (int i = index1; i <= index2; i++)
+        {
+            length += std::sqrt(std::pow(path[i - 1].x - path[i].x, 2) + std::pow(path[i - 1].y - path[i].y, 2));
+        }
+        return length;
+    }
+
+    bool operator < (const FlowPath& fp) const
+    {
+        return (Length() < fp.Length());
+    }
+
+    bool operator > (const FlowPath& fp) const
+    {
+        return (Length() > fp.Length());
+    }
 };
 
 struct DischargePoint
 {
-    Vec2 loaction;
+    Vec2 location;
     int index;
+    std::vector<int> flowpathids;
+
+    DischargePoint(Vec2 loc, int flowpath)
+    {
+        location = loc;
+
+        //bool exists = false;
+        //for (int i = 0; i < flowpathids.size(); i++)
+        //{
+        //    if (flowpath == flowpathids[i])
+        //    {
+        //        exists = true;
+        //    }
+        //}
+
+        //if(!exists)
+            flowpathids.push_back(flowpath);
+    }
+    void AddFlowPath(int flowpath)
+    {
+        bool exists = false;
+        for (int i = 0; i < flowpathids.size(); i++)
+        {
+            if (flowpath == flowpathids[i])
+            {
+                exists = true;
+            }
+        }
+
+        if (!exists)
+            flowpathids.push_back(flowpath);
+    }
 };

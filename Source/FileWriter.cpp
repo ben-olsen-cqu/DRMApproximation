@@ -33,6 +33,23 @@ void FileWriter::WriteCoordTree(std::string filename, QuadtreeManager<Coordinate
 	outfile.close();
 }
 
+void FileWriter::WriteVec2Points(std::string filename, std::vector<DischargePoint> points)
+{
+	std::ofstream outfile(filename + ".csv");
+	outfile << "POINT ()\n";
+
+	if (points.size() > 0)
+	{
+		for each (DischargePoint dp in points)
+		{
+			std::string line = "POINT (" + std::to_string(dp.location.x) + " " + std::to_string(dp.location.y) + ")";
+			outfile << line << std::endl;
+		}
+	}
+
+	outfile.close();
+}
+
 void FileWriter::WriteCoordTreeASC(std::string filename, QuadtreeManager<Coordinates>& quad)
 {
 	if (quad.type == TreeType::Single)
@@ -233,45 +250,11 @@ void FileWriter::Write(std::string filename, std::vector<std::string> data)
 
 }
 
-void FileWriter::WriteVecNormals3d(std::string filename, Quadtree<Normal>* normals) {
-   // std::ofstream outfile(path + filename + ".csv");
-
-   // float boundsx = (normals->BottomRight().x) - (normals->TopLeft().x);
-   // float boundsy = (normals->TopLeft().y) - (normals->BottomRight().y);
-   // float bottom = (normals->BottomRight().y);
-   // float left = (normals->TopLeft().x);
-
-   // for (int x = 0; x <= boundsx; x++)
-   //     for (int y = 0; y <= boundsy; y++)
-   //     {
-   //         auto c = normals->search(Normal(x + left, y + bottom))->pos;
-   //         std::string line = std::to_string(c.x) + "," + std::to_string(c.y) + "," + std::to_string(c.z) + "," + std::to_string(c.norm.x) + "," + std::to_string(c.norm.y) + "," + std::to_string(c.norm.z) + ",";
-			//outfile << line << std::endl;
-   //     };
-}
-
-void FileWriter::WriteVecNormals2d(std::string filename, Quadtree<Normal>* normals) {
-	//std::ofstream outfile(path + filename + ".csv");
-
-	//float boundsx = (normals->BottomRight().x) - (normals->TopLeft().x);
-	//float boundsy = (normals->TopLeft().y) - (normals->BottomRight().y);
-	//float bottom = (normals->BottomRight().y);
-	//float left = (normals->TopLeft().x);
-
-	//for (int x = 0; x <= boundsx; x++)
-	//	for (int y = 0; y <= boundsy; y++)
-	//	{
-	//		auto c = normals->search(Normal(x + left, y + bottom))->pos;
-	//		std::string line = std::to_string(c.x) + "," + std::to_string(c.y) + "," + std::to_string(c.norm.x) + "," + std::to_string(c.norm.y) + ",";
-	//		outfile << line << std::endl;
-	//	};
-}
-
 void FileWriter::WriteVecNormals3dWKT(std::string filename, QuadtreeManager<Normal>& normals) {
 	if (normals.type == TreeType::Single)
 	{
 		std::ofstream outfile(filename + ".csv");
-
+		outfile << "LINESTRING ()\n";
 		float boundsx = (normals.BottomRight().x) - (normals.TopLeft().x);
 		float boundsy = (normals.TopLeft().y) - (normals.BottomRight().y);
 		float bottom = (normals.BottomRight().y);
@@ -298,6 +281,8 @@ void FileWriter::WriteFlowDirection2dWKT(std::string filename, QuadtreeManager<F
 	if (normals.type == TreeType::Single)
 	{
 		std::ofstream outfile(filename + ".csv");
+
+		outfile << "LINESTRING ()\n";
 
 		float boundsx = (normals.BottomRight().x) - (normals.TopLeft().x);
 		float boundsy = (normals.TopLeft().y) - (normals.BottomRight().y);
@@ -378,6 +363,7 @@ void FileWriter::WriteVecNormals2dWKT(std::string filename, QuadtreeManager<Norm
 	if (normals.type == TreeType::Single)
 	{
 		std::ofstream outfile(filename + ".csv");
+		outfile << "LINESTRING ()\n";
 
 		float boundsx = (normals.BottomRight().x) - (normals.TopLeft().x);
 		float boundsy = (normals.TopLeft().y) - (normals.BottomRight().y);
@@ -402,6 +388,7 @@ void FileWriter::WriteVecNormals2dWKT(std::string filename, QuadtreeManager<Norm
 void FileWriter::WriteStreamPaths2dWKT(std::string filename, std::vector<FlowPath>& flowpaths)
 {
 	std::ofstream outfile(filename + ".csv");
+	outfile << "LINESTRING ()\n";
 
 	for each (FlowPath list in flowpaths)
 	{
