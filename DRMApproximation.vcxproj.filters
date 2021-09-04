@@ -45,6 +45,9 @@
     <ClInclude Include="Headers\ProgramParameters.h">
       <Filter>Headers</Filter>
     </ClInclude>
+    <ClInclude Include="Headers\Catchment.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Source\main.cpp">

@@ -89,6 +89,7 @@
   <ItemGroup>
     <ClInclude Include="Headers\Bit.h" />
     <ClInclude Include="Headers\CatchMath.h" />
+    <ClInclude Include="Headers\Catchment.h" />
     <ClInclude Include="Headers\CatchmentBuilder.h" />
     <ClInclude Include="Headers\Coordinates.h" />
     <ClInclude Include="Headers\FileReader.h" />

@@ -10,6 +10,9 @@
 void CatchmentBuilder::CreateCatchments(ProgamParams progp)
 {
     QuadtreeManager<Coordinates> quad;
+    int blurrad = 21;           //pre-processing radius
+    int acctarget = 10000;      //Number of cells required to flow into a cell before it's considered a stream
+    int breakdist = 200;        //Distance along the flow paths to split the catchment
 
     if (progp.reuselevel >= 1)
     {
@@ -45,11 +48,11 @@ void CatchmentBuilder::CreateCatchments(ProgamParams progp)
 
         if (quad.type == TreeType::Single)
         {
-            SmoothPointsSingle(quad, smooth);
+            SmoothPointsSingle(quad, smooth,blurrad);
         }
         else
         {
-            SmoothPointsSplit(quad, smooth);
+            SmoothPointsSplit(quad, smooth,blurrad);
         }
         smooth.WriteManagerToFile();
         std::cout << "Exporting Smoothed Surface\n";
@@ -176,11 +179,11 @@ void CatchmentBuilder::CreateCatchments(ProgamParams progp)
         //Create new data
         if (quad.type == TreeType::Single)
         {
-            flowpaths = StreamLinkingSingle(flowaccum, flowdirection);
+            flowpaths = StreamLinkingSingle(flowaccum, flowdirection, acctarget);
         }
         else
         {
-            //CalculateFlowAccumulationSplit(flowdirection, flowaccum);
+            
         }
 
         FileWriter::WriteStreamPathsBinary("Temp/FlowPath/FlowLines", flowpaths);
@@ -191,30 +194,43 @@ void CatchmentBuilder::CreateCatchments(ProgamParams progp)
 
     flowaccum.~QuadtreeManager();
 
+    std::vector<DischargePoint> dischargepoints = GenerateDischargePoints(flowpaths, breakdist);
+
     QuadtreeManager<FlowGeneral> catchclass(tL3, bR3);
-
     catchclass.prePath = "Temp/CatchmentClassification/Tree";
-    catchclass.spacing = quad.spacing;
-    catchclass.splitlevel = quad.splitlevel;
-    catchclass.SetTreeType(quad.type);
 
-
-    CatchmentClassification(catchclass, flowdirection, flowpaths);
-
-    if (quad.type == TreeType::Single)
+    if (progp.reuselevel >= 7)
     {
-        std::cout << "Exporting Flow Accumulation Surface\n";
-        FileWriter::WriteFlowGeneralTreeASC("./Exports/Surfaces/CatchmentClassification", catchclass);
+        //Reuse previously computed data
+        catchclass.ReadManagerFromFile();
+        std::cout << "Existing Catchment Classifications Loaded\n";
     }
     else
     {
-        //CalculateFlowAccumulationSplit(flowdirection, flowaccum);
+        //Create new data
+        catchclass.spacing = quad.spacing;
+        catchclass.splitlevel = quad.splitlevel;
+        catchclass.SetTreeType(quad.type);
+
+        CatchmentClassification(catchclass, flowdirection, dischargepoints);
+
+        catchclass.WriteManagerToFile();
+
+        std::cout << "Exporting Classified Catchment Surface\n";
+        FileWriter::WriteFlowGeneralTreeASC("./Exports/Surfaces/CatchmentClassification", catchclass);
     }
 
     flowdirection.~QuadtreeManager();
+    flowpaths.clear();
+
+    std::vector<Catchment> catchlist;
+
+    PolygoniseCatchments(catchclass, dischargepoints, catchlist);
+
+    catchclass.~QuadtreeManager();
 }
 
-void CatchmentBuilder::SmoothPointsSingle(QuadtreeManager<Coordinates>& quad, QuadtreeManager<Coordinates>& smooth)
+void CatchmentBuilder::SmoothPointsSingle(QuadtreeManager<Coordinates>& quad, QuadtreeManager<Coordinates>& smooth, int blurrad)
 {
     std::cout << "Smoothing Surface\n";
     double boundsx = (quad.BottomRight().x) - (quad.TopLeft().x);
@@ -222,7 +238,6 @@ void CatchmentBuilder::SmoothPointsSingle(QuadtreeManager<Coordinates>& quad, Qu
     double bottom = (quad.BottomRight().y);
     double left = (quad.TopLeft().x);
 
-    int blurrad = 21; //odd numbers only
     int storenum = (blurrad - 1) / 2;
 
     for (int y = 0; y <= boundsy; y++)
@@ -264,7 +279,7 @@ void CatchmentBuilder::SmoothPointsSingle(QuadtreeManager<Coordinates>& quad, Qu
         }
 }
 
-void CatchmentBuilder::SmoothPointsSplit(QuadtreeManager<Coordinates>& quad, QuadtreeManager<Coordinates>& smooth)
+void CatchmentBuilder::SmoothPointsSplit(QuadtreeManager<Coordinates>& quad, QuadtreeManager<Coordinates>& smooth,int blurrad)
 {
     std::cout << "Smoothing Surface\n";
     double boundsx = (quad.BottomRight().x) - (quad.TopLeft().x);
@@ -273,7 +288,6 @@ void CatchmentBuilder::SmoothPointsSplit(QuadtreeManager<Coordinates>& quad, Qua
     double left = (quad.TopLeft().x);
 
     int numquads = quad.splitlevel * 2; //quad splits the area in half in the x and y axis
-    int blurrad = 5; //odd numbers only
     int storenum = (blurrad - 1) / 2;
 
     int boundsperquadx = std::floor(boundsx / numquads) + 1;
@@ -807,7 +821,7 @@ void CatchmentBuilder::CalculateFlowAccumulationSingle(QuadtreeManager<FlowDirec
     NIDP.~QuadtreeManager();
 }
 
-std::vector<FlowPath> CatchmentBuilder::StreamLinkingSingle(QuadtreeManager<FlowGeneral>& flowaccum, QuadtreeManager<FlowDirection>& flowdirection)
+std::vector<FlowPath> CatchmentBuilder::StreamLinkingSingle(QuadtreeManager<FlowGeneral>& flowaccum, QuadtreeManager<FlowDirection>& flowdirection, int acctarget)
 {
     std::cout << "Stream Linking\n";
 
@@ -817,7 +831,6 @@ std::vector<FlowPath> CatchmentBuilder::StreamLinkingSingle(QuadtreeManager<Flow
     double left = (flowaccum.TopLeft().x);
 
     std::vector<std::vector<Vec2>> flowpaths;
-    int acctarget = 10000; //10000 for Test Data 1, 200 for TD 4
 
     for (int y = 0; y < boundsy; y++)
         for (int x = 0; x < boundsx; x++)
@@ -984,11 +997,9 @@ void CatchmentBuilder::TraceFlowPath(QuadtreeManager<FlowDirection>& flowdirecti
     flowpaths->push_back(path);
 }
 
-void CatchmentBuilder::CatchmentClassification(QuadtreeManager<FlowGeneral>& catchclass, QuadtreeManager<FlowDirection>& flowdirection, std::vector<FlowPath>& fps)
+void CatchmentBuilder::CatchmentClassification(QuadtreeManager<FlowGeneral>& catchclass, QuadtreeManager<FlowDirection>& flowdirection, std::vector<DischargePoint> dischargepoints)
 {
     std::cout << "Classifying Catchment Areas\n";
-
-    int breakdist = 200; //Distance along the flow paths to split the catchment
 
     double boundsx = (catchclass.BottomRight().x) - (catchclass.TopLeft().x);
     double boundsy = (catchclass.TopLeft().y) - (catchclass.BottomRight().y);
@@ -1006,8 +1017,23 @@ void CatchmentBuilder::CatchmentClassification(QuadtreeManager<FlowGeneral>& cat
         }
     }
 
+    FileWriter::WriteVec2Points("./Exports/Points/DischargePoints2dWKT", dischargepoints);
+
+    std::reverse(dischargepoints.begin(), dischargepoints.end());
+
+    for (int y = 0; y <= boundsy; y++)
+    {
+        for (int x = 0; x <= boundsx; x++)
+        {
+            ClassifyFlowPath(catchclass, flowdirection, dischargepoints, Vec2(x + left, y + bottom));
+        }
+    }
+}
+
+std::vector<DischargePoint> CatchmentBuilder::GenerateDischargePoints(std::vector<FlowPath>& fps, int breakdist)
+{
     std::vector<DischargePoint> dischargepoints;
-    
+
     //*****************************************************************************************************************************************************
     //  2 part process
     // 1. Add all end of flow paths that aren't already defined by the intersection points
@@ -1050,8 +1076,8 @@ void CatchmentBuilder::CatchmentClassification(QuadtreeManager<FlowGeneral>& cat
     for (int i = 0; i < fps.size(); i++)
     {
         float length = fps[i].Length();//get the length of the drainage path
-        if(length > breakdist) //if the length is less than the breakdist then don't process any further
-            for (int dist = breakdist; dist < length; dist += breakdist) 
+        if (length > breakdist) //if the length is less than the breakdist then don't process any further
+            for (int dist = breakdist; dist < length; dist += breakdist)
             {
                 Vec2 point = fps[i].GetPointAtDist(dist);//get a point on the flow path at breakdist intervals
 
@@ -1068,7 +1094,7 @@ void CatchmentBuilder::CatchmentClassification(QuadtreeManager<FlowGeneral>& cat
                         }
                     }
                 }
-                if(insert)
+                if (insert)
                     dischargepoints.push_back(DischargePoint(point)); //insert the point
             }
     }
@@ -1083,30 +1109,18 @@ void CatchmentBuilder::CatchmentClassification(QuadtreeManager<FlowGeneral>& cat
             if (dischargepoints[i].location == temppoints[j].location)
                 unique = false;
         }
-        if(unique)
+        if (unique)
             temppoints.push_back(dischargepoints[i]);
     }
     dischargepoints = temppoints;
 
     //Asign point indexes
-    for (int j = 1; j < dischargepoints.size()+1; j++)
+    for (int j = 1; j < dischargepoints.size() + 1; j++)
     {
-        dischargepoints[j-1].index = j;
+        dischargepoints[j - 1].index = j;
     }
 
-    FileWriter::WriteVec2Points("./Exports/Points/DischargePoints2dWKT", dischargepoints);
-
-    std::reverse(dischargepoints.begin(), dischargepoints.end());
-
-    for (int y = 0; y <= boundsy; y++)
-    {
-        std::cout << "\r" << y << " of " << boundsy << " Complete";
-        for (int x = 0; x <= boundsx; x++)
-        {
-            ClassifyFlowPath(catchclass, flowdirection, dischargepoints, Vec2(x + left, y + bottom));
-        }
-    }
-    std::cout << "\n";
+    return dischargepoints;
 }
 
 void CatchmentBuilder::ClassifyFlowPath(QuadtreeManager<FlowGeneral>& catchclass, QuadtreeManager<FlowDirection>& flowdirection, std::vector<DischargePoint> dischargepoints, Vec2 point)
@@ -1231,6 +1245,13 @@ void CatchmentBuilder::ClassifyFlowPath(QuadtreeManager<FlowGeneral>& catchclass
     }
 
     path.clear();
+
+}
+
+void CatchmentBuilder::PolygoniseCatchments(QuadtreeManager<FlowGeneral>& catchclass, std::vector<DischargePoint> dischargepoints, std::vector<Catchment>& catchlist)
+{
+    std::cout << "Polygonising Catchment Areas\n";
+
 
 }
 
