@@ -404,3 +404,24 @@ void FileWriter::WriteStreamPaths2dWKT(std::string filename, std::vector<FlowPat
 	}
 	outfile.close();
 }
+
+void FileWriter::WriteStreamPathsBinary(std::string filepath, std::vector<FlowPath>& flowpaths)
+{
+	std::ofstream datastream;
+
+	datastream.open("./" + filepath + ".bin", std::ios::binary);
+
+	for each (FlowPath var in flowpaths)
+	{
+		int size = var.path.size();
+		datastream.write((char*)&var.id, sizeof(int)); 
+		datastream.write((char*)&size, sizeof(int));
+
+		for (int i = 0; i < size; i++)
+		{
+			datastream.write((char*)&var.path[i], sizeof(Vec2));
+		}
+	}
+
+	datastream.close();
+}

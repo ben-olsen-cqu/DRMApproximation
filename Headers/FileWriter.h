@@ -19,6 +19,7 @@ public:
 	static void WriteFlowGeneralTreeASC(std::string filename, QuadtreeManager<FlowGeneral>& quad);
 	static void WriteVecNormals2dWKT(std::string filename, QuadtreeManager<Normal>& normals);
 	static void WriteStreamPaths2dWKT(std::string filename, std::vector<FlowPath>& flowpaths);
+	static void WriteStreamPathsBinary(std::string filepath, std::vector<FlowPath>& flowpaths);
 	static void WriteVecNormals3dWKT(std::string filename, QuadtreeManager<Normal>& normals);
 	static void WriteFlowDirection2dWKT(std::string filename, QuadtreeManager<FlowDirection>& normals);
 private:

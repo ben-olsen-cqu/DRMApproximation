@@ -3,6 +3,7 @@
 #include "os.h"
 #include "Coordinates.h"
 #include "Quadtree.h"
+#include "FlowClassification.h"
 
 #include <filesystem>
 #include <vector>
@@ -15,5 +16,6 @@ public:
 	static std::vector<Coordinates> ReadFiles(std::vector<std::string> files);
 	static void GetMinMaxCSV(std::vector<std::string> files, MinMax& mm);
 	static void ReadLine(std::ifstream* fs, double& x, double& y, double& z);
+	static void ReadStreamPathsBinary(std::string filepath, std::vector<FlowPath>& flowpaths);
 };
 

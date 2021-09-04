@@ -1,5 +1,6 @@
 #include "../Headers/CatchmentBuilder.h"
 #include "../Headers/FileWriter.h"
+#include "../Headers/FileReader.h"
 
 #include <iostream>
 #include <algorithm>
@@ -164,16 +165,28 @@ void CatchmentBuilder::CreateCatchments(ProgamParams progp)
 
     std::vector<FlowPath> flowpaths;
 
-    if (quad.type == TreeType::Single)
+    if (progp.reuselevel >= 6)
     {
-        flowpaths = StreamLinkingSingle(flowaccum, flowdirection);
-
-        std::cout << "Exporting Stream Paths\n";
-        FileWriter::WriteStreamPaths2dWKT("./Exports/Vectors/FlowPaths2dWKT", flowpaths);
+        //Reuse previously computed data
+        FileReader::ReadStreamPathsBinary("Temp/FlowPath/FlowLines", flowpaths);
+        std::cout << "Existing Flow Paths Loaded\n";
     }
     else
     {
-        //CalculateFlowAccumulationSplit(flowdirection, flowaccum);
+        //Create new data
+        if (quad.type == TreeType::Single)
+        {
+            flowpaths = StreamLinkingSingle(flowaccum, flowdirection);
+        }
+        else
+        {
+            //CalculateFlowAccumulationSplit(flowdirection, flowaccum);
+        }
+
+        FileWriter::WriteStreamPathsBinary("Temp/FlowPath/FlowLines", flowpaths);
+
+        std::cout << "Exporting Stream Paths\n";
+        FileWriter::WriteStreamPaths2dWKT("./Exports/Vectors/FlowPaths2dWKT", flowpaths);
     }
 
     flowaccum.~QuadtreeManager();
@@ -187,6 +200,7 @@ void CatchmentBuilder::CreateCatchments(ProgamParams progp)
 
 
     CatchmentClassification(catchclass, flowdirection, flowpaths);
+
     if (quad.type == TreeType::Single)
     {
         std::cout << "Exporting Flow Accumulation Surface\n";
@@ -208,7 +222,7 @@ void CatchmentBuilder::SmoothPointsSingle(QuadtreeManager<Coordinates>& quad, Qu
     double bottom = (quad.BottomRight().y);
     double left = (quad.TopLeft().x);
 
-    int blurrad = 13; //odd numbers only
+    int blurrad = 21; //odd numbers only
     int storenum = (blurrad - 1) / 2;
 
     for (int y = 0; y <= boundsy; y++)
@@ -803,7 +817,7 @@ std::vector<FlowPath> CatchmentBuilder::StreamLinkingSingle(QuadtreeManager<Flow
     double left = (flowaccum.TopLeft().x);
 
     std::vector<std::vector<Vec2>> flowpaths;
-    int acctarget = 2250; //2250 for Test Data 1, 200 for TD 4
+    int acctarget = 10000; //10000 for Test Data 1, 200 for TD 4
 
     for (int y = 0; y < boundsy; y++)
         for (int x = 0; x < boundsx; x++)
@@ -974,7 +988,7 @@ void CatchmentBuilder::CatchmentClassification(QuadtreeManager<FlowGeneral>& cat
 {
     std::cout << "Classifying Catchment Areas\n";
 
-    int breakdist = 50; //Distance along the flow paths to split the catchment
+    int breakdist = 200; //Distance along the flow paths to split the catchment
 
     double boundsx = (catchclass.BottomRight().x) - (catchclass.TopLeft().x);
     double boundsy = (catchclass.TopLeft().y) - (catchclass.BottomRight().y);
@@ -983,11 +997,14 @@ void CatchmentBuilder::CatchmentClassification(QuadtreeManager<FlowGeneral>& cat
 
     //Initialise the accumulation grid at 1
     for (int x = 0; x <= boundsx; x++)
+    {
         for (int y = 0; y <= boundsy; y++)
         {
+
             if (flowdirection.Search(FlowDirection(x + left, y + bottom)) != nullptr)
                 catchclass.Insert(new Node<FlowGeneral>(FlowGeneral(x + left, y + bottom, 0)));
         }
+    }
 
     std::vector<DischargePoint> dischargepoints;
     
@@ -1082,10 +1099,14 @@ void CatchmentBuilder::CatchmentClassification(QuadtreeManager<FlowGeneral>& cat
     std::reverse(dischargepoints.begin(), dischargepoints.end());
 
     for (int y = 0; y <= boundsy; y++)
+    {
+        std::cout << "\r" << y << " of " << boundsy << " Complete";
         for (int x = 0; x <= boundsx; x++)
         {
-            ClassifyFlowPath(catchclass, flowdirection,dischargepoints, Vec2(x + left, y + bottom));
+            ClassifyFlowPath(catchclass, flowdirection, dischargepoints, Vec2(x + left, y + bottom));
         }
+    }
+    std::cout << "\n";
 }
 
 void CatchmentBuilder::ClassifyFlowPath(QuadtreeManager<FlowGeneral>& catchclass, QuadtreeManager<FlowDirection>& flowdirection, std::vector<DischargePoint> dischargepoints, Vec2 point)
@@ -1187,7 +1208,9 @@ void CatchmentBuilder::ClassifyFlowPath(QuadtreeManager<FlowGeneral>& catchclass
 
         for (size_t a = 0; a < path.size(); a++)
         {
-            if ((path[a]->pos.x - i) < 0.0001 && (path[a]->pos.y - j) < 0.0001)
+            double comp1 = std::abs(path[a]->pos.x - i);
+            double comp2 = std::abs(path[a]->pos.y - j);
+            if ( comp1 < 0.0001 &&  comp2 < 0.0001)
             {
                 exitcond = 3;
             }

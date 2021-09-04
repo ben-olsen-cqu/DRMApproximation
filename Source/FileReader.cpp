@@ -155,3 +155,31 @@ void FileReader::ReadLine(std::ifstream* fs, double& x, double& y, double& z)
     if (!(substr.empty() || substr == "\n"))
         z = std::stod(substr);
 }
+
+void FileReader::ReadStreamPathsBinary(std::string filepath, std::vector<FlowPath>& flowpaths)
+{
+    std::ifstream datastream;
+
+    datastream.open("./" + filepath + ".bin", std::ios::binary);
+
+    while (!datastream.eof())
+    {
+        FlowPath fp;
+        int size;
+
+        datastream.read((char*)&fp.id, sizeof(int));
+        datastream.read((char*)&size, sizeof(int));
+
+        for (int i = 0; i < size; i++)
+        {
+            Vec2 p;
+            datastream.read((char*)&p, sizeof(Vec2));
+            fp.path.push_back(p);
+        }
+
+        flowpaths.push_back(fp);
+    }
+
+    flowpaths.erase(std::end(flowpaths)-1);
+    datastream.close();
+}

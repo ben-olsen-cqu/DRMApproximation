@@ -3,6 +3,8 @@
 #include <cmath>
 #include <vector>
 
+#include "CatchMath.h"
+
 enum class Direction { 
     N = 0,
     NE = 1,
