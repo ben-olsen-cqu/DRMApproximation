@@ -5,13 +5,14 @@
 #include "Coordinates.h"
 #include "CatchMath.h"
 #include "FlowClassification.h"
+#include "ProgramParameters.h"
 
 #include <vector>
 
 class CatchmentBuilder
 {
 public:
-    void CreateCatchments(QuadtreeManager<Coordinates> &quad);
+    void CreateCatchments(ProgamParams progp);
 private:
     void SmoothPointsSingle(QuadtreeManager<Coordinates>& quad, QuadtreeManager<Coordinates>& smooth);
     void SmoothPointsSplit(QuadtreeManager<Coordinates>& quad, QuadtreeManager<Coordinates>& smooth);
@@ -29,5 +30,5 @@ private:
 
     void CatchmentClassification(QuadtreeManager<FlowGeneral>& catchclass, QuadtreeManager<FlowDirection>& flowdirection, std::vector<FlowPath>& fps);
 
-    void ClassifySubCatchment(QuadtreeManager<FlowGeneral>& catchclass, QuadtreeManager<FlowDirection>& flowdirection, int id, Vec2 point);
+    void ClassifyFlowPath(QuadtreeManager<FlowGeneral>& catchclass, QuadtreeManager<FlowDirection>& flowdirection, std::vector<DischargePoint> dischargepoints, Vec2 point);
 };

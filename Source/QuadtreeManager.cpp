@@ -371,6 +371,59 @@ void QuadtreeManager<T>::Cleanup()
 }
 
 template<typename T>
+void QuadtreeManager<T>::WriteManagerToFile()
+{    
+    std::ofstream datastream;
+
+    datastream.open("./" + prePath + "_def.bin", std::ios::binary);
+
+    datastream.write((char*)&levelreq, sizeof(int));
+    datastream.write((char*)&memlevel, sizeof(int));
+    datastream.write((char*)&splitlevel, sizeof(int));
+    datastream.write((char*)&spacing, sizeof(float));
+    datastream.write((char*)&topLeft, sizeof(T));
+    datastream.write((char*)&bottomRight, sizeof(T));
+    datastream.write((char*)&type, sizeof(TreeType));
+
+    datastream.close();
+
+    if (type == TreeType::Single)
+    {
+        datastream.open("./" + prePath + ".bin", std::ios::binary);
+        WriteQuadToFile(quad, &datastream);
+        datastream.close();
+    }
+}
+
+template<typename T>
+void QuadtreeManager<T>::ReadManagerFromFile()
+{
+    std::ifstream datastream;
+
+    datastream.open("./" + prePath + "_def.bin", std::ios::binary);
+
+    datastream.read((char*)&levelreq, sizeof(int));
+    datastream.read((char*)&memlevel, sizeof(int));
+    datastream.read((char*)&splitlevel, sizeof(int));
+    datastream.read((char*)&spacing, sizeof(float));
+    datastream.read((char*)&topLeft, sizeof(T));
+    datastream.read((char*)&bottomRight, sizeof(T));
+    datastream.read((char*)&type, sizeof(TreeType));
+
+    quad = new Quadtree<T>(topLeft,bottomRight);
+    SetTreeType(type);
+    
+    datastream.close();
+
+    if (type == TreeType::Single)
+    {
+        datastream.open("./" + prePath + ".bin", std::ios::binary);
+        ReadFromFile(quad, &datastream);
+        datastream.close();
+    }
+}
+
+template<typename T>
 QuadtreeManager<T>::~QuadtreeManager()
 {
     if (quad != nullptr)
@@ -523,12 +576,6 @@ void QuadtreeManager<T>::CreateSingleTree(std::vector<std::string> files)
             SubInsert(quad, node);
         }
     }
-
-    std::ofstream datastream;
-
-    datastream.open("./" + prePath + ".bin", std::ios::binary);
-
-    WriteQuadToFile(quad, &datastream);
 }
 
 template<typename T>

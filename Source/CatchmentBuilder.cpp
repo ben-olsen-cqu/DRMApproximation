@@ -6,32 +6,51 @@
 
 #define PI 3.14159265
 
-void CatchmentBuilder::CreateCatchments(QuadtreeManager<Coordinates>& quad)
+void CatchmentBuilder::CreateCatchments(ProgamParams progp)
 {
-    QuadtreeManager<Coordinates> smooth(quad.topLeft, quad.bottomRight);
+    QuadtreeManager<Coordinates> quad;
 
-    smooth.prePath = "Temp/SmoothTree/SmoothTree";
-    smooth.spacing = quad.spacing;
-    smooth.splitlevel = quad.splitlevel;
-    smooth.SetTreeType(quad.type);
-
-    if (quad.type == TreeType::Single)
+    if (progp.reuselevel >= 1)
     {
-        SmoothPointsSingle(quad, smooth);
-
-        std::cout << "Exporting Original Surface\n";
-        FileWriter::WriteCoordTreeASC("./Exports/Surfaces/Original", quad);
-
-        std::cout << "Exporting Smoothed Surface\n";
-        FileWriter::WriteCoordTreeASC("./Exports/Surfaces/Smooth", smooth);
+        //Reuse previously computed data
+        quad.ReadManagerFromFile();
+        std::cout << "Existing Original Surface Loaded\n";
     }
     else
     {
-        SmoothPointsSplit(quad, smooth);
+        //Create new data from input files
+        quad.CreateQuadtree(progp.files, progp.spacing, progp.maxMem);
+        quad.WriteManagerToFile();
 
         std::cout << "Exporting Original Surface\n";
         FileWriter::WriteCoordTreeASC("./Exports/Surfaces/Original", quad);
+    }
 
+    QuadtreeManager<Coordinates> smooth(quad.topLeft, quad.bottomRight);
+    smooth.prePath = "Temp/SmoothTree/SmoothTree";
+
+    if (progp.reuselevel >= 2)
+    {
+        //Reuse previously computed data
+        smooth.ReadManagerFromFile();
+        std::cout << "Existing Smoothed Surface Loaded\n";
+    }
+    else
+    {
+        //Create new data
+        smooth.spacing = quad.spacing;
+        smooth.splitlevel = quad.splitlevel;
+        smooth.SetTreeType(quad.type);
+
+        if (quad.type == TreeType::Single)
+        {
+            SmoothPointsSingle(quad, smooth);
+        }
+        else
+        {
+            SmoothPointsSplit(quad, smooth);
+        }
+        smooth.WriteManagerToFile();
         std::cout << "Exporting Smoothed Surface\n";
         FileWriter::WriteCoordTreeASC("./Exports/Surfaces/Smooth", smooth);
     }
@@ -42,23 +61,33 @@ void CatchmentBuilder::CreateCatchments(QuadtreeManager<Coordinates>& quad)
     Normal bR(quad.bottomRight.x - quad.spacing / 2, quad.bottomRight.y + quad.spacing / 2);
 
     QuadtreeManager<Normal> normal(tL, bR);
-
     normal.prePath = "Temp/NormalTree/Tree";
-    normal.spacing = quad.spacing;
-    normal.splitlevel = quad.splitlevel;
-    normal.SetTreeType(quad.type);
 
-    if (quad.type == TreeType::Single)
+    if (progp.reuselevel >= 3)
     {
-        CalculateNormalsSingle(smooth, normal);
-
-        std::cout << "Writing Normals to File.\n";
-        ////FileWriter::WriteVecNormals3dWKT("./Exports/Vectors/SmoothNormals3dWKT", normal);
-        FileWriter::WriteVecNormals2dWKT("./Exports/Vectors/SmoothNormals2dWKT", normal);
+        //Reuse previously computed data
+        normal.ReadManagerFromFile();
+        std::cout << "Existing Normals Loaded\n";
     }
     else
     {
-        CalculateNormalsSplit(smooth, normal);
+        //Create new data
+        normal.spacing = quad.spacing;
+        normal.splitlevel = quad.splitlevel;
+        normal.SetTreeType(quad.type);
+
+        if (quad.type == TreeType::Single)
+        {
+            CalculateNormalsSingle(smooth, normal);
+        }
+        else
+        {
+            CalculateNormalsSplit(smooth, normal);
+        }
+        normal.WriteManagerToFile();
+        std::cout << "Writing Normals to File.\n";
+        //FileWriter::WriteVecNormals3dWKT("./Exports/Vectors/SmoothNormals3dWKT", normal);
+        FileWriter::WriteVecNormals2dWKT("./Exports/Vectors/SmoothNormals2dWKT", normal);
     }
 
     smooth.~QuadtreeManager();
@@ -67,22 +96,34 @@ void CatchmentBuilder::CreateCatchments(QuadtreeManager<Coordinates>& quad)
     FlowDirection bR2(quad.bottomRight.x - quad.spacing / 2, quad.bottomRight.y + quad.spacing / 2);
 
     QuadtreeManager<FlowDirection> flowdirection(tL2, bR2);
-
     flowdirection.prePath = "Temp/DirectionTree/Tree";
-    flowdirection.spacing = quad.spacing;
-    flowdirection.splitlevel = quad.splitlevel;
-    flowdirection.SetTreeType(quad.type);
-
-    if (quad.type == TreeType::Single)
+    
+    if (progp.reuselevel >= 4)
     {
-        CalculateFlowDirectionSingle(flowdirection, normal);
-
-        std::cout << "Writing Flow Directions to File.\n";
-        FileWriter::WriteFlowDirection2dWKT("./Exports/Vectors/FlowDirections2dWKT", flowdirection);
+        //Reuse previously computed data
+        flowdirection.ReadManagerFromFile();
+        std::cout << "Existing Flow Directions Loaded\n";
     }
     else
     {
-        //CalculateFlowDirectionSingle(smooth, normal);
+        //Create new data
+        flowdirection.spacing = quad.spacing;
+        flowdirection.splitlevel = quad.splitlevel;
+        flowdirection.SetTreeType(quad.type);
+
+        if (quad.type == TreeType::Single)
+        {
+            CalculateFlowDirectionSingle(flowdirection, normal);
+        }
+        else
+        {
+            //CalculateFlowDirectionSingle(smooth, normal);
+        }
+
+        flowdirection.WriteManagerToFile();
+
+        std::cout << "Writing Flow Directions to File.\n";
+        FileWriter::WriteFlowDirection2dWKT("./Exports/Vectors/FlowDirections2dWKT", flowdirection);
     }
 
     normal.~QuadtreeManager();
@@ -91,22 +132,34 @@ void CatchmentBuilder::CreateCatchments(QuadtreeManager<Coordinates>& quad)
     FlowGeneral bR3(quad.bottomRight.x - quad.spacing / 2, quad.bottomRight.y + quad.spacing / 2);
 
     QuadtreeManager<FlowGeneral> flowaccum(tL3, bR3);
-
     flowaccum.prePath = "Temp/AccumulationTree/Tree";
-    flowaccum.spacing = quad.spacing;
-    flowaccum.splitlevel = quad.splitlevel;
-    flowaccum.SetTreeType(quad.type);
 
-    if (quad.type == TreeType::Single)
+    if (progp.reuselevel >= 5)
     {
-        CalculateFlowAccumulationSingle(flowdirection, flowaccum);
-
-        std::cout << "Exporting Flow Accumulation Surface\n";
-        FileWriter::WriteFlowGeneralTreeASC("./Exports/Surfaces/Accum", flowaccum);
+        //Reuse previously computed data
+        flowaccum.ReadManagerFromFile();
+        std::cout << "Existing Flow Accumulations Loaded\n";
     }
     else
     {
-        //CalculateFlowAccumulationSplit(flowdirection, flowaccum);
+        //Create new data
+        flowaccum.spacing = quad.spacing;
+        flowaccum.splitlevel = quad.splitlevel;
+        flowaccum.SetTreeType(quad.type);
+
+        if (quad.type == TreeType::Single)
+        {
+            CalculateFlowAccumulationSingle(flowdirection, flowaccum);
+        }
+        else
+        {
+            //CalculateFlowAccumulationSplit(flowdirection, flowaccum);
+        }
+
+        flowaccum.WriteManagerToFile();
+
+        std::cout << "Exporting Flow Accumulation Surface\n";
+        FileWriter::WriteFlowGeneralTreeASC("./Exports/Surfaces/Accum", flowaccum);
     }
 
     std::vector<FlowPath> flowpaths;
@@ -730,15 +783,6 @@ void CatchmentBuilder::CalculateFlowAccumulationSingle(QuadtreeManager<FlowDirec
                             break;
                         }
 
-                        //for each (Vec2 fp in flowpath)
-                        //{
-                        //    if (fp == Vec2(i, j))
-                        //    {
-                        //        //std::cout << "Circular flow path found\n";
-                        //        break;
-                        //    }
-                        //}
-
                         nNIDP = NIDP.Search(FlowGeneral(i + left, j + bottom));
                     } 
                     while (nNIDP != nullptr);
@@ -930,7 +974,7 @@ void CatchmentBuilder::CatchmentClassification(QuadtreeManager<FlowGeneral>& cat
 {
     std::cout << "Classifying Catchment Areas\n";
 
-    int breakdist = 100; //Distance along the flow paths to split the catchment
+    int breakdist = 50; //Distance along the flow paths to split the catchment
 
     double boundsx = (catchclass.BottomRight().x) - (catchclass.TopLeft().x);
     double boundsy = (catchclass.TopLeft().y) - (catchclass.BottomRight().y);
@@ -1037,131 +1081,134 @@ void CatchmentBuilder::CatchmentClassification(QuadtreeManager<FlowGeneral>& cat
 
     std::reverse(dischargepoints.begin(), dischargepoints.end());
 
-    for (int i = 0; i < dischargepoints.size(); i++)
-    {
-        ClassifySubCatchment(catchclass, flowdirection, dischargepoints[i].index, dischargepoints[i].location);
-        std::cout << "\rProcessing Catchment " << i+1 << " of " << dischargepoints.size();
-    }
-    std::cout << "\n";
+    for (int y = 0; y <= boundsy; y++)
+        for (int x = 0; x <= boundsx; x++)
+        {
+            ClassifyFlowPath(catchclass, flowdirection,dischargepoints, Vec2(x + left, y + bottom));
+        }
 }
 
-void CatchmentBuilder::ClassifySubCatchment(QuadtreeManager<FlowGeneral>& catchclass, QuadtreeManager<FlowDirection>& flowdirection, int id, Vec2 point)
+void CatchmentBuilder::ClassifyFlowPath(QuadtreeManager<FlowGeneral>& catchclass, QuadtreeManager<FlowDirection>& flowdirection, std::vector<DischargePoint> dischargepoints, Vec2 point)
 {
-    //Start with the discharge coord
-    //Add the coord to a vec(1)
-    //do while loop for finding number of cells that flow into the current cell and storing coords in a second vec(2) in the scope of the loop
-    //if just one cell flows into the current cell set the current cell id and iterate to the next one
-        //once entire path is traced, remove the source point from (1)
-    //else if two or more store the additional coords into (1)
-        //once the first coord has been traced remove the source coord from (1)
-        //load the 0th element from 1 and repeat the do while loop
-    //terminate the do while loop when either no cells flow into the current or the cell already has an id
+    //Trace for each x y coord
+    //store catchclass nodes in vector
+    //when discharge point is reached
+    //get the id and apply to all nodes in the vector
+    //if node already has id then skip it
 
-    std::vector<Vec2> missed;
-    missed.push_back(point);
+    int exitcond = 0; //if 0 not reached exit, if 1 discharge point found, if 2 nullptr found, if 3 circular flowpath found
+    int flowpathid = 0;
+    std::vector<Node<FlowGeneral>*> path;
+    
+    double i = point.x;
+    double j = point.y;
 
-    while (missed.size() > 0)
+    auto d = flowdirection.Search(FlowDirection(i, j));
+    auto c = catchclass.Search(FlowGeneral(i, j));
+
+    while (exitcond == 0)
     {
-        std::vector<Vec2> inflowcells;
+        path.push_back(c);
 
-        double x = missed[0].x;
-        double y = missed[0].y;
-
-        Node<FlowGeneral>* nCatchPrev;
-        Node<FlowGeneral>* nCatch = catchclass.Search(FlowGeneral(x, y));
-        
-        do
+        //Increment i or j based on the flow direction to get the next cell
+        switch (d->pos.direction)
         {
-            inflowcells.clear();
-
-            if (nCatch != nullptr)
-            {
-                if (nCatch == nCatchPrev)
-                    break;
-
-
-                    auto node = flowdirection.Search(FlowDirection(x - 1, y - 1));
-                    if (node != nullptr)
-                    {
-                        if (node->pos.direction == Direction::NE)
-                            inflowcells.push_back(Vec2(x - 1, y - 1));
-                    }
-
-                    node = flowdirection.Search(FlowDirection(x, y - 1));
-                    if (node != nullptr)
-                    {
-                        if (node->pos.direction == Direction::N)
-                            inflowcells.push_back(Vec2(x, y - 1));
-                    }
-
-                    node = flowdirection.Search(FlowDirection(x + 1, y - 1));
-                    if (node != nullptr)
-                    {
-                        if (node->pos.direction == Direction::NW)
-                            inflowcells.push_back(Vec2(x + 1, y - 1));
-                    }
-
-                    node = flowdirection.Search(FlowDirection(x - 1, y));
-                    if (node != nullptr)
-                    {
-                        if (node->pos.direction == Direction::E)
-                            inflowcells.push_back(Vec2(x + 1, y - 1));
-                    }
-
-                    node = flowdirection.Search(FlowDirection(x + 1, y));
-                    if (node != nullptr)
-                    {
-                        if (node->pos.direction == Direction::W)
-                            inflowcells.push_back(Vec2(x + 1, y));
-                    }
-
-                    node = flowdirection.Search(FlowDirection(x - 1, y + 1));
-                    if (node != nullptr)
-                    {
-                        if (node->pos.direction == Direction::SE)
-                            inflowcells.push_back(Vec2(x - 1, y + 1));
-                    }
-
-                    node = flowdirection.Search(FlowDirection(x, y + 1));
-                    if (node != nullptr)
-                    {
-                        if (node->pos.direction == Direction::S)
-                            inflowcells.push_back(Vec2(x, y + 1));
-                    }
-
-                    node = flowdirection.Search(FlowDirection(x + 1, y + 1));
-                    if (node != nullptr)
-                    {
-                        if (node->pos.direction == Direction::SW)
-                            inflowcells.push_back(Vec2(x + 1, y + 1));
-                    }
-
-
-                    if (inflowcells.size() > 1)
-                    {
-                        for (int i = 1; i < inflowcells.size(); i++)
-                        {
-                            missed.push_back(inflowcells[i]);
-                            inflowcells.erase(std::begin(inflowcells) + i);
-                        }
-                    }
-
-                    if (nCatch->pos.iValue == 0)
-                        nCatch->pos.iValue = id;
-
-                    if (inflowcells.size() > 0)
-                    {
-                        x = inflowcells[0].x;
-                        y = inflowcells[0].y;
-                        nCatchPrev = nCatch;
-                        nCatch = catchclass.Search(FlowGeneral(x, y));
-                    }
-                }
+        case Direction::N:
+        {
+            j++;
+            break;
+        };
+        case Direction::NE:
+        {
+            j++;
+            i++;
+            break;
+        };
+        case Direction::E:
+        {
+            i++;
+            break;
+        };
+        case Direction::SE:
+        {
+            j--;
+            i++;
+            break;
+        };
+        case Direction::S:
+        {
+            j--;
+            break;
+        };
+        case Direction::SW:
+        {
+            j--;
+            i--;
+            break;
+        };
+        case Direction::W:
+        {
+            i--;
+            break;
+        };
+        case Direction::NW:
+        {
+            j++;
+            i--;
+            break;
+        };
         }
-        while (inflowcells.size() != 0);
 
-        missed.erase(std::begin(missed));
-    } 
+        d = flowdirection.Search(FlowDirection(i, j));
+        c = catchclass.Search(FlowGeneral(i, j));
+
+        if (d == nullptr || c == nullptr)
+        {
+            exitcond = 2;
+            break;
+        }
+
+        if (c->pos.iValue != 0)
+        {
+            exitcond = 1;
+            flowpathid = c->pos.iValue;
+        }
+
+
+        for (size_t a = 0; a < dischargepoints.size(); a++)
+        {
+            if (dischargepoints[a].location == Vec2(i, j))
+            {
+                exitcond = 1;
+                flowpathid = dischargepoints[a].index;
+                break;
+            }
+        }
+
+        for (size_t a = 0; a < path.size(); a++)
+        {
+            if ((path[a]->pos.x - i) < 0.0001 && (path[a]->pos.y - j) < 0.0001)
+            {
+                exitcond = 3;
+            }
+        }
+    }
+
+    if (exitcond == 1)
+    {
+        for (size_t i = 0; i < path.size(); i++)
+        {
+            path[i]->pos.iValue = flowpathid;
+        }
+    }
+
+    for (size_t i = 0; i < path.size(); i++)
+    {
+        path[i] = nullptr;
+    }
+
+    path.clear();
+
 }
 
 

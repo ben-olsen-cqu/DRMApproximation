@@ -43,6 +43,8 @@ public:
 	void CreateTreestoLevel();
 	void SetTreeType(TreeType t);
 	void Cleanup();
+	void WriteManagerToFile();
+	void ReadManagerFromFile();
 	~QuadtreeManager();
 private:
 	void CreatetoLevel(Quadtree<T>* q, int target);
@@ -53,8 +55,8 @@ private:
 	void CreateSingleTree(std::vector<std::string> files);
 	void CreateSplitTree(std::vector<std::string> files);
 	Node<T>* Subsearch(Quadtree<T>* q, T p) const;
-	void WriteQuadToFile(Quadtree<T>* q, std::ofstream* datastream);
 	void WriteTToFile(T* t, std::ofstream* datastream);
+	void WriteQuadToFile(Quadtree<T>* q, std::ofstream* datastream);
 	void ReadFromFile(Quadtree<T>* q, std::ifstream* datastream);
 	void GetBottomNodes(Quadtree<T>* q);
 };
