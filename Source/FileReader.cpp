@@ -81,12 +81,12 @@ void FileReader::GetMinMaxCSV(std::vector<std::string> files, MinMax& mm)
 
         std::ifstream infile(infileName);
 
-        mm.maxy = std::numeric_limits<double>::min();
-        mm.maxx = std::numeric_limits<double>::min();
-        mm.maxz = std::numeric_limits<double>::min();
-        mm.miny = std::numeric_limits<double>::max();
-        mm.minx = std::numeric_limits<double>::max();
-        mm.minz = std::numeric_limits<double>::max();
+        //mm.maxy = std::numeric_limits<double>::min();
+        //mm.maxx = std::numeric_limits<double>::min();
+        //mm.maxz = std::numeric_limits<double>::min();
+        //mm.miny = std::numeric_limits<double>::max();
+        //mm.minx = std::numeric_limits<double>::max();
+        //mm.minz = std::numeric_limits<double>::max();
         
         Coordinates compare(0.0f, 0.0f, 0.0f);
         

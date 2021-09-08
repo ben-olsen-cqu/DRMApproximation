@@ -1252,7 +1252,64 @@ void CatchmentBuilder::PolygoniseCatchments(QuadtreeManager<FlowGeneral>& catchc
 {
     std::cout << "Polygonising Catchment Areas\n";
 
+    for each (DischargePoint dispoint in dischargepoints)
+    {
+        double boundsx = (catchclass.BottomRight().x) - (catchclass.TopLeft().x);
+        double boundsy = (catchclass.TopLeft().y) - (catchclass.BottomRight().y);
+        double bottom = (catchclass.BottomRight().y);
+        double left = (catchclass.TopLeft().x);
+        //narrow down the bounds to the catchment to avoid 
 
+        MinMax catchmentMM;
+
+        for (int x = 0; x <= boundsx; x++)
+            for (int y = 0; y <= boundsy; y++)
+            {
+                auto node = catchclass.Search(FlowGeneral(x + left, y + bottom));
+                if (node != nullptr && node->pos.iValue == dispoint.index)
+                {
+                    if (x > catchmentMM.maxx)
+                        catchmentMM.maxx = x;
+
+                    if (y > catchmentMM.maxy)
+                        catchmentMM.maxy = y;
+
+                    if (x < catchmentMM.minx)
+                        catchmentMM.minx = x;
+
+                    if (y < catchmentMM.miny)
+                        catchmentMM.miny = y;
+                }
+            }
+
+        auto topLeft = FlowGeneral(catchmentMM.minx, catchmentMM.maxy);
+        auto bottomRight = FlowGeneral(catchmentMM.maxx, catchmentMM.miny);
+
+        bottom = catchmentMM.miny;
+        left = catchmentMM.minx;
+        boundsx = catchmentMM.maxx - catchmentMM.minx;
+        boundsy = catchmentMM.maxy - catchmentMM.miny;
+        
+        QuadtreeManager<FlowGeneral> catchment(topLeft, bottomRight);
+
+        catchment.prePath = "Temp/Catchment/Tree";
+        catchment.spacing = catchclass.spacing;
+        catchment.splitlevel = 0;
+        catchment.SetTreeType(TreeType::Single);
+
+        //Copy all nodes with the matching catchment ID to a new tree for faster read write
+        for (int x = 0; x <= boundsx; x++)
+            for (int y = 0; y <= boundsy; y++)
+            {
+                auto node = catchclass.Search(FlowGeneral(x + left, y + bottom));
+                if(node != nullptr && node->pos.iValue == dispoint.index)
+                    catchment.Insert(new Node<FlowGeneral>(node->pos));
+            }
+
+        
+
+        catchment.~QuadtreeManager();
+    }
 }
 
 
