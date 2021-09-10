@@ -227,6 +227,9 @@ void CatchmentBuilder::CreateCatchments(ProgamParams progp)
 
     PolygoniseCatchments(catchclass, dischargepoints, catchlist);
 
+    std::cout << "Exporting Catchment Polygons\n";
+    FileWriter::WriteCatchmentPolysWKT("./Exports/Polygons/Catchments", catchlist);
+
     catchclass.~QuadtreeManager();
 }
 
@@ -1254,6 +1257,8 @@ void CatchmentBuilder::PolygoniseCatchments(QuadtreeManager<FlowGeneral>& catchc
 
     for each (DischargePoint dispoint in dischargepoints)
     {
+        Catchment c;
+
         double boundsx = (catchclass.BottomRight().x) - (catchclass.TopLeft().x);
         double boundsy = (catchclass.TopLeft().y) - (catchclass.BottomRight().y);
         double bottom = (catchclass.BottomRight().y);
@@ -1268,17 +1273,17 @@ void CatchmentBuilder::PolygoniseCatchments(QuadtreeManager<FlowGeneral>& catchc
                 auto node = catchclass.Search(FlowGeneral(x + left, y + bottom));
                 if (node != nullptr && node->pos.iValue == dispoint.index)
                 {
-                    if (x > catchmentMM.maxx)
-                        catchmentMM.maxx = x;
+                    if (x+left > catchmentMM.maxx)
+                        catchmentMM.maxx = x + left;
 
-                    if (y > catchmentMM.maxy)
-                        catchmentMM.maxy = y;
+                    if (y+bottom > catchmentMM.maxy)
+                        catchmentMM.maxy = y + bottom;
 
-                    if (x < catchmentMM.minx)
-                        catchmentMM.minx = x;
+                    if (x+left < catchmentMM.minx)
+                        catchmentMM.minx = x + left;
 
-                    if (y < catchmentMM.miny)
-                        catchmentMM.miny = y;
+                    if (y+bottom < catchmentMM.miny)
+                        catchmentMM.miny = y + bottom;
                 }
             }
 
@@ -1287,8 +1292,8 @@ void CatchmentBuilder::PolygoniseCatchments(QuadtreeManager<FlowGeneral>& catchc
 
         bottom = catchmentMM.miny;
         left = catchmentMM.minx;
-        boundsx = catchmentMM.maxx - catchmentMM.minx;
-        boundsy = catchmentMM.maxy - catchmentMM.miny;
+        boundsx = catchmentMM.maxx;
+        boundsy = catchmentMM.maxy;
         
         QuadtreeManager<FlowGeneral> catchment(topLeft, bottomRight);
 
@@ -1298,15 +1303,138 @@ void CatchmentBuilder::PolygoniseCatchments(QuadtreeManager<FlowGeneral>& catchc
         catchment.SetTreeType(TreeType::Single);
 
         //Copy all nodes with the matching catchment ID to a new tree for faster read write
-        for (int x = 0; x <= boundsx; x++)
-            for (int y = 0; y <= boundsy; y++)
+        for (int x = left; x <= boundsx; x++)
+            for (int y = bottom; y <= boundsy; y++)
             {
-                auto node = catchclass.Search(FlowGeneral(x + left, y + bottom));
-                if(node != nullptr && node->pos.iValue == dispoint.index)
-                    catchment.Insert(new Node<FlowGeneral>(node->pos));
+                auto node = catchclass.Search(FlowGeneral(x, y));
+                if(node != nullptr)
+                    if(node->pos.iValue == dispoint.index)
+                        catchment.Insert(new Node<FlowGeneral>(node->pos));
             }
 
-        
+        Node<FlowGeneral>* node = nullptr;
+
+        double x = 0.0;
+        double y = 0.0;
+
+        for (int i = left; i <= boundsx; i++)
+            {
+                node = catchment.Search(FlowGeneral(i, bottom));
+                if (node != nullptr)
+                {
+                    x = i;
+                    y = bottom;
+                    break;
+                }
+            }
+
+        c.points.push_back(Vec2(x,y));
+
+
+        //starting at the lowest point circumnavigate the catchment prioritising the neartest point that has the lowest angle counter-clockwise with east being 0
+        while (true)
+        {
+            std::vector<Vec2> possible;
+            if (catchment.Search(FlowGeneral(x+1, y)) != nullptr) //E
+            {
+                possible.push_back(Vec2(x+1,y));
+            }
+            if (catchment.Search(FlowGeneral(x+1, y+1)) != nullptr) //NE
+            {
+                possible.push_back(Vec2(x + 1, y+1));
+            }
+            if (catchment.Search(FlowGeneral(x, y+1)) != nullptr) //N
+            {
+                possible.push_back(Vec2(x, y+1));
+            }
+            if (catchment.Search(FlowGeneral(x-1, y+1)) != nullptr) //NW
+            {
+                possible.push_back(Vec2(x - 1, y+1));
+            }
+            if (catchment.Search(FlowGeneral(x-1, y)) != nullptr) //W
+            {
+                possible.push_back(Vec2(x - 1, y));
+            }
+            if (catchment.Search(FlowGeneral(x-1, y-1)) != nullptr) //SW
+            {
+                possible.push_back(Vec2(x - 1, y-1));
+            }
+            if (catchment.Search(FlowGeneral(x, y-1)) != nullptr) //S
+            {
+                possible.push_back(Vec2(x, y-1));
+            }
+            if (catchment.Search(FlowGeneral(x+1, y-1)) != nullptr) //SE
+            {
+                possible.push_back(Vec2(x + 1, y-1));
+            }
+
+            if (possible.size() == 0)
+                break;
+
+            if (possible.size() == 1)
+            {
+                c.points.push_back(possible[0]);
+                x = possible[0].x;
+                y = possible[0].y;
+                if (std::abs(c.points[0].x - x) < 0.001 && std::abs(c.points[0].y - y) < 0.001)
+                    break;
+                continue;
+            }
+
+            float angle = 2;
+            int index = 0;
+
+            int incr = 0;
+            for each (Vec2 var in possible)
+            {
+                Vec2 p, q, r;
+                if (c.points.size() < 2)
+                {
+                    p = Vec2(c.points[0].x - 1, c.points[0].y);
+                    q = c.points[0];
+                }
+                else
+                {
+                    p = c.points[c.points.size()-2];
+                    q = c.points[c.points.size() - 1];
+                }
+
+                r = var;
+
+                Vec2 pq = Vec2(q.x - p.x, q.y - p.y);
+                Vec2 qr = Vec2(r.x - q.x, r.y - q.y);
+
+                float dot = pq.x * qr.x + pq.y * qr.y;
+                float magpq = std::sqrt(std::pow(pq.x,2) + std::pow(pq.y,2));
+                float magqr = std::sqrt(std::pow(qr.x,2) + std::pow(qr.y,2));
+
+                float tangle = std::acos(dot / (magpq * magqr));
+
+                if (tangle < angle)
+                {
+                    angle = tangle;
+                    index = incr;
+                }
+                incr++;
+            }
+
+            if (angle != 2)
+            {
+                c.points.push_back(possible[index]);
+                x = possible[index].x;
+                y = possible[index].y;
+                if (std::abs(c.points[0].x - x) < 0.001 && std::abs(c.points[0].y - y) < 0.001)
+                    break;
+            }
+            else
+            {
+                break;
+            }
+
+
+        }
+
+        catchlist.push_back(c);
 
         catchment.~QuadtreeManager();
     }

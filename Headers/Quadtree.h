@@ -1,5 +1,7 @@
 #pragma once
 
+#include <limits>
+
 template<typename T>
 class Node
 {

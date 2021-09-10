@@ -405,6 +405,26 @@ void FileWriter::WriteStreamPaths2dWKT(std::string filename, std::vector<FlowPat
 	outfile.close();
 }
 
+void FileWriter::WriteCatchmentPolysWKT(std::string filename, std::vector<Catchment>& catchlist)
+{
+	std::ofstream outfile(filename + ".csv");
+	outfile << "POLYGON (( ))\n";
+
+	for each (Catchment cat in catchlist)
+	{
+		std::string line = "POLYGON ((";
+
+		for each (Vec2 point in cat.points)
+		{
+			line += std::to_string(point.x) + " " + std::to_string(point.y) + ",";
+		}
+		line += std::to_string(cat.points[0].x) + " " + std::to_string(cat.points[0].y);
+		line += "))";
+		outfile << line << std::endl;
+	}
+	outfile.close();
+}
+
 void FileWriter::WriteStreamPathsBinary(std::string filepath, std::vector<FlowPath>& flowpaths)
 {
 	std::ofstream datastream;
