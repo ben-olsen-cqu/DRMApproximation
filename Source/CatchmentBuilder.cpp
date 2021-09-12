@@ -1255,8 +1255,9 @@ void CatchmentBuilder::PolygoniseCatchments(QuadtreeManager<FlowGeneral>& catchc
 {
     std::cout << "Polygonising Catchment Areas\n";
 
-    for each (DischargePoint dispoint in dischargepoints)
+    /*for each (DischargePoint dispoint in dischargepoints)*/
     {
+        DischargePoint dispoint = dischargepoints[0];
         Catchment c;
 
         double boundsx = (catchclass.BottomRight().x) - (catchclass.TopLeft().x);
@@ -1405,10 +1406,10 @@ void CatchmentBuilder::PolygoniseCatchments(QuadtreeManager<FlowGeneral>& catchc
                 Vec2 qr = Vec2(r.x - q.x, r.y - q.y);
 
                 float dot = pq.x * qr.x + pq.y * qr.y;
-                float magpq = std::sqrt(std::pow(pq.x,2) + std::pow(pq.y,2));
-                float magqr = std::sqrt(std::pow(qr.x,2) + std::pow(qr.y,2));
+                float det = pq.x * qr.y - pq.y * qr.x;
 
-                float tangle = std::acos(dot / (magpq * magqr));
+                float tangle = std::abs(std::atan2(det,dot)*180/PI);
+                
 
                 if (tangle < angle)
                 {
@@ -1418,7 +1419,7 @@ void CatchmentBuilder::PolygoniseCatchments(QuadtreeManager<FlowGeneral>& catchc
                 incr++;
             }
 
-            if (angle != 2)
+            if (angle != 180)
             {
                 c.points.push_back(possible[index]);
                 x = possible[index].x;
@@ -1431,6 +1432,8 @@ void CatchmentBuilder::PolygoniseCatchments(QuadtreeManager<FlowGeneral>& catchc
                 break;
             }
 
+            if (c.points.size() > 10000)
+                break;
 
         }
 
