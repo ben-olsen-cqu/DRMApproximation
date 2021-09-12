@@ -1255,9 +1255,9 @@ void CatchmentBuilder::PolygoniseCatchments(QuadtreeManager<FlowGeneral>& catchc
 {
     std::cout << "Polygonising Catchment Areas\n";
 
-    /*for each (DischargePoint dispoint in dischargepoints)*/
+    for each (DischargePoint dispoint in dischargepoints)
     {
-        DischargePoint dispoint = dischargepoints[0];
+        //DischargePoint dispoint = dischargepoints[0];
         Catchment c;
 
         double boundsx = (catchclass.BottomRight().x) - (catchclass.TopLeft().x);
@@ -1274,173 +1274,242 @@ void CatchmentBuilder::PolygoniseCatchments(QuadtreeManager<FlowGeneral>& catchc
                 auto node = catchclass.Search(FlowGeneral(x + left, y + bottom));
                 if (node != nullptr && node->pos.iValue == dispoint.index)
                 {
-                    if (x+left > catchmentMM.maxx)
+                    if (x + left > catchmentMM.maxx)
                         catchmentMM.maxx = x + left;
 
-                    if (y+bottom > catchmentMM.maxy)
+                    if (y + bottom > catchmentMM.maxy)
                         catchmentMM.maxy = y + bottom;
 
-                    if (x+left < catchmentMM.minx)
+                    if (x + left < catchmentMM.minx)
                         catchmentMM.minx = x + left;
 
-                    if (y+bottom < catchmentMM.miny)
+                    if (y + bottom < catchmentMM.miny)
                         catchmentMM.miny = y + bottom;
                 }
             }
 
-        auto topLeft = FlowGeneral(catchmentMM.minx, catchmentMM.maxy);
-        auto bottomRight = FlowGeneral(catchmentMM.maxx, catchmentMM.miny);
+        auto topLeft = FlowGeneral(catchmentMM.minx - 0.5, catchmentMM.maxy + 0.5);
+        auto bottomRight = FlowGeneral(catchmentMM.maxx + 0.5, catchmentMM.miny - 0.5);
 
         bottom = catchmentMM.miny;
         left = catchmentMM.minx;
         boundsx = catchmentMM.maxx;
         boundsy = catchmentMM.maxy;
-        
-        QuadtreeManager<FlowGeneral> catchment(topLeft, bottomRight);
 
-        catchment.prePath = "Temp/Catchment/Tree";
-        catchment.spacing = catchclass.spacing;
-        catchment.splitlevel = 0;
-        catchment.SetTreeType(TreeType::Single);
+        QuadtreeManager<FlowGeneral> catchmentA(topLeft, bottomRight);
+
+        catchmentA.prePath = "Temp/Catchment/Tree";
+        catchmentA.spacing = catchclass.spacing;
+        catchmentA.splitlevel = 0;
+        catchmentA.SetTreeType(TreeType::Single);
 
         //Copy all nodes with the matching catchment ID to a new tree for faster read write
-        for (int x = left; x <= boundsx; x++)
-            for (int y = bottom; y <= boundsy; y++)
+        for (double x = left; x <= boundsx; x++)
+            for (double y = bottom; y <= boundsy; y++)
             {
                 auto node = catchclass.Search(FlowGeneral(x, y));
-                if(node != nullptr)
-                    if(node->pos.iValue == dispoint.index)
-                        catchment.Insert(new Node<FlowGeneral>(node->pos));
+                if (node != nullptr)
+                    if (node->pos.iValue == dispoint.index)
+                    {
+                        //insert at the four corners of the cell
+                        catchmentA.Insert(new Node<FlowGeneral>(FlowGeneral(x + 0.5, y + 0.5, dispoint.index)));
+                        catchmentA.Insert(new Node<FlowGeneral>(FlowGeneral(x + 0.5, y - 0.5, dispoint.index)));
+                        catchmentA.Insert(new Node<FlowGeneral>(FlowGeneral(x - 0.5, y + 0.5, dispoint.index)));
+                        catchmentA.Insert(new Node<FlowGeneral>(FlowGeneral(x - 0.5, y - 0.5, dispoint.index)));
+                    }
             }
 
-        Node<FlowGeneral>* node = nullptr;
+        bottom = catchmentMM.miny - 0.5;
+        left = catchmentMM.minx - 0.5;
+        boundsx = catchmentMM.maxx + 0.5;
+        boundsy = catchmentMM.maxy + 0.5;
 
-        double x = 0.0;
-        double y = 0.0;
+        std::vector<Vec2> temppoints;
 
-        for (int i = left; i <= boundsx; i++)
+        //Copy all boundary cells to temppoints
+        for (double x = left; x <= boundsx; x++)
+            for (double y = bottom; y <= boundsy; y++)
             {
-                node = catchment.Search(FlowGeneral(i, bottom));
-                if (node != nullptr)
+                if (catchmentA.Search(FlowGeneral(x, y)) != nullptr)
                 {
-                    x = i;
-                    y = bottom;
-                    break;
+                    if (catchmentA.Search(FlowGeneral(x - 1, y)) == nullptr || catchmentA.Search(FlowGeneral(x + 1, y)) == nullptr ||
+                        catchmentA.Search(FlowGeneral(x, y - 1)) == nullptr || catchmentA.Search(FlowGeneral(x, y + 1)) == nullptr)
+                    {
+                        temppoints.push_back(Vec2(x, y));
+                    }
                 }
             }
 
-        c.points.push_back(Vec2(x,y));
+        catchmentA.~QuadtreeManager();
 
+        //find the bottom most point
+        int lowestindex = 0;
+        float lowest = std::numeric_limits<float>::max();
+        
+        for (int i = 0; i < temppoints.size(); i++)
+        {
+            if (temppoints[i].y <= lowest)
+            {
+                lowestindex = i; //I don't know why this is giving an incorrect index and needs to be -1
+                lowest = temppoints[i].y;
+            }
+        }
+        
 
-        //starting at the lowest point circumnavigate the catchment prioritising the neartest point that has the lowest angle counter-clockwise with east being 0
+        c.points.push_back(temppoints[lowestindex]);
+        temppoints.erase(std::begin(temppoints)+lowestindex);
+
+        double x = c.points[0].x;
+        double y = c.points[0].y;
+
         while (true)
         {
-            std::vector<Vec2> possible;
-            if (catchment.Search(FlowGeneral(x+1, y)) != nullptr) //E
-            {
-                possible.push_back(Vec2(x+1,y));
-            }
-            if (catchment.Search(FlowGeneral(x+1, y+1)) != nullptr) //NE
-            {
-                possible.push_back(Vec2(x + 1, y+1));
-            }
-            if (catchment.Search(FlowGeneral(x, y+1)) != nullptr) //N
-            {
-                possible.push_back(Vec2(x, y+1));
-            }
-            if (catchment.Search(FlowGeneral(x-1, y+1)) != nullptr) //NW
-            {
-                possible.push_back(Vec2(x - 1, y+1));
-            }
-            if (catchment.Search(FlowGeneral(x-1, y)) != nullptr) //W
-            {
-                possible.push_back(Vec2(x - 1, y));
-            }
-            if (catchment.Search(FlowGeneral(x-1, y-1)) != nullptr) //SW
-            {
-                possible.push_back(Vec2(x - 1, y-1));
-            }
-            if (catchment.Search(FlowGeneral(x, y-1)) != nullptr) //S
-            {
-                possible.push_back(Vec2(x, y-1));
-            }
-            if (catchment.Search(FlowGeneral(x+1, y-1)) != nullptr) //SE
-            {
-                possible.push_back(Vec2(x + 1, y-1));
-            }
-
-            if (possible.size() == 0)
+            if (temppoints.size() == 0)
                 break;
 
-            if (possible.size() == 1)
+            int index1 = 0;
+            int index2 = 0;
+            int index3 = 0;
+            float dist1 = std::numeric_limits<float>::max();
+            float dist2 = std::numeric_limits<float>::max();
+            float dist3 = std::numeric_limits<float>::max();
+
+            for (int i = 0; i < temppoints.size(); i++)
             {
-                c.points.push_back(possible[0]);
-                x = possible[0].x;
-                y = possible[0].y;
-                if (std::abs(c.points[0].x - x) < 0.001 && std::abs(c.points[0].y - y) < 0.001)
-                    break;
+                float dist = DistBetween(c.points[c.points.size()-1], temppoints[i]);
+                if (dist == 0)
+                    continue;
+
+                if ( dist <= dist3)
+                {
+                    if (dist <= dist2)
+                    {
+                        if (dist <= dist1)
+                        {
+                            dist3 = dist2;
+                            index3 = index2;
+                            dist2 = dist1;
+                            index2 = index1;
+                            dist1 = dist;
+                            index1 = i;
+                        }
+                        else
+                        {
+                            dist3 = dist2;
+                            index3 = index2;
+                            dist2 = dist;
+                            index2 = i;
+                        }
+                    }
+                    else
+                    {
+                        dist3 = dist;
+                        index3 = i;
+                    }
+                }
+            }
+
+            Vec2 n;
+
+            if (c.points.size() == 1)
+            {
+                n = c.points[0];
+                n.y--;
+            }
+            else
+            {
+                n = c.points[c.points.size() - 2];
+            }
+
+            Vec2 o = c.points[c.points.size()-1];
+
+            Vec2 p = temppoints[index1];
+            Vec2 q = temppoints[index2];
+            Vec2 r = temppoints[index3];
+
+            Vec2 on = Vec2(n.x - o.x, n.y - o.y);
+            Vec2 op = Vec2(p.x - o.x, p.y - o.y);
+            Vec2 oq = Vec2(q.x - o.x, q.y - o.y);
+            Vec2 or = Vec2(r.x - o.x, r.y - o.y);
+
+            float dotnop = on.x * op.x + on.y * op.y;
+            float detnop = on.x * op.y - on.y * op.x;
+
+            float anglenop = 360 - (std::atan2(detnop, dotnop) * 180 / PI); 
+
+            float dotnoq = on.x * oq.x + on.y * oq.y;
+            float detnoq = on.x * oq.y - on.y * oq.x;
+
+            float anglenoq = 360 - (std::atan2(detnoq, dotnoq) * 180 / PI);
+
+            float dotnor = on.x * or.x + on.y * or.y;
+            float detnor = on.x * or.y - on.y * or.x;
+
+            float anglenor = 360 - (std::atan2(detnor, dotnor) * 180 / PI);
+            if (dist1 == dist2 && dist1 == dist3)
+            {
+                //filter by angle
+                if (anglenop < anglenoq && anglenop < anglenor)
+                {
+                    c.points.push_back(temppoints[index1]);
+                    temppoints.erase(std::begin(temppoints) + index1);
+                    continue;
+                }
+                else if (anglenoq < anglenop && anglenoq < anglenor)
+                {
+                    c.points.push_back(temppoints[index2]);
+                    temppoints.erase(std::begin(temppoints) + index2);
+                    continue;
+                }
+                else if (anglenor < anglenop && anglenor < anglenoq)
+                {
+                    c.points.push_back(temppoints[index3]);
+                    temppoints.erase(std::begin(temppoints) + index3);
+                    continue;
+                }
+            }
+            if (dist1 == dist2 && dist2 < dist3)
+            {
+                //dist 1 and 2 are equal but greater than 3
+                //filter by angle
+                if (anglenop < anglenoq)
+                {
+                    c.points.push_back(temppoints[index1]);
+                    temppoints.erase(std::begin(temppoints) + index1);
+                    continue;
+                }
+                else if (anglenoq < anglenop)
+                {
+                    c.points.push_back(temppoints[index2]);
+                    temppoints.erase(std::begin(temppoints) + index2);
+                    continue;
+                }
+            }
+            if (dist1 < dist2 && dist1 < 10)
+            {
+                //dist1 is closest
+                c.points.push_back(temppoints[index1]);
+                temppoints.erase(std::begin(temppoints) + index1);
                 continue;
-            }
-
-            float angle = 2;
-            int index = 0;
-
-            int incr = 0;
-            for each (Vec2 var in possible)
-            {
-                Vec2 p, q, r;
-                if (c.points.size() < 2)
-                {
-                    p = Vec2(c.points[0].x - 1, c.points[0].y);
-                    q = c.points[0];
-                }
-                else
-                {
-                    p = c.points[c.points.size()-2];
-                    q = c.points[c.points.size() - 1];
-                }
-
-                r = var;
-
-                Vec2 pq = Vec2(q.x - p.x, q.y - p.y);
-                Vec2 qr = Vec2(r.x - q.x, r.y - q.y);
-
-                float dot = pq.x * qr.x + pq.y * qr.y;
-                float det = pq.x * qr.y - pq.y * qr.x;
-
-                float tangle = std::abs(std::atan2(det,dot)*180/PI);
-                
-
-                if (tangle < angle)
-                {
-                    angle = tangle;
-                    index = incr;
-                }
-                incr++;
-            }
-
-            if (angle != 180)
-            {
-                c.points.push_back(possible[index]);
-                x = possible[index].x;
-                y = possible[index].y;
-                if (std::abs(c.points[0].x - x) < 0.001 && std::abs(c.points[0].y - y) < 0.001)
-                    break;
             }
             else
             {
                 break;
             }
-
-            if (c.points.size() > 10000)
-                break;
-
         }
+
 
         catchlist.push_back(c);
 
-        catchment.~QuadtreeManager();
+
     }
 }
+
+float CatchmentBuilder::DistBetween(Vec2 v1, Vec2 v2)
+{
+    return std::sqrt(std::pow(v2.y - v1.y, 2) + std::pow(v2.x - v1.x, 2));
+}
+
+
 
 

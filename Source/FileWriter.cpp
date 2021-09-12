@@ -179,7 +179,7 @@ void FileWriter::WriteFlowGeneralTreeASC(std::string filename, QuadtreeManager<F
 				}
 				else
 				{
-					outfile << "-9999";
+					outfile << "-9999 ";
 				}
 			}
 			outfile << std::endl << " ";
