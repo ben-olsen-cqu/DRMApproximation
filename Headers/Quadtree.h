@@ -74,6 +74,9 @@ public:
 	{
 		hasData = false;
 
+		index = -1;
+		level = -1;
+
 		n = nullptr;
 		topLeftTree = nullptr;
 		topRightTree = nullptr;
@@ -87,6 +90,9 @@ public:
 	Quadtree<T>()
 	{
 		hasData = false;
+
+		index = -1;
+		level = -1;
 
 		n = nullptr;
 		topLeftTree = nullptr;
