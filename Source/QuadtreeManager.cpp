@@ -411,8 +411,9 @@ void QuadtreeManager<T>::ReadManagerFromFile()
     datastream.read((char*)&type, sizeof(TreeType));
 
     quad = new Quadtree<T>(topLeft,bottomRight);
-    SetTreeType(type);
     quad->level = 0;
+    SetTreeType(type);
+    
     
     datastream.close();
 

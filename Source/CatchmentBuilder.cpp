@@ -10,7 +10,7 @@
 void CatchmentBuilder::CreateCatchments(ProgamParams progp)
 {
     QuadtreeManager<Coordinates> quad;
-    int blurrad = 21;           //pre-processing radius
+    int blurrad = 7;           //pre-processing radius
     int acctarget = 10000;      //Number of cells required to flow into a cell before it's considered a stream
     int breakdist = 200;        //Distance along the flow paths to split the catchment
 
@@ -25,9 +25,11 @@ void CatchmentBuilder::CreateCatchments(ProgamParams progp)
         //Create new data from input files
         quad.CreateQuadtree(progp.files, progp.spacing, progp.maxMem);
         quad.WriteManagerToFile();
-
-        //std::cout << "Exporting Original Surface\n";
-        //FileWriter::WriteCoordTreeASC("./Exports/Surfaces/Original", quad);
+        if (quad.type == TreeType::Single)
+        {
+            std::cout << "Exporting Original Surface\n";
+            FileWriter::WriteCoordTreeASC("./Exports/Surfaces/Original", quad);
+        }
     }
 
     QuadtreeManager<Coordinates> smooth(quad.topLeft, quad.bottomRight);
@@ -48,15 +50,16 @@ void CatchmentBuilder::CreateCatchments(ProgamParams progp)
 
         if (quad.type == TreeType::Single)
         {
-            SmoothPointsSingle(quad, smooth,blurrad);
+            SmoothPointsSingle(quad, smooth, blurrad);
+            std::cout << "Exporting Smoothed Surface\n";
+            FileWriter::WriteCoordTreeASC("./Exports/Surfaces/Smooth", smooth);
         }
         else
         {
             SmoothPointsSplit(quad, smooth,blurrad);
         }
         smooth.WriteManagerToFile();
-        //std::cout << "Exporting Smoothed Surface\n";
-        //FileWriter::WriteCoordTreeASC("./Exports/Surfaces/Smooth", smooth);
+
     }
 
     quad.~QuadtreeManager();
@@ -83,15 +86,17 @@ void CatchmentBuilder::CreateCatchments(ProgamParams progp)
         if (quad.type == TreeType::Single)
         {
             CalculateNormalsSingle(smooth, normal);
+            std::cout << "Writing Normals to File.\n";
+            //FileWriter::WriteVecNormals3dWKT("./Exports/Vectors/SmoothNormals3dWKT", normal);
+            FileWriter::WriteVecNormals2dWKT("./Exports/Vectors/SmoothNormals2dWKT", normal);
         }
         else
         {
             CalculateNormalsSplit(smooth, normal);
+            std::cout << "Writing Normals to File.\n";
+            FileWriter::WriteVecNormals2dWKT("./Exports/Vectors/SmoothNormals2dWKT", normal);
         }
         normal.WriteManagerToFile();
-        std::cout << "Writing Normals to File.\n";
-        //FileWriter::WriteVecNormals3dWKT("./Exports/Vectors/SmoothNormals3dWKT", normal);
-        FileWriter::WriteVecNormals2dWKT("./Exports/Vectors/SmoothNormals2dWKT", normal);
     }
 
     smooth.~QuadtreeManager();
@@ -118,16 +123,15 @@ void CatchmentBuilder::CreateCatchments(ProgamParams progp)
         if (quad.type == TreeType::Single)
         {
             CalculateFlowDirectionSingle(flowdirection, normal);
+            std::cout << "Writing Flow Directions to File.\n";
+            FileWriter::WriteFlowDirection2dWKT("./Exports/Vectors/FlowDirections2dWKT", flowdirection);
         }
         else
         {
-            //CalculateFlowDirectionSingle(smooth, normal);
+            //CalculateFlowDirectionSplit(flowdirection, normal);
         }
 
         flowdirection.WriteManagerToFile();
-
-        std::cout << "Writing Flow Directions to File.\n";
-        FileWriter::WriteFlowDirection2dWKT("./Exports/Vectors/FlowDirections2dWKT", flowdirection);
     }
 
     normal.~QuadtreeManager();
@@ -309,7 +313,7 @@ void CatchmentBuilder::SmoothPointsSplit(QuadtreeManager<Coordinates>& quad, Qua
     for (int v = 0; v < numquads; v++) //move vertically through sub trees
         for (int w = 0; w < numquads; w++) //move horizontally through sub trees
         {
-            std::cout << "\rQuad " << v * numquads + (w + 1) << " of " << totalquads << " Complete";
+            std::cout << "\rProcessing Quad " << v * numquads + (w + 1) << " of " << totalquads;
 
             for (int y = 0; y < boundsperquady; y++) //move through each coord in the y direction of the subtree
                 for (int x = 0; x < boundsperquadx; x++)//move through each coord in the x direction of the subtree
@@ -374,7 +378,7 @@ void CatchmentBuilder::SmoothPointsSplit(QuadtreeManager<Coordinates>& quad, Qua
     {
         for (int w = 0; w < numquads; w++) //move horizontally through sub trees
         {
-            std::cout << "\rQuad " << v * numquads + (w + 1) << " of " << totalquads << " Complete";
+            std::cout << "\rProcessing Quad " << v * numquads + (w + 1) << " of " << totalquads;
 
             //Top
             for (int x = 0; x < boundsperquadx; x++)
@@ -626,12 +630,12 @@ void CatchmentBuilder::CalculateNormalsSplit(QuadtreeManager<Coordinates>& smoot
     for (int v = 0; v < numquads; v++) //move vertically through sub trees
         for (int w = 0; w < numquads; w++) //move horizontally through sub trees
         {
-            std::cout << "\rQuad " << v * numquads + (w + 1) << " of " << totalquads << " Complete";
+            std::cout << "\rProcessing Quad " << v * numquads + (w + 1) << " of " << totalquads;
 
             for (int y = 0; y < boundsperquady; y++) //move through each coord in the y direction of the subtree
                 for (int x = 0; x < boundsperquadx; x++)//move through each coord in the x direction of the subtree
                 {
-                    if (y < storenum || (boundsperquady - y) <= storenum || x < storenum || (boundsperquadx - x) <= storenum)
+                    if ((boundsperquady - y) <= storenum || (boundsperquadx - x) <= storenum)
                     {
                         Node<Coordinates>* node = smooth.Search(Coordinates(x + w * boundsperquadx + left, y + v * boundsperquady + bottom));
 
@@ -703,262 +707,144 @@ void CatchmentBuilder::CalculateNormalsSplit(QuadtreeManager<Coordinates>& smoot
                 }
         }
     smooth.Cleanup();
-    gaps.Cleanup();
     normal.Cleanup();
+
+    std::cout << "\nComplete\nFilling Gaps...\n";
+
     for (int v = 0; v < numquads; v++) //move vertically through sub trees
     {
         for (int w = 0; w < numquads; w++) //move horizontally through sub trees
         {
-            std::cout << "\rQuad " << v * numquads + (w + 1) << " of " << totalquads << " Complete";
+            std::cout << "\rProcessing Quad " << v * numquads + (w + 1) << " of " << totalquads;
 
             //Top
+            int y = boundsperquady - storenum;
             for (int x = 0; x < boundsperquadx; x++)
-                for (int y = boundsperquady - storenum - 1; y < boundsperquady; y++)
-                {
-                    //Get points in a quad going clockwise starting from the BL
+            {
+                //Get points in a quad going clockwise starting from the BL
 
-                    Vec3 p1, p2, p3, p4, vec1, vec2, vec3, vec4, translation, normal1, normal2;
+                Vec3 p1, p2, p3, p4, vec1, vec2, vec3, vec4, translation, normal1, normal2;
 
-                    auto c = gaps.Search(Coordinates(x + w * boundsperquadx + left, y + v * boundsperquady + bottom));
+                auto c = gaps.Search(Coordinates(x + w * boundsperquadx + left, y + v * boundsperquady + bottom));
 
-                    if (c == nullptr)
-                        continue;
+                if (c == nullptr)
+                    continue;
 
-                    p1 = Vec3(c->pos.x, c->pos.y, c->pos.z);
+                p1 = Vec3(c->pos.x, c->pos.y, c->pos.z);
 
-                    c = gaps.Search(Coordinates(x + w * boundsperquadx + left, y + v * boundsperquady + bottom + 1));
+                c = gaps.Search(Coordinates(x + w * boundsperquadx + left, y + v * boundsperquady + bottom + 1));
 
-                    if (c == nullptr)
-                        continue;
+                if (c == nullptr)
+                    continue;
 
-                    p2 = Vec3(c->pos.x, c->pos.y, c->pos.z);
+                p2 = Vec3(c->pos.x, c->pos.y, c->pos.z);
 
-                    c = gaps.Search(Coordinates(x + w * boundsperquadx + left + 1, y + v * boundsperquady + bottom + 1));
+                c = gaps.Search(Coordinates(x + w * boundsperquadx + left + 1, y + v * boundsperquady + bottom + 1));
 
-                    if (c == nullptr)
-                        continue;
+                if (c == nullptr)
+                    continue;
 
-                    p3 = Vec3(c->pos.x, c->pos.y, c->pos.z);
+                p3 = Vec3(c->pos.x, c->pos.y, c->pos.z);
 
-                    c = gaps.Search(Coordinates(x + w * boundsperquadx + left + 1, y + v * boundsperquady + bottom));
+                c = gaps.Search(Coordinates(x + w * boundsperquadx + left + 1, y + v * boundsperquady + bottom));
 
-                    if (c == nullptr)
-                        continue;
+                if (c == nullptr)
+                    continue;
 
-                    p4 = Vec3(c->pos.x, c->pos.y, c->pos.z);
+                p4 = Vec3(c->pos.x, c->pos.y, c->pos.z);
 
-                    double avz = (p1.z + p2.z + p3.z + p4.z) / 4;
-                    translation = Vec3(p1.x + 0.5f, p1.y + .5f, avz);
+                double avz = (p1.z + p2.z + p3.z + p4.z) / 4;
+                translation = Vec3(p1.x + 0.5f, p1.y + .5f, avz);
 
-                    //translate each vector so each side of the quad is represented
-                    vec1 = p2 - p1;
-                    vec2 = p3 - p2;
-                    vec3 = p4 - p3;
-                    vec4 = p1 - p4;
+                //translate each vector so each side of the quad is represented
+                vec1 = p2 - p1;
+                vec2 = p3 - p2;
+                vec3 = p4 - p3;
+                vec4 = p1 - p4;
 
-                    //Cross product to calculate normal
-                    normal1 = vec1 % vec2;
+                //Cross product to calculate normal
+                normal1 = vec1 % vec2;
 
-                    normal2 = vec3 % vec4;
+                normal2 = vec3 % vec4;
 
-                    //average normals to get normal for quad
-                    Vec3 normalq = Vec3((normal1.x + normal2.x) / 2, (normal1.y + normal2.y) / 2, (normal1.z + normal2.z) / 2);
-                    normalq.Normalize();
-                    normalq.x = -normalq.x;
-                    normalq.y = -normalq.y;
-                    normalq.z = -normalq.z;
+                //average normals to get normal for quad
+                Vec3 normalq = Vec3((normal1.x + normal2.x) / 2, (normal1.y + normal2.y) / 2, (normal1.z + normal2.z) / 2);
+                normalq.Normalize();
+                normalq.x = -normalq.x;
+                normalq.y = -normalq.y;
+                normalq.z = -normalq.z;
 
-                    normalq += translation;
+                normalq += translation;
 
-                    normal.Insert(new Node<Normal>(Normal(translation, normalq)));
-                }
-            //Bottom
-            for (int x = 0; x < boundsperquadx; x++)
-                for (int y = 0; y < storenum; y++)
-                {
-                    //Get points in a quad going clockwise starting from the BL
-
-                    Vec3 p1, p2, p3, p4, vec1, vec2, vec3, vec4, translation, normal1, normal2;
-
-                    auto c = gaps.Search(Coordinates(x + w * boundsperquadx + left, y + v * boundsperquady + bottom));
-
-                    if (c == nullptr)
-                        continue;
-
-                    p1 = Vec3(c->pos.x, c->pos.y, c->pos.z);
-
-                    c = gaps.Search(Coordinates(x + w * boundsperquadx + left, y + v * boundsperquady + bottom + 1));
-
-                    if (c == nullptr)
-                        continue;
-
-                    p2 = Vec3(c->pos.x, c->pos.y, c->pos.z);
-
-                    c = gaps.Search(Coordinates(x + w * boundsperquadx + left + 1, y + v * boundsperquady + bottom + 1));
-
-                    if (c == nullptr)
-                        continue;
-
-                    p3 = Vec3(c->pos.x, c->pos.y, c->pos.z);
-
-                    c = gaps.Search(Coordinates(x + w * boundsperquadx + left + 1, y + v * boundsperquady + bottom));
-
-                    if (c == nullptr)
-                        continue;
-
-                    p4 = Vec3(c->pos.x, c->pos.y, c->pos.z);
-
-                    double avz = (p1.z + p2.z + p3.z + p4.z) / 4;
-                    translation = Vec3(p1.x + 0.5f, p1.y + .5f, avz);
-
-                    //translate each vector so each side of the quad is represented
-                    vec1 = p2 - p1;
-                    vec2 = p3 - p2;
-                    vec3 = p4 - p3;
-                    vec4 = p1 - p4;
-
-                    //Cross product to calculate normal
-                    normal1 = vec1 % vec2;
-
-                    normal2 = vec3 % vec4;
-
-                    //average normals to get normal for quad
-                    Vec3 normalq = Vec3((normal1.x + normal2.x) / 2, (normal1.y + normal2.y) / 2, (normal1.z + normal2.z) / 2);
-                    normalq.Normalize();
-                    normalq.x = -normalq.x;
-                    normalq.y = -normalq.y;
-                    normalq.z = -normalq.z;
-
-                    normalq += translation;
-
-                    normal.Insert(new Node<Normal>(Normal(translation, normalq)));
-                }
+                normal.Insert(new Node<Normal>(Normal(translation, normalq)));
+            }
+            
             //Right
+            int x = boundsperquadx - storenum;
+            for (int y = 0; y < boundsperquady; y++)
+            {
+                //Get points in a quad going clockwise starting from the BL
 
-            for (int x = boundsperquadx - storenum - 1; x < boundsperquadx; x++)
-                for (int y = storenum; y < boundsperquady - storenum - 1; y++)
-                {
-                    //Get points in a quad going clockwise starting from the BL
+                Vec3 p1, p2, p3, p4, vec1, vec2, vec3, vec4, translation, normal1, normal2;
 
-                    Vec3 p1, p2, p3, p4, vec1, vec2, vec3, vec4, translation, normal1, normal2;
+                auto c = gaps.Search(Coordinates(x + w * boundsperquadx + left, y + v * boundsperquady + bottom));
 
-                    auto c = gaps.Search(Coordinates(x + w * boundsperquadx + left, y + v * boundsperquady + bottom));
+                if (c == nullptr)
+                    continue;
 
-                    if (c == nullptr)
-                        continue;
+                p1 = Vec3(c->pos.x, c->pos.y, c->pos.z);
 
-                    p1 = Vec3(c->pos.x, c->pos.y, c->pos.z);
+                c = gaps.Search(Coordinates(x + w * boundsperquadx + left, y + v * boundsperquady + bottom + 1));
 
-                    c = gaps.Search(Coordinates(x + w * boundsperquadx + left, y + v * boundsperquady + bottom + 1));
+                if (c == nullptr)
+                    continue;
 
-                    if (c == nullptr)
-                        continue;
+                p2 = Vec3(c->pos.x, c->pos.y, c->pos.z);
 
-                    p2 = Vec3(c->pos.x, c->pos.y, c->pos.z);
+                c = gaps.Search(Coordinates(x + w * boundsperquadx + left + 1, y + v * boundsperquady + bottom + 1));
 
-                    c = gaps.Search(Coordinates(x + w * boundsperquadx + left + 1, y + v * boundsperquady + bottom + 1));
+                if (c == nullptr)
+                    continue;
 
-                    if (c == nullptr)
-                        continue;
+                p3 = Vec3(c->pos.x, c->pos.y, c->pos.z);
 
-                    p3 = Vec3(c->pos.x, c->pos.y, c->pos.z);
+                c = gaps.Search(Coordinates(x + w * boundsperquadx + left + 1, y + v * boundsperquady + bottom));
 
-                    c = gaps.Search(Coordinates(x + w * boundsperquadx + left + 1, y + v * boundsperquady + bottom));
+                if (c == nullptr)
+                    continue;
 
-                    if (c == nullptr)
-                        continue;
+                p4 = Vec3(c->pos.x, c->pos.y, c->pos.z);
 
-                    p4 = Vec3(c->pos.x, c->pos.y, c->pos.z);
+                double avz = (p1.z + p2.z + p3.z + p4.z) / 4;
+                translation = Vec3(p1.x + smooth.spacing / 2, p1.y + smooth.spacing / 2, avz);
 
-                    double avz = (p1.z + p2.z + p3.z + p4.z) / 4;
-                    translation = Vec3(p1.x + 0.5f, p1.y + .5f, avz);
+                //translate each vector so each side of the quad is represented
+                vec1 = p2 - p1;
+                vec2 = p3 - p2;
+                vec3 = p4 - p3;
+                vec4 = p1 - p4;
 
-                    //translate each vector so each side of the quad is represented
-                    vec1 = p2 - p1;
-                    vec2 = p3 - p2;
-                    vec3 = p4 - p3;
-                    vec4 = p1 - p4;
+                //Cross product to calculate normal
+                normal1 = vec1 % vec2;
 
-                    //Cross product to calculate normal
-                    normal1 = vec1 % vec2;
+                normal2 = vec3 % vec4;
 
-                    normal2 = vec3 % vec4;
+                //average normals to get normal for quad
+                Vec3 normalq = Vec3((normal1.x + normal2.x) / 2, (normal1.y + normal2.y) / 2, (normal1.z + normal2.z) / 2);
+                normalq.Normalize();
+                normalq.x = -normalq.x;
+                normalq.y = -normalq.y;
+                normalq.z = -normalq.z;
 
-                    //average normals to get normal for quad
-                    Vec3 normalq = Vec3((normal1.x + normal2.x) / 2, (normal1.y + normal2.y) / 2, (normal1.z + normal2.z) / 2);
-                    normalq.Normalize();
-                    normalq.x = -normalq.x;
-                    normalq.y = -normalq.y;
-                    normalq.z = -normalq.z;
+                normalq += translation;
 
-                    normalq += translation;
-
-                    normal.Insert(new Node<Normal>(Normal(translation, normalq)));
-                }
-            //Left
-            for (int x = 0; x < storenum; x++)
-                for (int y = 0; y < boundsperquady; y++)
-                {
-                    //Get points in a quad going clockwise starting from the BL
-
-                    Vec3 p1, p2, p3, p4, vec1, vec2, vec3, vec4, translation, normal1, normal2;
-
-                    auto c = gaps.Search(Coordinates(x + w * boundsperquadx + left, y + v * boundsperquady + bottom));
-
-                    if (c == nullptr)
-                        continue;
-
-                    p1 = Vec3(c->pos.x, c->pos.y, c->pos.z);
-
-                    c = gaps.Search(Coordinates(x + w * boundsperquadx + left, y + v * boundsperquady + bottom + 1));
-
-                    if (c == nullptr)
-                        continue;
-
-                    p2 = Vec3(c->pos.x, c->pos.y, c->pos.z);
-
-                    c = gaps.Search(Coordinates(x + w * boundsperquadx + left + 1, y + v * boundsperquady + bottom + 1));
-
-                    if (c == nullptr)
-                        continue;
-
-                    p3 = Vec3(c->pos.x, c->pos.y, c->pos.z);
-
-                    c = gaps.Search(Coordinates(x + w * boundsperquadx + left + 1, y + v * boundsperquady + bottom));
-
-                    if (c == nullptr)
-                        continue;
-
-                    p4 = Vec3(c->pos.x, c->pos.y, c->pos.z);
-
-                    double avz = (p1.z + p2.z + p3.z + p4.z) / 4;
-                    translation = Vec3(p1.x + 0.5f, p1.y + .5f, avz);
-
-                    //translate each vector so each side of the quad is represented
-                    vec1 = p2 - p1;
-                    vec2 = p3 - p2;
-                    vec3 = p4 - p3;
-                    vec4 = p1 - p4;
-
-                    //Cross product to calculate normal
-                    normal1 = vec1 % vec2;
-
-                    normal2 = vec3 % vec4;
-
-                    //average normals to get normal for quad
-                    Vec3 normalq = Vec3((normal1.x + normal2.x) / 2, (normal1.y + normal2.y) / 2, (normal1.z + normal2.z) / 2);
-                    normalq.Normalize();
-                    normalq.x = -normalq.x;
-                    normalq.y = -normalq.y;
-                    normalq.z = -normalq.z;
-
-                    normalq += translation;
-
-                    normal.Insert(new Node<Normal>(Normal(translation, normalq)));
-                }
+                normal.Insert(new Node<Normal>(Normal(translation, normalq)));
+            }
 
         }
     }
+    std::cout << "\n";
+    gaps.~QuadtreeManager();
 }
 
 void CatchmentBuilder::CalculateFlowDirectionSingle(QuadtreeManager<FlowDirection>& flowdirection, QuadtreeManager<Normal>& normal)
@@ -989,6 +875,10 @@ void CatchmentBuilder::CalculateFlowDirectionSingle(QuadtreeManager<FlowDirectio
                 flowdirection.Insert(new Node<FlowDirection>(FlowDirection(x + left, y + bottom, dir)));
             }
         }
+}
+
+void CatchmentBuilder::CalculateFlowDirectionSplit(QuadtreeManager<FlowDirection>& flowdirection, QuadtreeManager<Normal>& normal)
+{
 }
 
 void CatchmentBuilder::CalculateFlowAccumulationSingle(QuadtreeManager<FlowDirection>& flowdirection, QuadtreeManager<FlowGeneral>& flowaccum)

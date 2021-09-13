@@ -1,5 +1,6 @@
 #include "../Headers/FileWriter.h"
 #include <fstream>
+#include <iostream>
 
 void FileWriter::WriteFiles(std::string filename, std::vector<std::string> data, bool multiplefiles)
 {
@@ -381,7 +382,38 @@ void FileWriter::WriteVecNormals2dWKT(std::string filename, QuadtreeManager<Norm
 	}
 	else
 	{
+		float boundsx = (normals.BottomRight().x) - (normals.TopLeft().x);
+		float boundsy = (normals.TopLeft().y) - (normals.BottomRight().y);
+		float bottom = (normals.BottomRight().y);
+		float left = (normals.TopLeft().x);
 
+		int numquads = normals.splitlevel * 2; //quad splits the area in half in the x and y axis
+
+		int boundsperquadx = std::floor(boundsx / numquads);
+		int boundsperquady = std::floor(boundsy / numquads);
+
+		int totalquads = numquads * numquads;
+
+		for (int v = 0; v < numquads; v++) //move vertically through sub trees
+			for (int w = 0; w < numquads; w++) //move horizontally through sub trees
+			{
+				std::cout << "\rProcessing Quad " << v * numquads + (w + 1) << " of " << totalquads;
+				std::ofstream outfile(filename + "_" + std::to_string(w + v*numquads) +".csv");
+				outfile << "LINESTRING ()\n";
+				for (int y = 0; y < boundsperquady; y++) //move through each coord in the y direction of the subtree
+					for (int x = 0; x < boundsperquadx; x++)//move through each coord in the x direction of the subtree
+					{
+						auto c = normals.Search(Normal(x + w * boundsperquadx + left, y + v * boundsperquady + bottom));
+						if (c != nullptr)
+						{
+							std::string line = "LINESTRING (" + std::to_string(c->pos.x) + " " + std::to_string(c->pos.y) + "," + std::to_string(c->pos.norm.x) + " " + std::to_string(c->pos.norm.y) + ")";
+							outfile << line << std::endl;
+						}
+					}
+
+				outfile.close();
+			}
+		std::cout << "\n";
 	}
 }
 
