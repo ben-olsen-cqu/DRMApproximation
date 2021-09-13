@@ -24,9 +24,7 @@ void CatchmentBuilder::CreateCatchments(ProgamParams progp)
     {
         //Create new data from input files
         quad.CreateQuadtree(progp.files, progp.spacing, progp.maxMem);
-
         quad.WriteManagerToFile();
-
         if (quad.type == TreeType::Single)
         {
             std::cout << "Exporting Original Surface\n";
@@ -53,7 +51,6 @@ void CatchmentBuilder::CreateCatchments(ProgamParams progp)
         if (quad.type == TreeType::Single)
         {
             SmoothPointsSingle(quad, smooth, blurrad);
-
             std::cout << "Exporting Smoothed Surface\n";
             FileWriter::WriteCoordTreeASC("./Exports/Surfaces/Smooth", smooth);
         }
@@ -89,7 +86,6 @@ void CatchmentBuilder::CreateCatchments(ProgamParams progp)
         if (quad.type == TreeType::Single)
         {
             CalculateNormalsSingle(smooth, normal);
-
             std::cout << "Writing Normals to File.\n";
             //FileWriter::WriteVecNormals3dWKT("./Exports/Vectors/SmoothNormals3dWKT", normal);
             FileWriter::WriteVecNormals2dWKT("./Exports/Vectors/SmoothNormals2dWKT", normal);
@@ -97,6 +93,8 @@ void CatchmentBuilder::CreateCatchments(ProgamParams progp)
         else
         {
             CalculateNormalsSplit(smooth, normal);
+            std::cout << "Writing Normals to File.\n";
+            FileWriter::WriteVecNormals2dWKT("./Exports/Vectors/SmoothNormals2dWKT", normal);
         }
         normal.WriteManagerToFile();
     }
@@ -125,13 +123,12 @@ void CatchmentBuilder::CreateCatchments(ProgamParams progp)
         if (quad.type == TreeType::Single)
         {
             CalculateFlowDirectionSingle(flowdirection, normal);
-
             std::cout << "Writing Flow Directions to File.\n";
             FileWriter::WriteFlowDirection2dWKT("./Exports/Vectors/FlowDirections2dWKT", flowdirection);
         }
         else
         {
-            CalculateFlowDirectionSplit(flowdirection, normal);
+            //CalculateFlowDirectionSplit(flowdirection, normal);
         }
 
         flowdirection.WriteManagerToFile();
@@ -161,9 +158,6 @@ void CatchmentBuilder::CreateCatchments(ProgamParams progp)
         if (quad.type == TreeType::Single)
         {
             CalculateFlowAccumulationSingle(flowdirection, flowaccum);
-
-            std::cout << "Exporting Flow Accumulation Surface\n";
-            FileWriter::WriteFlowGeneralTreeASC("./Exports/Surfaces/Accum", flowaccum);
         }
         else
         {
@@ -171,6 +165,9 @@ void CatchmentBuilder::CreateCatchments(ProgamParams progp)
         }
 
         flowaccum.WriteManagerToFile();
+
+        std::cout << "Exporting Flow Accumulation Surface\n";
+        FileWriter::WriteFlowGeneralTreeASC("./Exports/Surfaces/Accum", flowaccum);
     }
 
     std::vector<FlowPath> flowpaths;
@@ -710,7 +707,6 @@ void CatchmentBuilder::CalculateNormalsSplit(QuadtreeManager<Coordinates>& smoot
                 }
         }
     smooth.Cleanup();
-    gaps.Cleanup();
     normal.Cleanup();
 
     std::cout << "\nComplete\nFilling Gaps...\n";
@@ -883,46 +879,6 @@ void CatchmentBuilder::CalculateFlowDirectionSingle(QuadtreeManager<FlowDirectio
 
 void CatchmentBuilder::CalculateFlowDirectionSplit(QuadtreeManager<FlowDirection>& flowdirection, QuadtreeManager<Normal>& normal)
 {
-    std::cout << "Calculating Flow Directions\n";
-    double boundsx = (normal.BottomRight().x) - (normal.TopLeft().x);
-    double boundsy = (normal.TopLeft().y) - (normal.BottomRight().y);
-    double bottom = (normal.BottomRight().y);
-    double left = (normal.TopLeft().x);
-
-    int numquads = normal.splitlevel * 2; //quad splits the area in half in the x and y axis
-
-    int totalquads = numquads * numquads;
-
-    //for loops for iterating through split level trees
-    for (int v = 0; v < numquads; v++) //move vertically through sub trees
-    {
-        for (int w = 0; w < numquads; w++) //move horizontally through sub trees
-        {
-            std::cout << "\rProcessing Quad " << v * numquads + (w + 1) << " of " << totalquads;
-
-            for (double y = normal.SplitBottomLeft(v, w).y; y < normal.SplitTopRight(v, w).y; y++) //move through each coord in the y direction of the subtree
-                for (double x = normal.SplitBottomLeft(v, w).x; x < normal.SplitTopRight(v, w).x; x++)//move through each coord in the x direction of the subtree
-                {
-                    auto f = normal.Search(Normal(x, y));
-
-                    if (f != nullptr)
-                    {
-                        auto n = f->pos;
-
-                        Vec2 translated(n.norm.x - n.x, n.norm.y - n.y);
-
-                        float angle = std::atan2(translated.x, translated.y);
-
-                        int octant = (int)std::round(8 * angle / (2 * PI) + 8) % 8;
-
-                        Direction dir = (Direction)octant;
-
-                        flowdirection.Insert(new Node<FlowDirection>(FlowDirection(x, y, dir)));
-                    }
-                }
-        }
-    }
-    std::cout << "\nComplete\n";
 }
 
 void CatchmentBuilder::CalculateFlowAccumulationSingle(QuadtreeManager<FlowDirection>& flowdirection, QuadtreeManager<FlowGeneral>& flowaccum)
@@ -1115,12 +1071,6 @@ void CatchmentBuilder::CalculateFlowAccumulationSingle(QuadtreeManager<FlowDirec
     NIDP.~QuadtreeManager();
 }
 
-void CatchmentBuilder::CalculateFlowAccumulationSplit(QuadtreeManager<FlowDirection>& flowdirection, QuadtreeManager<FlowGeneral>& flowaccum)
-{
-    std::cout << "Calculating Flow Accumulations\n";
-
-}
-
 std::vector<FlowPath> CatchmentBuilder::StreamLinkingSingle(QuadtreeManager<FlowGeneral>& flowaccum, QuadtreeManager<FlowDirection>& flowdirection, int acctarget)
 {
     std::cout << "Stream Linking\n";
@@ -1205,13 +1155,6 @@ std::vector<FlowPath> CatchmentBuilder::StreamLinkingSingle(QuadtreeManager<Flow
     }
 
     return copypaths;
-}
-
-std::vector<FlowPath> CatchmentBuilder::StreamLinkingSplit(QuadtreeManager<FlowGeneral>& flowaccum, QuadtreeManager<FlowDirection>& flowdirection, int acctarget)
-{
-    std::cout << "Stream Linking\n";
-
-    return std::vector<FlowPath>();
 }
 
 void CatchmentBuilder::TraceFlowPath(QuadtreeManager<FlowDirection>& flowdirection, std::vector<std::vector<Vec2>>* flowpaths, int x, int y)

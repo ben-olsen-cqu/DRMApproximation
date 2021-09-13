@@ -85,9 +85,8 @@ void QuadtreeManager<T>::Insert( Node<T>* n)
 
                             datastream.close();
 
-                            bottomnodes[k]->hasData = false;
                             bottomnodes[k]->~Quadtree();
-
+                            bottomnodes[k]->hasData = false;
                             break;
                         }
                     }
@@ -132,13 +131,7 @@ void QuadtreeManager<T>::SubInsert(Quadtree<T>* q, Node<T>* n)
     if (checkx <= spacing && checky <= spacing)
     {
         if (q->n == nullptr)
-        {
             q->n = n;
-        }
-        else
-        {
-            delete n;
-        }
         return;
     }
 
@@ -224,9 +217,8 @@ Node<T>* QuadtreeManager<T>::Search(T p)
                     {
                         if (bottomnodes[k]->hasData == true) //deloads only if a tree is loaded
                         {
-                            bottomnodes[k]->hasData = false;
                             bottomnodes[k]->~Quadtree();
-
+                            bottomnodes[k]->hasData = false;
                             break;
                         }
                     }
@@ -287,9 +279,8 @@ Node<T>* QuadtreeManager<T>::SearchW(T p)
 
                             datastream.close();
 
-                            bottomnodes[k]->hasData = false;
                             bottomnodes[k]->~Quadtree();
-
+                            bottomnodes[k]->hasData = false;
                             break;
                         }
                     }
@@ -432,106 +423,6 @@ void QuadtreeManager<T>::ReadManagerFromFile()
         ReadFromFile(quad, &datastream);
         datastream.close();
     }
-}
-
-template<typename T>
-T QuadtreeManager<T>::SplitBottomLeft(int v, int w)
-{
-    int y = v;
-    int x = w;
-    int colrowsize = std::sqrt(bottomnodes.size());
-    Quadtree<T>* bot = quad;
-    Quadtree<T>* left = quad;
-    while (true) //to find bottom
-    {
-        if (y < colrowsize / 2)
-        {
-            colrowsize = colrowsize / 2;
-            bot = bot->bottomLeftTree;
-            if (bot->level == splitlevel)
-                break;
-        }
-        else
-        {
-            y = y - colrowsize/2;
-            colrowsize = colrowsize / 2;
-            bot = bot->topLeftTree;
-            if (bot->level == splitlevel)
-                break;
-        }
-    }
-
-    colrowsize = std::sqrt(bottomnodes.size());
-
-    while (true) //to find left
-    {
-        if (x < colrowsize / 2)
-        {
-            colrowsize = colrowsize / 2;
-            left = left->bottomLeftTree;
-            if (left->level == splitlevel)
-                break;
-        }
-        else
-        {
-            x = x - colrowsize/2;
-            colrowsize = colrowsize / 2;
-            left = left->bottomRightTree;
-            if (left->level == splitlevel)
-                break;
-        }
-    }
-    return T(left->TopLeft().x,bot->BottomRight().y);
-}
-
-template<typename T>
-T QuadtreeManager<T>::SplitTopRight(int v, int w)
-{
-    int y = v;
-    int x = w;
-    int colrowsize = std::sqrt(bottomnodes.size());
-    Quadtree<T>* top = quad;
-    Quadtree<T>* right = quad;
-    while (true) //to find bottom
-    {
-        if (y < colrowsize / 2)
-        {
-            colrowsize = colrowsize / 2;
-            top = top->bottomLeftTree;
-            if (top->level == splitlevel)
-                break;
-        }
-        else
-        {
-            y = y - colrowsize / 2;
-            colrowsize = colrowsize / 2;
-            top = top->topLeftTree;
-            if (top->level == splitlevel)
-                break;
-        }
-    }
-
-    colrowsize = std::sqrt(bottomnodes.size());
-
-    while (true) //to find left
-    {
-        if (x < colrowsize / 2)
-        {
-            colrowsize = colrowsize / 2;
-            right = right->bottomLeftTree;
-            if (right->level == splitlevel)
-                break;
-        }
-        else
-        {
-            x = x - colrowsize / 2;
-            colrowsize = colrowsize / 2;
-            right = right->bottomRightTree;
-            if (right->level == splitlevel)
-                break;
-        }
-    }
-    return T(right->BottomRight().x, top->TopLeft().y);
 }
 
 template<typename T>

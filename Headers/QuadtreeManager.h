@@ -45,8 +45,6 @@ public:
 	void Cleanup();
 	void WriteManagerToFile();
 	void ReadManagerFromFile();
-	T SplitBottomLeft(int v, int w); //vertical and horizontal location of split node
-	T SplitTopRight(int v, int w); //vertical and horizontal location of split node
 	~QuadtreeManager();
 private:
 	void CreatetoLevel(Quadtree<T>* q, int target);
