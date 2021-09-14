@@ -212,6 +212,7 @@ Node<T>* QuadtreeManager<T>::Search(T p)
                 }
                 else
                 {
+                    std::cout << "Point Causing Deload: " << p.x << "," << p.y << "\n";
                     //deload the previous tree
                     for (int k = 0; k < bottomnodes.size(); k++)
                     {

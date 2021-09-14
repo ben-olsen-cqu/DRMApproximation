@@ -31,277 +31,209 @@ void CatchmentBuilder::CreateCatchments(ProgamParams progp)
             FileWriter::WriteCoordTreeASC("./Exports/Surfaces/Original", quad);
         }
     }
-    //************************* TEST CASE CODE BEGIN ***********************************************
 
-    QuadtreeManager<Coordinates> quad2(quad.topLeft, quad.bottomRight);
-    quad2.prePath = "Temp/Tree/Treex_";
-    quad2.spacing = quad.spacing;
-    quad2.splitlevel = quad.splitlevel;
-    quad2.SetTreeType(quad.type);
+    QuadtreeManager<Coordinates> smooth(quad.topLeft, quad.bottomRight);
+    smooth.prePath = "Temp/SmoothTree/SmoothTree";
 
-    double boundsx = (quad.BottomRight().x) - (quad.TopLeft().x);
-    double boundsy = (quad.TopLeft().y) - (quad.BottomRight().y);
-    double bottom = (quad.BottomRight().y);
-    double left = (quad.TopLeft().x);
-
-    int numquads = quad.splitlevel * 2; //quad splits the area in half in the x and y axis
-
-    double boundspersubquadx = boundsx / numquads;
-    double boundspersubquady = boundsy / numquads;
-
-    int totalquads = numquads * numquads;
-
-    //for loops for iterating through split level trees
-    for (int v = 0; v < numquads; v++) //move vertically through sub trees
+    if (progp.reuselevel >= 2)
     {
-        int offsety;
+        //Reuse previously computed data
+        smooth.ReadManagerFromFile();
+        std::cout << "Existing Smoothed Surface Loaded\n";
+    }
+    else
+    {
+        //Create new data
+        smooth.spacing = quad.spacing;
+        smooth.splitlevel = quad.splitlevel;
+        smooth.SetTreeType(quad.type);
 
-        if (v == 0)
+        if (quad.type == TreeType::Single)
         {
-            offsety = 0;
+            SmoothPointsSingle(quad, smooth, blurrad);
+            std::cout << "Exporting Smoothed Surface\n";
+            FileWriter::WriteCoordTreeASC("./Exports/Surfaces/Smooth", smooth);
         }
         else
         {
-            offsety = std::floor(boundspersubquady * v)+1;
+            SmoothPointsSplit(quad, smooth, blurrad);
         }
+        smooth.WriteManagerToFile();
 
-        for (int w = 0; w < numquads; w++) //move horizontally through sub trees
-        {
-            int offsetx;
-
-            if (w == 0)
-            {
-                offsetx = 0;
-            }
-            else
-            {
-                offsetx = std::floor(boundspersubquadx * w) + 1;
-            }
-
-            std::cout << "\rProcessing Quad " << v * numquads + (w + 1) << " of " << totalquads;
-
-            for (int y = 0; y < boundspersubquady; y++) //move through each coord in the y direction of the subtree
-                for (int x = 0; x < boundspersubquadx; x++)//move through each coord in the x direction of the subtree
-                {
-                    Node<Coordinates>* node = quad.Search(Coordinates(x + offsetx + left, y + offsety + bottom));
-
-                    if (node != nullptr)
-                    {
-                        Coordinates coord = node->pos;
-                        quad2.Insert(new Node<Coordinates>(coord));
-                    }
-                }
-        }
     }
 
-    quad2.Cleanup();
-    
-    //************************* TEST CASE CODE END ***********************************************
+    quad.~QuadtreeManager();
 
+    Normal tL(smooth.topLeft.x + smooth.spacing / 2, smooth.topLeft.y - smooth.spacing / 2);
+    Normal bR(smooth.bottomRight.x - smooth.spacing / 2, smooth.bottomRight.y + smooth.spacing / 2);
 
+    QuadtreeManager<Normal> normal(tL, bR);
+    normal.prePath = "Temp/NormalTree/Tree";
+
+    if (progp.reuselevel >= 3)
     {
-        //QuadtreeManager<Coordinates> smooth(quad.topLeft, quad.bottomRight);
-        //smooth.prePath = "Temp/SmoothTree/SmoothTree";
-
-        //if (progp.reuselevel >= 2)
-        //{
-        //    //Reuse previously computed data
-        //    smooth.ReadManagerFromFile();
-        //    std::cout << "Existing Smoothed Surface Loaded\n";
-        //}
-        //else
-        //{
-        //    //Create new data
-        //    smooth.spacing = quad.spacing;
-        //    smooth.splitlevel = quad.splitlevel;
-        //    smooth.SetTreeType(quad.type);
-
-        //    if (quad.type == TreeType::Single)
-        //    {
-        //        SmoothPointsSingle(quad, smooth, blurrad);
-        //        std::cout << "Exporting Smoothed Surface\n";
-        //        FileWriter::WriteCoordTreeASC("./Exports/Surfaces/Smooth", smooth);
-        //    }
-        //    else
-        //    {
-        //        SmoothPointsSplit(quad, smooth,blurrad);
-        //    }
-        //    smooth.WriteManagerToFile();
-
-        //}
-
-        //quad.~QuadtreeManager();
-
-        //Normal tL(smooth.topLeft.x + smooth.spacing / 2, smooth.topLeft.y - smooth.spacing / 2);
-        //Normal bR(smooth.bottomRight.x - smooth.spacing / 2, smooth.bottomRight.y + smooth.spacing / 2);
-
-        //QuadtreeManager<Normal> normal(tL, bR);
-        //normal.prePath = "Temp/NormalTree/Tree";
-
-        //if (progp.reuselevel >= 3)
-        //{
-        //    //Reuse previously computed data
-        //    normal.ReadManagerFromFile();
-        //    std::cout << "Existing Normals Loaded\n";
-        //}
-        //else
-        //{
-        //    //Create new data
-        //    normal.spacing = smooth.spacing;
-        //    normal.splitlevel = smooth.splitlevel;
-        //    normal.SetTreeType(smooth.type);
-
-        //    if (quad.type == TreeType::Single)
-        //    {
-        //        CalculateNormalsSingle(smooth, normal);
-        //        std::cout << "Writing Normals to File.\n";
-        //        //FileWriter::WriteVecNormals3dWKT("./Exports/Vectors/SmoothNormals3dWKT", normal);
-        //        FileWriter::WriteVecNormals2dWKT("./Exports/Vectors/SmoothNormals2dWKT", normal);
-        //    }
-        //    else
-        //    {
-        //        CalculateNormalsSplit(smooth, normal);
-        //    }
-        //    normal.WriteManagerToFile();
-        //}
-
-        //smooth.~QuadtreeManager();
-
-        //FlowDirection tL2(normal.topLeft.x, normal.topLeft.y);
-        //FlowDirection bR2(normal.bottomRight.x, normal.bottomRight.y);
-
-        //QuadtreeManager<FlowDirection> flowdirection(tL2, bR2);
-        //flowdirection.prePath = "Temp/DirectionTree/Tree";
-        //
-        //if (progp.reuselevel >= 4)
-        //{
-        //    //Reuse previously computed data
-        //    flowdirection.ReadManagerFromFile();
-        //    std::cout << "Existing Flow Directions Loaded\n";
-        //}
-        //else
-        //{
-        //    //Create new data
-        //    flowdirection.spacing = quad.spacing;
-        //    flowdirection.splitlevel = quad.splitlevel;
-        //    flowdirection.SetTreeType(quad.type);
-
-        //    if (quad.type == TreeType::Single)
-        //    {
-        //        CalculateFlowDirectionSingle(flowdirection, normal);
-        //        std::cout << "Writing Flow Directions to File.\n";
-        //        FileWriter::WriteFlowDirection2dWKT("./Exports/Vectors/FlowDirections2dWKT", flowdirection);
-        //    }
-        //    else
-        //    {
-        //        CalculateFlowDirectionSplit(flowdirection, normal);
-        //    }
-
-        //    flowdirection.WriteManagerToFile();
-        //}
-
-        //normal.~QuadtreeManager();
-
-        //FlowGeneral tL3(flowdirection.topLeft.x, flowdirection.topLeft.y);
-        //FlowGeneral bR3(flowdirection.bottomRight.x, flowdirection.bottomRight.y);
-
-        //QuadtreeManager<FlowGeneral> flowaccum(tL3, bR3);
-        //flowaccum.prePath = "Temp/AccumulationTree/Tree";
-
-        //if (progp.reuselevel >= 5)
-        //{
-        //    //Reuse previously computed data
-        //    flowaccum.ReadManagerFromFile();
-        //    std::cout << "Existing Flow Accumulations Loaded\n";
-        //}
-        //else
-        //{
-        //    //Create new data
-        //    flowaccum.spacing = quad.spacing;
-        //    flowaccum.splitlevel = quad.splitlevel;
-        //    flowaccum.SetTreeType(quad.type);
-
-        //    if (quad.type == TreeType::Single)
-        //    {
-        //        CalculateFlowAccumulationSingle(flowdirection, flowaccum);
-        //    }
-        //    else
-        //    {
-        //        CalculateFlowAccumulationSplit(flowdirection, flowaccum);
-        //    }
-
-        //    flowaccum.WriteManagerToFile();
-
-        //    std::cout << "Exporting Flow Accumulation Surface\n";
-        //    FileWriter::WriteFlowGeneralTreeASC("./Exports/Surfaces/Accum", flowaccum);
-        //}
-
-        //std::vector<FlowPath> flowpaths;
-
-        //if (progp.reuselevel >= 6)
-        //{
-        //    //Reuse previously computed data
-        //    FileReader::ReadStreamPathsBinary("Temp/FlowPath/FlowLines", flowpaths);
-        //    std::cout << "Existing Flow Paths Loaded\n";
-        //}
-        //else
-        //{
-        //    //Create new data
-        //    if (quad.type == TreeType::Single)
-        //    {
-        //        flowpaths = StreamLinkingSingle(flowaccum, flowdirection, acctarget);
-        //    }
-        //    else
-        //    {
-        //        
-        //    }
-
-        //    FileWriter::WriteStreamPathsBinary("Temp/FlowPath/FlowLines", flowpaths);
-
-        //    std::cout << "Exporting Stream Paths\n";
-        //    FileWriter::WriteStreamPaths2dWKT("./Exports/Vectors/FlowPaths2dWKT", flowpaths);
-        //}
-
-        //flowaccum.~QuadtreeManager();
-
-        //std::vector<DischargePoint> dischargepoints = GenerateDischargePoints(flowpaths, breakdist);
-
-        //QuadtreeManager<FlowGeneral> catchclass(tL3, bR3);
-        //catchclass.prePath = "Temp/CatchmentClassification/Tree";
-
-        //if (progp.reuselevel >= 7)
-        //{
-        //    //Reuse previously computed data
-        //    catchclass.ReadManagerFromFile();
-        //    std::cout << "Existing Catchment Classifications Loaded\n";
-        //}
-        //else
-        //{
-        //    //Create new data
-        //    catchclass.spacing = quad.spacing;
-        //    catchclass.splitlevel = quad.splitlevel;
-        //    catchclass.SetTreeType(quad.type);
-
-        //    CatchmentClassification(catchclass, flowdirection, dischargepoints);
-
-        //    catchclass.WriteManagerToFile();
-
-        //    std::cout << "Exporting Classified Catchment Surface\n";
-        //    FileWriter::WriteFlowGeneralTreeASC("./Exports/Surfaces/CatchmentClassification", catchclass);
-        //}
-
-        //flowdirection.~QuadtreeManager();
-        //flowpaths.clear();
-
-        //std::vector<Catchment> catchlist;
-
-        //PolygoniseCatchments(catchclass, dischargepoints, catchlist);
-
-        //std::cout << "Exporting Catchment Polygons\n";
-        //FileWriter::WriteCatchmentPolysWKT("./Exports/Polygons/Catchments", catchlist);
-
-        //catchclass.~QuadtreeManager();
+        //Reuse previously computed data
+        normal.ReadManagerFromFile();
+        std::cout << "Existing Normals Loaded\n";
     }
+    else
+    {
+        //Create new data
+        normal.spacing = smooth.spacing;
+        normal.splitlevel = smooth.splitlevel;
+        normal.SetTreeType(smooth.type);
+
+        if (quad.type == TreeType::Single)
+        {
+            CalculateNormalsSingle(smooth, normal);
+            std::cout << "Writing Normals to File.\n";
+            //FileWriter::WriteVecNormals3dWKT("./Exports/Vectors/SmoothNormals3dWKT", normal);
+            FileWriter::WriteVecNormals2dWKT("./Exports/Vectors/SmoothNormals2dWKT", normal);
+        }
+        else
+        {
+            CalculateNormalsSplit(smooth, normal);
+        }
+        normal.WriteManagerToFile();
+    }
+
+    smooth.~QuadtreeManager();
+
+    FlowDirection tL2(normal.topLeft.x, normal.topLeft.y);
+    FlowDirection bR2(normal.bottomRight.x, normal.bottomRight.y);
+
+    QuadtreeManager<FlowDirection> flowdirection(tL2, bR2);
+    flowdirection.prePath = "Temp/DirectionTree/Tree";
+    
+    if (progp.reuselevel >= 4)
+    {
+        //Reuse previously computed data
+        flowdirection.ReadManagerFromFile();
+        std::cout << "Existing Flow Directions Loaded\n";
+    }
+    else
+    {
+        //Create new data
+        flowdirection.spacing = quad.spacing;
+        flowdirection.splitlevel = quad.splitlevel;
+        flowdirection.SetTreeType(quad.type);
+
+        if (quad.type == TreeType::Single)
+        {
+            CalculateFlowDirectionSingle(flowdirection, normal);
+            std::cout << "Writing Flow Directions to File.\n";
+            FileWriter::WriteFlowDirection2dWKT("./Exports/Vectors/FlowDirections2dWKT", flowdirection);
+        }
+        else
+        {
+            CalculateFlowDirectionSplit(flowdirection, normal);
+        }
+
+        flowdirection.WriteManagerToFile();
+    }
+
+    normal.~QuadtreeManager();
+
+    //FlowGeneral tL3(flowdirection.topLeft.x, flowdirection.topLeft.y);
+    //FlowGeneral bR3(flowdirection.bottomRight.x, flowdirection.bottomRight.y);
+
+    //QuadtreeManager<FlowGeneral> flowaccum(tL3, bR3);
+    //flowaccum.prePath = "Temp/AccumulationTree/Tree";
+
+    //if (progp.reuselevel >= 5)
+    //{
+    //    //Reuse previously computed data
+    //    flowaccum.ReadManagerFromFile();
+    //    std::cout << "Existing Flow Accumulations Loaded\n";
+    //}
+    //else
+    //{
+    //    //Create new data
+    //    flowaccum.spacing = quad.spacing;
+    //    flowaccum.splitlevel = quad.splitlevel;
+    //    flowaccum.SetTreeType(quad.type);
+
+    //    if (quad.type == TreeType::Single)
+    //    {
+    //        CalculateFlowAccumulationSingle(flowdirection, flowaccum);
+    //    }
+    //    else
+    //    {
+    //        CalculateFlowAccumulationSplit(flowdirection, flowaccum);
+    //    }
+
+    //    flowaccum.WriteManagerToFile();
+
+    //    std::cout << "Exporting Flow Accumulation Surface\n";
+    //    FileWriter::WriteFlowGeneralTreeASC("./Exports/Surfaces/Accum", flowaccum);
+    //}
+
+    //std::vector<FlowPath> flowpaths;
+
+    //if (progp.reuselevel >= 6)
+    //{
+    //    //Reuse previously computed data
+    //    FileReader::ReadStreamPathsBinary("Temp/FlowPath/FlowLines", flowpaths);
+    //    std::cout << "Existing Flow Paths Loaded\n";
+    //}
+    //else
+    //{
+    //    //Create new data
+    //    if (quad.type == TreeType::Single)
+    //    {
+    //        flowpaths = StreamLinkingSingle(flowaccum, flowdirection, acctarget);
+    //    }
+    //    else
+    //    {
+    //        
+    //    }
+
+    //    FileWriter::WriteStreamPathsBinary("Temp/FlowPath/FlowLines", flowpaths);
+
+    //    std::cout << "Exporting Stream Paths\n";
+    //    FileWriter::WriteStreamPaths2dWKT("./Exports/Vectors/FlowPaths2dWKT", flowpaths);
+    //}
+
+    //flowaccum.~QuadtreeManager();
+
+    //std::vector<DischargePoint> dischargepoints = GenerateDischargePoints(flowpaths, breakdist);
+
+    //QuadtreeManager<FlowGeneral> catchclass(tL3, bR3);
+    //catchclass.prePath = "Temp/CatchmentClassification/Tree";
+
+    //if (progp.reuselevel >= 7)
+    //{
+    //    //Reuse previously computed data
+    //    catchclass.ReadManagerFromFile();
+    //    std::cout << "Existing Catchment Classifications Loaded\n";
+    //}
+    //else
+    //{
+    //    //Create new data
+    //    catchclass.spacing = quad.spacing;
+    //    catchclass.splitlevel = quad.splitlevel;
+    //    catchclass.SetTreeType(quad.type);
+
+    //    CatchmentClassification(catchclass, flowdirection, dischargepoints);
+
+    //    catchclass.WriteManagerToFile();
+
+    //    std::cout << "Exporting Classified Catchment Surface\n";
+    //    FileWriter::WriteFlowGeneralTreeASC("./Exports/Surfaces/CatchmentClassification", catchclass);
+    //}
+
+    //flowdirection.~QuadtreeManager();
+    //flowpaths.clear();
+
+    //std::vector<Catchment> catchlist;
+
+    //PolygoniseCatchments(catchclass, dischargepoints, catchlist);
+
+    //std::cout << "Exporting Catchment Polygons\n";
+    //FileWriter::WriteCatchmentPolysWKT("./Exports/Polygons/Catchments", catchlist);
+
+    //catchclass.~QuadtreeManager();
+
 }
 
 void CatchmentBuilder::SmoothPointsSingle(QuadtreeManager<Coordinates>& quad, QuadtreeManager<Coordinates>& smooth, int blurrad)
@@ -356,38 +288,46 @@ void CatchmentBuilder::SmoothPointsSingle(QuadtreeManager<Coordinates>& quad, Qu
 void CatchmentBuilder::SmoothPointsSplit(QuadtreeManager<Coordinates>& quad, QuadtreeManager<Coordinates>& smooth,int blurrad)
 {
     std::cout << "Smoothing Surface\n";
+
+    int storenum = (blurrad - 1) / 2;
+    
+    ////Create quadtree for storing edge cases
+    QuadtreeManager<Coordinates> gaps(quad.topLeft, quad.bottomRight);
+    gaps.prePath = "Temp/SmoothTree/GapTree";
+    gaps.spacing = quad.spacing;
+    gaps.splitlevel = quad.splitlevel - 2;
+    gaps.SetTreeType(quad.type);
+
     double boundsx = (quad.BottomRight().x) - (quad.TopLeft().x);
     double boundsy = (quad.TopLeft().y) - (quad.BottomRight().y);
     double bottom = (quad.BottomRight().y);
     double left = (quad.TopLeft().x);
 
     int numquads = quad.splitlevel * 2; //quad splits the area in half in the x and y axis
-    int storenum = (blurrad - 1) / 2;
+    int totalquads = numquads * numquads; //total number of sub quads at the split level
 
-    int boundsperquadx = std::floor(boundsx / numquads) + 1;
-    int boundsperquady = std::floor(boundsy / numquads) + 1;
-
-    int totalquads = numquads * numquads;
-
-    ////Create quadtree for storing edge cases
-    QuadtreeManager<Coordinates> gaps(quad.topLeft, quad.bottomRight);
-    gaps.prePath = "Temp/SmoothTree/GapTree";
-    gaps.spacing = quad.spacing;
-    gaps.splitlevel = quad.splitlevel -2;
-    gaps.SetTreeType(quad.type);
+    double boundspersubquadx = boundsx / numquads; //the equal division of space in the x axis for the split level
+    double boundspersubquady = boundsy / numquads; //the equal division of space in the y axis for the split level
 
     //for loops for iterating through split level trees
     for (int v = 0; v < numquads; v++) //move vertically through sub trees
+    {
+        //Calculate the offset to add when seaching within the loop, the +1 is to push it into the next subquad if subquad is the bottom left no offset is required
+        int offsety = v == 0 ? 0 : std::floor(boundspersubquady * v) + 1;
+
         for (int w = 0; w < numquads; w++) //move horizontally through sub trees
         {
+            //Same as the y offset
+            int offsetx = w == 0 ? 0 : std::floor(boundspersubquadx * w) + 1;
+
             std::cout << "\rProcessing Quad " << v * numquads + (w + 1) << " of " << totalquads;
 
-            for (int y = 0; y < boundsperquady; y++) //move through each coord in the y direction of the subtree
-                for (int x = 0; x < boundsperquadx; x++)//move through each coord in the x direction of the subtree
+            for (int y = 0; y <= boundspersubquady; y++) //move through each coord in the y direction of the subtree
+                for (int x = 0; x <= boundspersubquadx; x++)//move through each coord in the x direction of the subtree
                 {
-                    if (y < storenum || (boundsperquady - y) <= storenum || x < storenum || (boundsperquadx - x) <= storenum)
+                    if (y < storenum || (boundspersubquady - y) <= storenum || x < storenum || (boundspersubquadx - x) <= storenum)
                     {
-                        Node<Coordinates>* node = quad.Search(Coordinates(x + w * boundsperquadx + left, y + v * boundsperquady + bottom));
+                        Node<Coordinates>* node = quad.Search(Coordinates(x + offsetx + left, y + offsety + bottom));
 
                         if (node != nullptr)
                         {
@@ -397,7 +337,7 @@ void CatchmentBuilder::SmoothPointsSplit(QuadtreeManager<Coordinates>& quad, Qua
                     }
                     else
                     {
-                        Node<Coordinates>* node = quad.Search(Coordinates(x + w * boundsperquadx + left, y + v * boundsperquady + bottom));
+                        Node<Coordinates>* node = quad.Search(Coordinates(x + offsetx + left, y + offsety + bottom));
 
                         if (node != nullptr)
                         {
@@ -408,7 +348,7 @@ void CatchmentBuilder::SmoothPointsSplit(QuadtreeManager<Coordinates>& quad, Qua
                             for (int j = -storenum; j <= storenum; j++)
                                 for (int i = -storenum; i <= storenum; i++)
                                 {
-                                    Node<Coordinates>* n = quad.Search(Coordinates((i + x) + (w * boundsperquadx) + left, (j + y) + (v * boundsperquady) + bottom));
+                                    Node<Coordinates>* n = quad.Search(Coordinates((i + x) + offsetx + left, (j + y) + offsety + bottom));
 
                                     if (n != nullptr)
                                     {
@@ -434,6 +374,7 @@ void CatchmentBuilder::SmoothPointsSplit(QuadtreeManager<Coordinates>& quad, Qua
                 }
 
         }
+    }
 
     smooth.Cleanup();
     gaps.Cleanup();
@@ -441,17 +382,24 @@ void CatchmentBuilder::SmoothPointsSplit(QuadtreeManager<Coordinates>& quad, Qua
 
     std::cout << "\nComplete\nFilling Gaps...\n";
 
+    //for loops for iterating through split level trees
     for (int v = 0; v < numquads; v++) //move vertically through sub trees
     {
+        //Calculate the offset to add when seaching within the loop, the +1 is to push it into the next subquad if subquad is the bottom left no offset is required
+        int offsety = v == 0 ? 0 : std::floor(boundspersubquady * v) + 1;
+
         for (int w = 0; w < numquads; w++) //move horizontally through sub trees
         {
+            //Same as the y offset
+            int offsetx = w == 0 ? 0 : std::floor(boundspersubquadx * w) + 1;
+
             std::cout << "\rProcessing Quad " << v * numquads + (w + 1) << " of " << totalquads;
 
             //Top
-            for (int x = 0; x < boundsperquadx; x++)
-                for (int y = boundsperquady - storenum - 1; y < boundsperquady; y++)
+            for (int x = 0; x <= boundspersubquadx; x++)
+                for (int y = boundspersubquady - storenum; y <= boundspersubquady; y++)
                 {
-                    Node<Coordinates>* node = gaps.Search(Coordinates(x + w * boundsperquadx + left, y + v * boundsperquady + bottom));
+                    Node<Coordinates>* node = gaps.Search(Coordinates(x + offsetx + left, y + offsety + bottom));
 
                     if (node != nullptr)
                     {
@@ -462,7 +410,7 @@ void CatchmentBuilder::SmoothPointsSplit(QuadtreeManager<Coordinates>& quad, Qua
                         for (int j = -storenum; j <= storenum; j++)
                             for (int i = -storenum; i <= storenum; i++)
                             {
-                                Node<Coordinates>* n = gaps.Search(Coordinates((i + x) + (w * boundsperquadx) + left, (j + y) + (v * boundsperquady) + bottom));
+                                Node<Coordinates>* n = gaps.Search(Coordinates((i + x) + offsetx + left, (j + y) + offsety + bottom));
 
                                 if (n != nullptr)
                                 {
@@ -486,10 +434,10 @@ void CatchmentBuilder::SmoothPointsSplit(QuadtreeManager<Coordinates>& quad, Qua
                     }
                 }
             //Bottom
-            for (int x = 0; x < boundsperquadx; x++)
-                for (int y = 0; y < storenum; y++)
+            for (int x = 0; x <= boundspersubquadx; x++)
+                for (int y = 0; y <= storenum; y++)
                 {
-                    Node<Coordinates>* node = gaps.Search(Coordinates(x + w * boundsperquadx + left, y + v * boundsperquady + bottom));
+                    Node<Coordinates>* node = gaps.Search(Coordinates(x + offsetx + left, y + offsety + bottom));
 
                     if (node != nullptr)
                     {
@@ -500,7 +448,7 @@ void CatchmentBuilder::SmoothPointsSplit(QuadtreeManager<Coordinates>& quad, Qua
                         for (int j = -storenum; j <= storenum; j++)
                             for (int i = -storenum; i <= storenum; i++)
                             {
-                                Node<Coordinates>* n = gaps.Search(Coordinates((i + x) + (w * boundsperquadx) + left, (j + y) + (v * boundsperquady) + bottom));
+                                Node<Coordinates>* n = gaps.Search(Coordinates((i + x) + offsetx + left, (j + y) + offsety + bottom));
 
                                 if (n != nullptr)
                                 {
@@ -525,10 +473,10 @@ void CatchmentBuilder::SmoothPointsSplit(QuadtreeManager<Coordinates>& quad, Qua
                 }
             //Right
 
-            for (int x = boundsperquadx - storenum - 1; x < boundsperquadx; x++)
-                for (int y = storenum; y < boundsperquady - storenum - 1; y++)
+            for (int x = boundspersubquadx - storenum; x <= boundspersubquadx; x++)
+                for (int y = storenum; y <= boundspersubquady - storenum; y++)
                 {
-                    Node<Coordinates>* node = gaps.Search(Coordinates(x + w * boundsperquadx + left, y + v * boundsperquady + bottom));
+                    Node<Coordinates>* node = gaps.Search(Coordinates(x + offsetx + left, y + offsety + bottom));
 
                     if (node != nullptr)
                     {
@@ -539,7 +487,7 @@ void CatchmentBuilder::SmoothPointsSplit(QuadtreeManager<Coordinates>& quad, Qua
                         for (int j = -storenum; j <= storenum; j++)
                             for (int i = -storenum; i <= storenum; i++)
                             {
-                                Node<Coordinates>* n = gaps.Search(Coordinates((j + x) + (w * boundsperquadx) + left, (i + y) + (v * boundsperquady) + bottom));
+                                Node<Coordinates>* n = gaps.Search(Coordinates((i + x) + offsetx + left, (j + y) + offsety + bottom));
 
                                 if (n != nullptr)
                                 {
@@ -563,10 +511,10 @@ void CatchmentBuilder::SmoothPointsSplit(QuadtreeManager<Coordinates>& quad, Qua
                     }
                 }
             //Left
-            for (int x = 0; x < storenum; x++)
-                for (int y = 0; y < boundsperquady; y++)
+            for (int x = 0; x <= storenum; x++)
+                for (int y = 0; y <= boundspersubquady; y++)
                 {
-                    Node<Coordinates>* node = gaps.Search(Coordinates(x + w * boundsperquadx + left, y + v * boundsperquady + bottom));
+                    Node<Coordinates>* node = gaps.Search(Coordinates(x + offsetx + left, y + offsety + bottom));
 
                     if (node != nullptr)
                     {
@@ -577,7 +525,7 @@ void CatchmentBuilder::SmoothPointsSplit(QuadtreeManager<Coordinates>& quad, Qua
                         for (int j = -storenum; j <= storenum; j++)
                             for (int i = -storenum; i <= storenum; i++)
                             {
-                                Node<Coordinates>* n = gaps.Search(Coordinates((j + x) + (w * boundsperquadx) + left, (i + y) + (v * boundsperquady) + bottom));
+                                Node<Coordinates>* n = gaps.Search(Coordinates((i + x) + offsetx + left, (j + y) + offsety + bottom));
 
                                 if (n != nullptr)
                                 {
@@ -673,18 +621,6 @@ void CatchmentBuilder::CalculateNormalsSingle(QuadtreeManager<Coordinates>& smoo
 void CatchmentBuilder::CalculateNormalsSplit(QuadtreeManager<Coordinates>& smooth, QuadtreeManager<Normal>& normal)
 {
     std::cout << "Generating Normals\n";
-    double boundsx = (smooth.BottomRight().x) - (smooth.TopLeft().x);
-    double boundsy = (smooth.TopLeft().y) - (smooth.BottomRight().y);
-    double bottom = (smooth.BottomRight().y);
-    double left = (smooth.TopLeft().x);
-
-    int numquads = smooth.splitlevel * 2; //quad splits the area in half in the x and y axis
-    int storenum = 2;
-
-    int boundsperquadx = std::floor(boundsx / numquads) + 1;
-    int boundsperquady = std::floor(boundsy / numquads) + 1;
-
-    int totalquads = numquads * numquads;
 
     ////Create quadtree for storing edge cases
     QuadtreeManager<Coordinates> gaps(smooth.topLeft, smooth.bottomRight);
@@ -693,18 +629,36 @@ void CatchmentBuilder::CalculateNormalsSplit(QuadtreeManager<Coordinates>& smoot
     gaps.splitlevel = smooth.splitlevel - 2;
     gaps.SetTreeType(smooth.type);
 
+    double boundsx = (smooth.BottomRight().x) - (smooth.TopLeft().x);
+    double boundsy = (smooth.TopLeft().y) - (smooth.BottomRight().y);
+    double bottom = (smooth.BottomRight().y);
+    double left = (smooth.TopLeft().x);
+
+    int numquads = smooth.splitlevel * 2; //quad splits the area in half in the x and y axis
+    int totalquads = numquads * numquads; //total number of sub quads at the split level
+
+    double boundspersubquadx = boundsx / numquads; //the equal division of space in the x axis for the split level
+    double boundspersubquady = boundsy / numquads; //the equal division of space in the y axis for the split level
+
     //for loops for iterating through split level trees
     for (int v = 0; v < numquads; v++) //move vertically through sub trees
+    {
+        //Calculate the offset to add when seaching within the loop, the +1 is to push it into the next subquad if subquad is the bottom left no offset is required
+        int offsety = v == 0 ? 0 : std::floor(boundspersubquady * v) + 1;
+
         for (int w = 0; w < numquads; w++) //move horizontally through sub trees
         {
+            //Same as the y offset
+            int offsetx = w == 0 ? 0 : std::floor(boundspersubquadx * w) + 1;
+
             std::cout << "\rProcessing Quad " << v * numquads + (w + 1) << " of " << totalquads;
 
-            for (int y = 0; y < boundsperquady; y++) //move through each coord in the y direction of the subtree
-                for (int x = 0; x < boundsperquadx; x++)//move through each coord in the x direction of the subtree
+            for (int y = 0; y <= boundspersubquady; y++) //move through each coord in the y direction of the subtree
+                for (int x = 0; x <= boundspersubquadx; x++)//move through each coord in the x direction of the subtree
                 {
-                    if ((boundsperquady - y) <= storenum || (boundsperquadx - x) <= storenum)
+                    if (y < 1 || (boundspersubquady - y) <= 1 || x < 1 || (boundspersubquadx - x) <= 1)
                     {
-                        Node<Coordinates>* node = smooth.Search(Coordinates(x + w * boundsperquadx + left, y + v * boundsperquady + bottom));
+                        Node<Coordinates>* node = smooth.Search(Coordinates(x + offsetx + left, y + offsety + bottom));
 
                         if (node != nullptr)
                         {
@@ -712,34 +666,35 @@ void CatchmentBuilder::CalculateNormalsSplit(QuadtreeManager<Coordinates>& smoot
                             gaps.Insert(new Node<Coordinates>(coord));
                         }
                     }
-                    else
+                    
+                    if(x <= boundspersubquadx-1 && y <= boundspersubquady-1)
                     {
                         //Get points in a quad going clockwise starting from the BL
 
                         Vec3 p1, p2, p3, p4, vec1, vec2, vec3, vec4, translation, normal1, normal2;
 
-                        auto c = smooth.Search(Coordinates(x + w * boundsperquadx + left, y + v * boundsperquady + bottom));
+                        auto c = smooth.Search(Coordinates(x + offsetx + left, y + offsety + bottom));
 
                         if (c == nullptr)
                             continue;
 
                         p1 = Vec3(c->pos.x, c->pos.y, c->pos.z);
 
-                        c = smooth.Search(Coordinates(x + w * boundsperquadx + left, y + v * boundsperquady + bottom + 1));
+                        c = smooth.Search(Coordinates(x + offsetx + left, y + offsety + bottom + 1));
 
                         if (c == nullptr)
                             continue;
 
                         p2 = Vec3(c->pos.x, c->pos.y, c->pos.z);
 
-                        c = smooth.Search(Coordinates(x + w * boundsperquadx + left + 1, y + v * boundsperquady + bottom + 1));
+                        c = smooth.Search(Coordinates(x + offsetx + left + 1, y + offsety + bottom + 1));
 
                         if (c == nullptr)
                             continue;
 
                         p3 = Vec3(c->pos.x, c->pos.y, c->pos.z);
 
-                        c = smooth.Search(Coordinates(x + w * boundsperquadx + left + 1, y + v * boundsperquady + bottom));
+                        c = smooth.Search(Coordinates(x + offsetx + left + 1, y + offsety + bottom));
 
                         if (c == nullptr)
                             continue;
@@ -773,47 +728,55 @@ void CatchmentBuilder::CalculateNormalsSplit(QuadtreeManager<Coordinates>& smoot
                     }
                 }
         }
+    }
     smooth.Cleanup();
     normal.Cleanup();
 
     std::cout << "\nComplete\nFilling Gaps...\n";
 
+    //for loops for iterating through split level trees
     for (int v = 0; v < numquads; v++) //move vertically through sub trees
     {
+        //Calculate the offset to add when seaching within the loop, the +1 is to push it into the next subquad if subquad is the bottom left no offset is required
+        int offsety = v == 0 ? 0 : std::floor(boundspersubquady * v) + 1;
+
         for (int w = 0; w < numquads; w++) //move horizontally through sub trees
         {
+            //Same as the y offset
+            int offsetx = w == 0 ? 0 : std::floor(boundspersubquadx * w) + 1;
+
             std::cout << "\rProcessing Quad " << v * numquads + (w + 1) << " of " << totalquads;
 
             //Top
-            int y = boundsperquady - storenum;
-            for (int x = 0; x < boundsperquadx; x++)
+            int y = boundspersubquady - 1;
+            for (int x = 0; x <= boundspersubquadx; x++)
             {
                 //Get points in a quad going clockwise starting from the BL
 
                 Vec3 p1, p2, p3, p4, vec1, vec2, vec3, vec4, translation, normal1, normal2;
 
-                auto c = gaps.Search(Coordinates(x + w * boundsperquadx + left, y + v * boundsperquady + bottom));
+                auto c = gaps.Search(Coordinates(x + offsetx + left, y + offsety + bottom));
 
                 if (c == nullptr)
                     continue;
 
                 p1 = Vec3(c->pos.x, c->pos.y, c->pos.z);
 
-                c = gaps.Search(Coordinates(x + w * boundsperquadx + left, y + v * boundsperquady + bottom + 1));
+                c = gaps.Search(Coordinates(x + offsetx + left, y + offsety + bottom + 1));
 
                 if (c == nullptr)
                     continue;
 
                 p2 = Vec3(c->pos.x, c->pos.y, c->pos.z);
 
-                c = gaps.Search(Coordinates(x + w * boundsperquadx + left + 1, y + v * boundsperquady + bottom + 1));
+                c = gaps.Search(Coordinates(x + offsetx + left + 1, y + offsety + bottom + 1));
 
                 if (c == nullptr)
                     continue;
 
                 p3 = Vec3(c->pos.x, c->pos.y, c->pos.z);
 
-                c = gaps.Search(Coordinates(x + w * boundsperquadx + left + 1, y + v * boundsperquady + bottom));
+                c = gaps.Search(Coordinates(x + offsetx + left + 1, y + offsety + bottom));
 
                 if (c == nullptr)
                     continue;
@@ -845,37 +808,37 @@ void CatchmentBuilder::CalculateNormalsSplit(QuadtreeManager<Coordinates>& smoot
 
                 normal.Insert(new Node<Normal>(Normal(translation, normalq)));
             }
-            
+
             //Right
-            int x = boundsperquadx - storenum;
-            for (int y = 0; y < boundsperquady; y++)
+            int x = boundspersubquadx - 1;
+            for (int y = 0; y <= boundspersubquady; y++)
             {
                 //Get points in a quad going clockwise starting from the BL
 
                 Vec3 p1, p2, p3, p4, vec1, vec2, vec3, vec4, translation, normal1, normal2;
 
-                auto c = gaps.Search(Coordinates(x + w * boundsperquadx + left, y + v * boundsperquady + bottom));
+                auto c = gaps.Search(Coordinates(x + offsetx + left, y + offsety + bottom));
 
                 if (c == nullptr)
                     continue;
 
                 p1 = Vec3(c->pos.x, c->pos.y, c->pos.z);
 
-                c = gaps.Search(Coordinates(x + w * boundsperquadx + left, y + v * boundsperquady + bottom + 1));
+                c = gaps.Search(Coordinates(x + offsetx + left, y + offsety + bottom + 1));
 
                 if (c == nullptr)
                     continue;
 
                 p2 = Vec3(c->pos.x, c->pos.y, c->pos.z);
 
-                c = gaps.Search(Coordinates(x + w * boundsperquadx + left + 1, y + v * boundsperquady + bottom + 1));
+                c = gaps.Search(Coordinates(x + offsetx + left + 1, y + offsety + bottom + 1));
 
                 if (c == nullptr)
                     continue;
 
                 p3 = Vec3(c->pos.x, c->pos.y, c->pos.z);
 
-                c = gaps.Search(Coordinates(x + w * boundsperquadx + left + 1, y + v * boundsperquady + bottom));
+                c = gaps.Search(Coordinates(x + offsetx + left + 1, y + offsety + bottom));
 
                 if (c == nullptr)
                     continue;
@@ -910,6 +873,7 @@ void CatchmentBuilder::CalculateNormalsSplit(QuadtreeManager<Coordinates>& smoot
 
         }
     }
+
     std::cout << "\n";
     gaps.~QuadtreeManager();
 }
@@ -954,22 +918,56 @@ void CatchmentBuilder::CalculateFlowDirectionSplit(QuadtreeManager<FlowDirection
     double left = (normal.TopLeft().x);
 
     int numquads = normal.splitlevel * 2; //quad splits the area in half in the x and y axis
+    int totalquads = numquads * numquads; //total number of sub quads at the split level
 
-    int boundsperquadx = std::floor(boundsx / numquads);
-    int boundsperquady = std::floor(boundsy / numquads);
-
-    int totalquads = numquads * numquads;
+    double boundspersubquadx = boundsx / numquads; //the equal division of space in the x axis for the split level
+    double boundspersubquady = boundsy / numquads; //the equal division of space in the y axis for the split level
 
     //for loops for iterating through split level trees
     for (int v = 0; v < numquads; v++) //move vertically through sub trees
+    {
+        //Calculate the offset to add when seaching within the loop, the +1 is to push it into the next subquad if subquad is the bottom left no offset is required
+        int offsety = v == 0 ? 0 : std::floor(boundspersubquady * v) + 1;
+
         for (int w = 0; w < numquads; w++) //move horizontally through sub trees
         {
-            std::cout << "\rProcessing Quad " << v * numquads + (w + 1) << " of " << totalquads;
+            //Same as the y offset
+            int offsetx = w == 0 ? 0 : std::floor(boundspersubquadx * w) + 1;
 
-            for (int y = 2; y < boundsperquady-1; y++) //move through each coord in the y direction of the subtree
-                for (int x = 2; x < boundsperquadx-1; x++)//move through each coord in the x direction of the subtree
+            //int offsetx;
+            //if (w == 0)
+            //{
+            //    offsetx = 0;
+            //    boundspersubquadx = 1000;
+            //}
+            //if (w == 1)
+            //{
+            //    offsetx = 1000;
+            //    boundspersubquadx = 999;
+            //}
+            //if (w == 2)
+            //{
+            //    offsetx = 1999;
+            //    boundspersubquadx = 999;
+            //}
+            //if (w == 3)
+            //{
+            //    offsetx = 2998;
+            //    boundspersubquadx = 1000;
+            //}
+
+            std::cout << "\nProcessing Quad " << v * numquads + (w + 1) << " of " << totalquads << "\n";
+
+            for (int y = 0; y <= boundspersubquady; y++) //move through each coord in the y direction of the subtree
+                for (int x = 0; x <= boundspersubquadx; x++)//move through each coord in the x direction of the subtree
                 {
-                    auto f = normal.Search(Normal(x + w * boundsperquadx + left, y + v * boundsperquady + bottom));
+                    if (y == 0 && x == 0)
+                        std::cout << "Start of line: " << x + offsetx + left << "\n";
+
+                    if (y == 0 && x >= boundspersubquadx - 1)
+                        std::cout << "End of line: " << x + offsetx + left << "\n";
+
+                    auto f = normal.Search(Normal(x + offsetx + left, y + offsety + bottom));
 
                     if (f != nullptr)
                     {
@@ -983,10 +981,11 @@ void CatchmentBuilder::CalculateFlowDirectionSplit(QuadtreeManager<FlowDirection
 
                         Direction dir = (Direction)octant;
 
-                        flowdirection.Insert(new Node<FlowDirection>(FlowDirection(x + w * boundsperquadx + left, y + v * boundsperquady + bottom, dir)));
+                        flowdirection.Insert(new Node<FlowDirection>(FlowDirection(n.x, n.y, dir)));
                     }
                 }
         }
+    }
     std::cout << "\nComplete\n";
 }
 
