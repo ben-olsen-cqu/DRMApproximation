@@ -666,7 +666,7 @@ Node<T>* QuadtreeManager<T>::Subsearch(Quadtree<T>* q, T p) const
         {
             if (q->topRightTree == nullptr)
                 return nullptr;
-            return Subsearch(q->topRightTree,p);
+            return Subsearch(q->topRightTree, p);
         }
 
         // Indicates botRightTree 

@@ -31,208 +31,277 @@ void CatchmentBuilder::CreateCatchments(ProgamParams progp)
             FileWriter::WriteCoordTreeASC("./Exports/Surfaces/Original", quad);
         }
     }
+    //************************* TEST CASE CODE BEGIN ***********************************************
 
-    QuadtreeManager<Coordinates> smooth(quad.topLeft, quad.bottomRight);
-    smooth.prePath = "Temp/SmoothTree/SmoothTree";
+    QuadtreeManager<Coordinates> quad2(quad.topLeft, quad.bottomRight);
+    quad2.prePath = "Temp/Tree/Treex_";
+    quad2.spacing = quad.spacing;
+    quad2.splitlevel = quad.splitlevel;
+    quad2.SetTreeType(quad.type);
 
-    if (progp.reuselevel >= 2)
+    double boundsx = (quad.BottomRight().x) - (quad.TopLeft().x);
+    double boundsy = (quad.TopLeft().y) - (quad.BottomRight().y);
+    double bottom = (quad.BottomRight().y);
+    double left = (quad.TopLeft().x);
+
+    int numquads = quad.splitlevel * 2; //quad splits the area in half in the x and y axis
+
+    double boundspersubquadx = boundsx / numquads;
+    double boundspersubquady = boundsy / numquads;
+
+    int totalquads = numquads * numquads;
+
+    //for loops for iterating through split level trees
+    for (int v = 0; v < numquads; v++) //move vertically through sub trees
     {
-        //Reuse previously computed data
-        smooth.ReadManagerFromFile();
-        std::cout << "Existing Smoothed Surface Loaded\n";
-    }
-    else
-    {
-        //Create new data
-        smooth.spacing = quad.spacing;
-        smooth.splitlevel = quad.splitlevel;
-        smooth.SetTreeType(quad.type);
+        int offsety;
 
-        if (quad.type == TreeType::Single)
+        if (v == 0)
         {
-            SmoothPointsSingle(quad, smooth, blurrad);
-            std::cout << "Exporting Smoothed Surface\n";
-            FileWriter::WriteCoordTreeASC("./Exports/Surfaces/Smooth", smooth);
+            offsety = 0;
         }
         else
         {
-            SmoothPointsSplit(quad, smooth,blurrad);
+            offsety = std::floor(boundspersubquady * v)+1;
         }
-        smooth.WriteManagerToFile();
 
-    }
-
-    quad.~QuadtreeManager();
-
-    Normal tL(smooth.topLeft.x + smooth.spacing / 2, smooth.topLeft.y - smooth.spacing / 2);
-    Normal bR(smooth.bottomRight.x - smooth.spacing / 2, smooth.bottomRight.y + smooth.spacing / 2);
-
-    QuadtreeManager<Normal> normal(tL, bR);
-    normal.prePath = "Temp/NormalTree/Tree";
-
-    if (progp.reuselevel >= 3)
-    {
-        //Reuse previously computed data
-        normal.ReadManagerFromFile();
-        std::cout << "Existing Normals Loaded\n";
-    }
-    else
-    {
-        //Create new data
-        normal.spacing = smooth.spacing;
-        normal.splitlevel = smooth.splitlevel;
-        normal.SetTreeType(smooth.type);
-
-        if (quad.type == TreeType::Single)
+        for (int w = 0; w < numquads; w++) //move horizontally through sub trees
         {
-            CalculateNormalsSingle(smooth, normal);
-            std::cout << "Writing Normals to File.\n";
-            //FileWriter::WriteVecNormals3dWKT("./Exports/Vectors/SmoothNormals3dWKT", normal);
-            FileWriter::WriteVecNormals2dWKT("./Exports/Vectors/SmoothNormals2dWKT", normal);
+            int offsetx;
+
+            if (w == 0)
+            {
+                offsetx = 0;
+            }
+            else
+            {
+                offsetx = std::floor(boundspersubquadx * w) + 1;
+            }
+
+            std::cout << "\rProcessing Quad " << v * numquads + (w + 1) << " of " << totalquads;
+
+            for (int y = 0; y < boundspersubquady; y++) //move through each coord in the y direction of the subtree
+                for (int x = 0; x < boundspersubquadx; x++)//move through each coord in the x direction of the subtree
+                {
+                    Node<Coordinates>* node = quad.Search(Coordinates(x + offsetx + left, y + offsety + bottom));
+
+                    if (node != nullptr)
+                    {
+                        Coordinates coord = node->pos;
+                        quad2.Insert(new Node<Coordinates>(coord));
+                    }
+                }
         }
-        else
-        {
-            CalculateNormalsSplit(smooth, normal);
-        }
-        normal.WriteManagerToFile();
     }
 
-    smooth.~QuadtreeManager();
-
-    FlowDirection tL2(normal.topLeft.x, normal.topLeft.y);
-    FlowDirection bR2(normal.bottomRight.x, normal.bottomRight.y);
-
-    QuadtreeManager<FlowDirection> flowdirection(tL2, bR2);
-    flowdirection.prePath = "Temp/DirectionTree/Tree";
+    quad2.Cleanup();
     
-    if (progp.reuselevel >= 4)
+    //************************* TEST CASE CODE END ***********************************************
+
+
     {
-        //Reuse previously computed data
-        flowdirection.ReadManagerFromFile();
-        std::cout << "Existing Flow Directions Loaded\n";
+        //QuadtreeManager<Coordinates> smooth(quad.topLeft, quad.bottomRight);
+        //smooth.prePath = "Temp/SmoothTree/SmoothTree";
+
+        //if (progp.reuselevel >= 2)
+        //{
+        //    //Reuse previously computed data
+        //    smooth.ReadManagerFromFile();
+        //    std::cout << "Existing Smoothed Surface Loaded\n";
+        //}
+        //else
+        //{
+        //    //Create new data
+        //    smooth.spacing = quad.spacing;
+        //    smooth.splitlevel = quad.splitlevel;
+        //    smooth.SetTreeType(quad.type);
+
+        //    if (quad.type == TreeType::Single)
+        //    {
+        //        SmoothPointsSingle(quad, smooth, blurrad);
+        //        std::cout << "Exporting Smoothed Surface\n";
+        //        FileWriter::WriteCoordTreeASC("./Exports/Surfaces/Smooth", smooth);
+        //    }
+        //    else
+        //    {
+        //        SmoothPointsSplit(quad, smooth,blurrad);
+        //    }
+        //    smooth.WriteManagerToFile();
+
+        //}
+
+        //quad.~QuadtreeManager();
+
+        //Normal tL(smooth.topLeft.x + smooth.spacing / 2, smooth.topLeft.y - smooth.spacing / 2);
+        //Normal bR(smooth.bottomRight.x - smooth.spacing / 2, smooth.bottomRight.y + smooth.spacing / 2);
+
+        //QuadtreeManager<Normal> normal(tL, bR);
+        //normal.prePath = "Temp/NormalTree/Tree";
+
+        //if (progp.reuselevel >= 3)
+        //{
+        //    //Reuse previously computed data
+        //    normal.ReadManagerFromFile();
+        //    std::cout << "Existing Normals Loaded\n";
+        //}
+        //else
+        //{
+        //    //Create new data
+        //    normal.spacing = smooth.spacing;
+        //    normal.splitlevel = smooth.splitlevel;
+        //    normal.SetTreeType(smooth.type);
+
+        //    if (quad.type == TreeType::Single)
+        //    {
+        //        CalculateNormalsSingle(smooth, normal);
+        //        std::cout << "Writing Normals to File.\n";
+        //        //FileWriter::WriteVecNormals3dWKT("./Exports/Vectors/SmoothNormals3dWKT", normal);
+        //        FileWriter::WriteVecNormals2dWKT("./Exports/Vectors/SmoothNormals2dWKT", normal);
+        //    }
+        //    else
+        //    {
+        //        CalculateNormalsSplit(smooth, normal);
+        //    }
+        //    normal.WriteManagerToFile();
+        //}
+
+        //smooth.~QuadtreeManager();
+
+        //FlowDirection tL2(normal.topLeft.x, normal.topLeft.y);
+        //FlowDirection bR2(normal.bottomRight.x, normal.bottomRight.y);
+
+        //QuadtreeManager<FlowDirection> flowdirection(tL2, bR2);
+        //flowdirection.prePath = "Temp/DirectionTree/Tree";
+        //
+        //if (progp.reuselevel >= 4)
+        //{
+        //    //Reuse previously computed data
+        //    flowdirection.ReadManagerFromFile();
+        //    std::cout << "Existing Flow Directions Loaded\n";
+        //}
+        //else
+        //{
+        //    //Create new data
+        //    flowdirection.spacing = quad.spacing;
+        //    flowdirection.splitlevel = quad.splitlevel;
+        //    flowdirection.SetTreeType(quad.type);
+
+        //    if (quad.type == TreeType::Single)
+        //    {
+        //        CalculateFlowDirectionSingle(flowdirection, normal);
+        //        std::cout << "Writing Flow Directions to File.\n";
+        //        FileWriter::WriteFlowDirection2dWKT("./Exports/Vectors/FlowDirections2dWKT", flowdirection);
+        //    }
+        //    else
+        //    {
+        //        CalculateFlowDirectionSplit(flowdirection, normal);
+        //    }
+
+        //    flowdirection.WriteManagerToFile();
+        //}
+
+        //normal.~QuadtreeManager();
+
+        //FlowGeneral tL3(flowdirection.topLeft.x, flowdirection.topLeft.y);
+        //FlowGeneral bR3(flowdirection.bottomRight.x, flowdirection.bottomRight.y);
+
+        //QuadtreeManager<FlowGeneral> flowaccum(tL3, bR3);
+        //flowaccum.prePath = "Temp/AccumulationTree/Tree";
+
+        //if (progp.reuselevel >= 5)
+        //{
+        //    //Reuse previously computed data
+        //    flowaccum.ReadManagerFromFile();
+        //    std::cout << "Existing Flow Accumulations Loaded\n";
+        //}
+        //else
+        //{
+        //    //Create new data
+        //    flowaccum.spacing = quad.spacing;
+        //    flowaccum.splitlevel = quad.splitlevel;
+        //    flowaccum.SetTreeType(quad.type);
+
+        //    if (quad.type == TreeType::Single)
+        //    {
+        //        CalculateFlowAccumulationSingle(flowdirection, flowaccum);
+        //    }
+        //    else
+        //    {
+        //        CalculateFlowAccumulationSplit(flowdirection, flowaccum);
+        //    }
+
+        //    flowaccum.WriteManagerToFile();
+
+        //    std::cout << "Exporting Flow Accumulation Surface\n";
+        //    FileWriter::WriteFlowGeneralTreeASC("./Exports/Surfaces/Accum", flowaccum);
+        //}
+
+        //std::vector<FlowPath> flowpaths;
+
+        //if (progp.reuselevel >= 6)
+        //{
+        //    //Reuse previously computed data
+        //    FileReader::ReadStreamPathsBinary("Temp/FlowPath/FlowLines", flowpaths);
+        //    std::cout << "Existing Flow Paths Loaded\n";
+        //}
+        //else
+        //{
+        //    //Create new data
+        //    if (quad.type == TreeType::Single)
+        //    {
+        //        flowpaths = StreamLinkingSingle(flowaccum, flowdirection, acctarget);
+        //    }
+        //    else
+        //    {
+        //        
+        //    }
+
+        //    FileWriter::WriteStreamPathsBinary("Temp/FlowPath/FlowLines", flowpaths);
+
+        //    std::cout << "Exporting Stream Paths\n";
+        //    FileWriter::WriteStreamPaths2dWKT("./Exports/Vectors/FlowPaths2dWKT", flowpaths);
+        //}
+
+        //flowaccum.~QuadtreeManager();
+
+        //std::vector<DischargePoint> dischargepoints = GenerateDischargePoints(flowpaths, breakdist);
+
+        //QuadtreeManager<FlowGeneral> catchclass(tL3, bR3);
+        //catchclass.prePath = "Temp/CatchmentClassification/Tree";
+
+        //if (progp.reuselevel >= 7)
+        //{
+        //    //Reuse previously computed data
+        //    catchclass.ReadManagerFromFile();
+        //    std::cout << "Existing Catchment Classifications Loaded\n";
+        //}
+        //else
+        //{
+        //    //Create new data
+        //    catchclass.spacing = quad.spacing;
+        //    catchclass.splitlevel = quad.splitlevel;
+        //    catchclass.SetTreeType(quad.type);
+
+        //    CatchmentClassification(catchclass, flowdirection, dischargepoints);
+
+        //    catchclass.WriteManagerToFile();
+
+        //    std::cout << "Exporting Classified Catchment Surface\n";
+        //    FileWriter::WriteFlowGeneralTreeASC("./Exports/Surfaces/CatchmentClassification", catchclass);
+        //}
+
+        //flowdirection.~QuadtreeManager();
+        //flowpaths.clear();
+
+        //std::vector<Catchment> catchlist;
+
+        //PolygoniseCatchments(catchclass, dischargepoints, catchlist);
+
+        //std::cout << "Exporting Catchment Polygons\n";
+        //FileWriter::WriteCatchmentPolysWKT("./Exports/Polygons/Catchments", catchlist);
+
+        //catchclass.~QuadtreeManager();
     }
-    else
-    {
-        //Create new data
-        flowdirection.spacing = quad.spacing;
-        flowdirection.splitlevel = quad.splitlevel;
-        flowdirection.SetTreeType(quad.type);
-
-        if (quad.type == TreeType::Single)
-        {
-            CalculateFlowDirectionSingle(flowdirection, normal);
-            std::cout << "Writing Flow Directions to File.\n";
-            FileWriter::WriteFlowDirection2dWKT("./Exports/Vectors/FlowDirections2dWKT", flowdirection);
-        }
-        else
-        {
-            CalculateFlowDirectionSplit(flowdirection, normal);
-        }
-
-        flowdirection.WriteManagerToFile();
-    }
-
-    normal.~QuadtreeManager();
-
-    FlowGeneral tL3(flowdirection.topLeft.x, flowdirection.topLeft.y);
-    FlowGeneral bR3(flowdirection.bottomRight.x, flowdirection.bottomRight.y);
-
-    QuadtreeManager<FlowGeneral> flowaccum(tL3, bR3);
-    flowaccum.prePath = "Temp/AccumulationTree/Tree";
-
-    if (progp.reuselevel >= 5)
-    {
-        //Reuse previously computed data
-        flowaccum.ReadManagerFromFile();
-        std::cout << "Existing Flow Accumulations Loaded\n";
-    }
-    else
-    {
-        //Create new data
-        flowaccum.spacing = quad.spacing;
-        flowaccum.splitlevel = quad.splitlevel;
-        flowaccum.SetTreeType(quad.type);
-
-        if (quad.type == TreeType::Single)
-        {
-            CalculateFlowAccumulationSingle(flowdirection, flowaccum);
-        }
-        else
-        {
-            CalculateFlowAccumulationSplit(flowdirection, flowaccum);
-        }
-
-        flowaccum.WriteManagerToFile();
-
-        std::cout << "Exporting Flow Accumulation Surface\n";
-        FileWriter::WriteFlowGeneralTreeASC("./Exports/Surfaces/Accum", flowaccum);
-    }
-
-    std::vector<FlowPath> flowpaths;
-
-    if (progp.reuselevel >= 6)
-    {
-        //Reuse previously computed data
-        FileReader::ReadStreamPathsBinary("Temp/FlowPath/FlowLines", flowpaths);
-        std::cout << "Existing Flow Paths Loaded\n";
-    }
-    else
-    {
-        //Create new data
-        if (quad.type == TreeType::Single)
-        {
-            flowpaths = StreamLinkingSingle(flowaccum, flowdirection, acctarget);
-        }
-        else
-        {
-            
-        }
-
-        FileWriter::WriteStreamPathsBinary("Temp/FlowPath/FlowLines", flowpaths);
-
-        std::cout << "Exporting Stream Paths\n";
-        FileWriter::WriteStreamPaths2dWKT("./Exports/Vectors/FlowPaths2dWKT", flowpaths);
-    }
-
-    flowaccum.~QuadtreeManager();
-
-    std::vector<DischargePoint> dischargepoints = GenerateDischargePoints(flowpaths, breakdist);
-
-    QuadtreeManager<FlowGeneral> catchclass(tL3, bR3);
-    catchclass.prePath = "Temp/CatchmentClassification/Tree";
-
-    if (progp.reuselevel >= 7)
-    {
-        //Reuse previously computed data
-        catchclass.ReadManagerFromFile();
-        std::cout << "Existing Catchment Classifications Loaded\n";
-    }
-    else
-    {
-        //Create new data
-        catchclass.spacing = quad.spacing;
-        catchclass.splitlevel = quad.splitlevel;
-        catchclass.SetTreeType(quad.type);
-
-        CatchmentClassification(catchclass, flowdirection, dischargepoints);
-
-        catchclass.WriteManagerToFile();
-
-        std::cout << "Exporting Classified Catchment Surface\n";
-        FileWriter::WriteFlowGeneralTreeASC("./Exports/Surfaces/CatchmentClassification", catchclass);
-    }
-
-    flowdirection.~QuadtreeManager();
-    flowpaths.clear();
-
-    std::vector<Catchment> catchlist;
-
-    PolygoniseCatchments(catchclass, dischargepoints, catchlist);
-
-    std::cout << "Exporting Catchment Polygons\n";
-    FileWriter::WriteCatchmentPolysWKT("./Exports/Polygons/Catchments", catchlist);
-
-    catchclass.~QuadtreeManager();
 }
 
 void CatchmentBuilder::SmoothPointsSingle(QuadtreeManager<Coordinates>& quad, QuadtreeManager<Coordinates>& smooth, int blurrad)
