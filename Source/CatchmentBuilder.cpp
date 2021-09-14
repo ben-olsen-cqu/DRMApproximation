@@ -927,44 +927,73 @@ void CatchmentBuilder::CalculateFlowDirectionSplit(QuadtreeManager<FlowDirection
     for (int v = 0; v < numquads; v++) //move vertically through sub trees
     {
         //Calculate the offset to add when seaching within the loop, the +1 is to push it into the next subquad if subquad is the bottom left no offset is required
-        int offsety = v == 0 ? 0 : std::floor(boundspersubquady * v) + 1;
+        //int offsety = v == 0 ? 0 : std::floor(boundspersubquady * v) + 1;
+
+        int offsety;
+        if (v == 0)
+        {
+            offsety = 0;
+            boundspersubquady = 999;
+        }
+        if (v == 1)
+        {
+            offsety = 1000;
+            boundspersubquady = 998;
+        }
+        if (v == 2)
+        {
+            offsety = 1999;
+            boundspersubquady = 999;
+        }
+        if (v == 3)
+        {
+            offsety = 3000;
+            boundspersubquady = 997;
+        }
 
         for (int w = 0; w < numquads; w++) //move horizontally through sub trees
         {
             //Same as the y offset
-            int offsetx = w == 0 ? 0 : std::floor(boundspersubquadx * w) + 1;
+            //int offsetx = w == 0 ? 0 : std::floor(boundspersubquadx * w) + 1;
 
-            //int offsetx;
-            //if (w == 0)
-            //{
-            //    offsetx = 0;
-            //    boundspersubquadx = 1000;
-            //}
-            //if (w == 1)
-            //{
-            //    offsetx = 1000;
-            //    boundspersubquadx = 999;
-            //}
-            //if (w == 2)
-            //{
-            //    offsetx = 1999;
-            //    boundspersubquadx = 999;
-            //}
-            //if (w == 3)
-            //{
-            //    offsetx = 2998;
-            //    boundspersubquadx = 1000;
-            //}
+            int offsetx;
+            if (w == 0)
+            {
+                offsetx = 0;
+                boundspersubquadx = 999;
+            }
+            if (w == 1)
+            {
+                offsetx = 1000;
+                boundspersubquadx = 998;
+            }
+            if (w == 2)
+            {
+                offsetx = 1999;
+                boundspersubquadx = 999;
+            }
+            if (w == 3)
+            {
+                offsetx = 3000;
+                boundspersubquadx = 997;
+            }
 
             std::cout << "\nProcessing Quad " << v * numquads + (w + 1) << " of " << totalquads << "\n";
 
             for (int y = 0; y <= boundspersubquady; y++) //move through each coord in the y direction of the subtree
+            {
+                if (w == 0 && y == 0)
+                    std::cout << "Start of line: " << y + offsety + bottom << "\n";
+
+                if (w == 0 && y >= boundspersubquadx)
+                    std::cout << "End of line: " << y + offsety + bottom << "\n";
+
                 for (int x = 0; x <= boundspersubquadx; x++)//move through each coord in the x direction of the subtree
                 {
                     if (y == 0 && x == 0)
                         std::cout << "Start of line: " << x + offsetx + left << "\n";
 
-                    if (y == 0 && x >= boundspersubquadx - 1)
+                    if (y == 0 && x >= boundspersubquadx)
                         std::cout << "End of line: " << x + offsetx + left << "\n";
 
                     auto f = normal.Search(Normal(x + offsetx + left, y + offsety + bottom));
@@ -984,6 +1013,7 @@ void CatchmentBuilder::CalculateFlowDirectionSplit(QuadtreeManager<FlowDirection
                         flowdirection.Insert(new Node<FlowDirection>(FlowDirection(n.x, n.y, dir)));
                     }
                 }
+            }
         }
     }
     std::cout << "\nComplete\n";

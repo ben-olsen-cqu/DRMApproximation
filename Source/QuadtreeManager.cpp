@@ -309,7 +309,15 @@ Node<T>* QuadtreeManager<T>::SearchW(T p)
 template<typename T>
 bool QuadtreeManager<T>::inBoundary(Quadtree<T>* q, T p) const
 {
-    return (p.x >= q->topLeft.x && p.x <= q->bottomRight.x && p.y <= q->topLeft.y && p.y >= q->bottomRight.y);
+    //greater than left
+    bool left = q->topLeft.x - p.x < 0.0001;
+    //less than right
+    bool right = p.x - q->bottomRight.x < 0.0001;
+    //greater than bottom
+    bool top = q->bottomRight.y - p.y < 0.0001;
+    //less than top
+    bool bottom = p.y - q->topLeft.y < 0.0001;
+    return left && right && top && bottom;
 }
 
 template<typename T>
