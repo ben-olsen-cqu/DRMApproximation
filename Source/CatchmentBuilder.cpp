@@ -918,6 +918,7 @@ void CatchmentBuilder::CalculateFlowDirectionSplit(QuadtreeManager<FlowDirection
                     }
                 }
         }
+    std::cout << "\nComplete\n";
 }
 
 void CatchmentBuilder::CalculateFlowAccumulationSingle(QuadtreeManager<FlowDirection>& flowdirection, QuadtreeManager<FlowGeneral>& flowaccum)
@@ -1112,7 +1113,7 @@ void CatchmentBuilder::CalculateFlowAccumulationSingle(QuadtreeManager<FlowDirec
 
 void CatchmentBuilder::CalculateFlowAccumulationSplit(QuadtreeManager<FlowDirection>& flowdirection, QuadtreeManager<FlowGeneral>& flowaccum)
 {
-    std::cout << "Calculating Flow Accumulations\n";
+    std::cout << "Calculating NIDP Grid\n";
 
     //initialise the flow accumulation grid at 1
 
@@ -1122,25 +1123,22 @@ void CatchmentBuilder::CalculateFlowAccumulationSplit(QuadtreeManager<FlowDirect
     double left = (flowdirection.TopLeft().x);
 
     int numquads = flowdirection.splitlevel * 2; //quad splits the area in half in the x and y axis
-    int storenum = 1;
+    int storenum = 2;
 
-    int boundsperquadx = std::floor(boundsx / numquads) + 1;
-    int boundsperquady = std::floor(boundsy / numquads) + 1;
+    int boundsperquadx = std::floor(boundsx / numquads);
+    int boundsperquady = std::floor(boundsy / numquads);
 
     int totalquads = numquads * numquads;
 
     //for loops for iterating through split level trees
     for (int v = 0; v < numquads; v++) //move vertically through sub trees
         for (int w = 0; w < numquads; w++) //move horizontally through sub trees
-        {
-            std::cout << "\rProcessing Quad " << v * numquads + (w + 1) << " of " << totalquads;
-
             for (int y = 2; y < boundsperquady - 1; y++) //move through each coord in the y direction of the subtree
                 for (int x = 2; x < boundsperquadx - 1; x++)//move through each coord in the x direction of the subtree
                 {
                     flowaccum.Insert(new Node<FlowGeneral>(FlowGeneral(x + w * boundsperquadx + left, y + v * boundsperquady + bottom, 1)));
                 }
-        }
+        
 
     //  NIDP quadtree for storing the number of cells that flow into a given cell
     //  If the NIDP value is 0 then the cell is a source cell and is the top of the flow path
@@ -1166,8 +1164,8 @@ void CatchmentBuilder::CalculateFlowAccumulationSplit(QuadtreeManager<FlowDirect
         {
             std::cout << "\rProcessing Quad " << v * numquads + (w + 1) << " of " << totalquads;
 
-            for (int y = 0; y < boundsperquady; y++) //move through each coord in the y direction of the subtree
-                for (int x = 0; x < boundsperquadx; x++)//move through each coord in the x direction of the subtree
+            for (int y = 2; y < boundsperquady-1; y++) //move through each coord in the y direction of the subtree
+                for (int x = 2; x < boundsperquadx-1; x++)//move through each coord in the x direction of the subtree
                 {
                     if (y < storenum || (boundsperquady - y) <= storenum || x < storenum || (boundsperquadx - x) <= storenum)
                     {
@@ -1547,6 +1545,7 @@ void CatchmentBuilder::CalculateFlowAccumulationSplit(QuadtreeManager<FlowDirect
     NIDP.Cleanup();
 
     //FLOW ACCUM
+    std::cout << "Calculating Flow Accumulations\n";
 
     for (int v = 0; v < numquads; v++) //move vertically through sub trees
         for (int w = 0; w < numquads; w++) //move horizontally through sub trees
@@ -1570,68 +1569,70 @@ void CatchmentBuilder::CalculateFlowAccumulationSplit(QuadtreeManager<FlowDirect
                             do
                             {
                                 auto nAcc = flowaccum.Search(FlowGeneral(i , j ));
+                                if (nAcc != nullptr)
+                                {
+                                    nAcc->pos.iValue += Accum;
+                                    Accum = nAcc->pos.iValue;
 
-                                nAcc->pos.iValue += Accum;
-                                Accum = nAcc->pos.iValue;
+                                    Direction d = flowdirection.Search(FlowDirection(i, j))->pos.direction;
 
-                                Direction d = flowdirection.Search(FlowDirection(i, j))->pos.direction;
+                                    //Increment i or j based on the flow direction to get the next cell
+                                    switch (d)
+                                    {
+                                    case Direction::N:
+                                    {
+                                        j++;
+                                        break;
+                                    };
+                                    case Direction::NE:
+                                    {
+                                        j++;
+                                        i++;
+                                        break;
+                                    };
+                                    case Direction::E:
+                                    {
+                                        i++;
+                                        break;
+                                    };
+                                    case Direction::SE:
+                                    {
+                                        j--;
+                                        i++;
+                                        break;
+                                    };
+                                    case Direction::S:
+                                    {
+                                        j--;
+                                        break;
+                                    };
+                                    case Direction::SW:
+                                    {
+                                        j--;
+                                        i--;
+                                        break;
+                                    };
+                                    case Direction::W:
+                                    {
+                                        i--;
+                                        break;
+                                    };
+                                    case Direction::NW:
+                                    {
+                                        j++;
+                                        i--;
+                                        break;
+                                    };
+                                    }
 
-                                //Increment i or j based on the flow direction to get the next cell
-                                switch (d)
-                                {
-                                case Direction::N:
-                                {
-                                    j++;
-                                    break;
-                                };
-                                case Direction::NE:
-                                {
-                                    j++;
-                                    i++;
-                                    break;
-                                };
-                                case Direction::E:
-                                {
-                                    i++;
-                                    break;
-                                };
-                                case Direction::SE:
-                                {
-                                    j--;
-                                    i++;
-                                    break;
-                                };
-                                case Direction::S:
-                                {
-                                    j--;
-                                    break;
-                                };
-                                case Direction::SW:
-                                {
-                                    j--;
-                                    i--;
-                                    break;
-                                };
-                                case Direction::W:
-                                {
-                                    i--;
-                                    break;
-                                };
-                                case Direction::NW:
-                                {
-                                    j++;
-                                    i--;
-                                    break;
-                                };
+                                    if (nNIDP->pos.iValue >= 2)
+                                    {
+                                        nNIDP->pos.iValue--;
+                                        break;
+                                    }
+
+                                    nNIDP = NIDP.Search(FlowGeneral(i, j));
                                 }
-
-                                if (nNIDP->pos.iValue >= 2)
-                                {
-                                    nNIDP->pos.iValue--;
-                                    break;
-                                }
-
-                                nNIDP = NIDP.Search(FlowGeneral(i, j));
                             } while (nNIDP != nullptr);
                         }
                     }
@@ -1731,7 +1732,7 @@ std::vector<FlowPath> CatchmentBuilder::StreamLinkingSplit(QuadtreeManager<FlowG
 {
     std::cout << "Stream Linking\n";
 
-    return std::vector<FlowPath>();
+    return StreamLinkingSingle(flowaccum,flowdirection,acctarget);
 }
 
 void CatchmentBuilder::TraceFlowPath(QuadtreeManager<FlowDirection>& flowdirection, std::vector<std::vector<Vec2>>* flowpaths, int x, int y)
