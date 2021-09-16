@@ -6,6 +6,7 @@
 #include "../Headers/QuadtreeManager.h"
 #include "../Headers/CatchmentBuilder.h"
 #include "../Headers/ProgramParameters.h"
+#include "../Headers/ReportManager.h"
 
 #include <iostream>
 #include <exception>
@@ -14,6 +15,11 @@
 void PrintHelp()
 {
     std::cout << "Use the Readme" << std::endl; //Update Later %%%%%
+}
+
+void PrintWarning()
+{
+
 }
 
 void CommandLineArgs(ParamManager* pm, int argc, char* argv[])
@@ -105,21 +111,34 @@ int main(int argc, char* argv[])
 
     std::cout << "Found total of " << std::to_string(progparams.files.size()) << " files to proccess." << std::endl << std::endl;
 
+    std::vector<Catchment> catchments;
+
     /* BUILD CATCHMENTS*/
-    auto time_start = std::chrono::steady_clock::now();
+    if (progparams.reuselevel >= 9)
+    {
+        //Reuse previously computed data
+        FileReader::ReadCatchmentsBinary("Temp/Catchments/Catchments", catchments);
+        std::cout << "Existing Catchments Loaded\n";
+    }
+    else
+    {
+        //Create new data from input files
+        auto time_start = std::chrono::steady_clock::now();
+        CatchmentBuilder catchBuilder;
+        catchments = catchBuilder.CreateCatchments(progparams);
+        auto time_complete = std::chrono::steady_clock::now();
+        auto time_diff = std::chrono::duration_cast<std::chrono::milliseconds>(time_complete - time_start);
+        std::cout << "Catchments Created in: " << time_diff.count() << "ms\n";
+    }
 
-    CatchmentBuilder catchBuilder;
-    std::vector<Catchment> catchments = catchBuilder.CreateCatchments(progparams);
-
-    auto time_complete = std::chrono::steady_clock::now();
-
-    auto time_diff = std::chrono::duration_cast<std::chrono::milliseconds>(time_complete - time_start);
-
-    std::cout << "Catchments Created in: " << time_diff.count() << "ms\n";
+    std::cout << "Writing Catchment Parameter Report";
+    ReportManager::CatchmentParameterReport(catchments);
 
     /* HYDROLOGIC CALCULATIONS*/
 
     //TODO
 
+
+    catchments.clear();
     return 0;
 }

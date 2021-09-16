@@ -219,30 +219,49 @@ struct FlowPath
 
     std::vector<Vec2> GetPointsBetween(float startdist, float enddist)
     {
-        //if (startdist > this->Length())
-        //{
-        //    return std::vector<Vec2>();
-        //}
-        //if (enddist <= 0)
-        //{
-        //    return std::vector<Vec2>();
-        //}
-
         std::vector<Vec2> between;
 
         float length = 0;
 
-        for (int i = path.size() - 1; i > 0; i--)
+        if (startdist <= 0 && enddist < this->Length()) //if the start point is specified less than 0 but the end is still within range
         {
-            length += std::sqrt(std::pow(path[i - 1].x - path[i].x, 2) + std::pow(path[i - 1].y - path[i].y, 2));
-            if (length > startdist && length <= enddist)
+            between.push_back(path[path.size() - 1]);
+
+            for (int i = path.size() - 1; i > 0; i--)
             {
-                between.push_back(path[i]);
+                length += std::sqrt(std::pow(path[i - 1].x - path[i].x, 2) + std::pow(path[i - 1].y - path[i].y, 2));
+                if (length > 0 && length <= enddist)
+                {
+                    between.push_back(path[i]);
+                }
+            }
+        }
+        else if (startdist > 0 && enddist > this->Length())
+        {
+
+            for (int i = path.size() - 1; i > 0; i--)
+            {
+                length += std::sqrt(std::pow(path[i - 1].x - path[i].x, 2) + std::pow(path[i - 1].y - path[i].y, 2));
+                if (length > startdist && length <= this->Length())
+                {
+                    between.push_back(path[i]);
+                }
+            }
+
+            between.push_back(path[0]);
+        }
+        else
+        {
+            for (int i = path.size() - 1; i > 0; i--)
+            {
+                length += std::sqrt(std::pow(path[i - 1].x - path[i].x, 2) + std::pow(path[i - 1].y - path[i].y, 2));
+                if (length > startdist && length <= enddist)
+                {
+                    between.push_back(path[i]);
+                }
             }
         }
 
-        if (enddist > this->Length())
-            between.push_back(path[path.size() - 1]);
 
         return between;
     }

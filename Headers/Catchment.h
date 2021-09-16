@@ -1,6 +1,5 @@
 #pragma once
 
-#include "CatchMath.h"
 #include "FlowClassification.h"
 
 #include <vector>
@@ -12,13 +11,13 @@ struct Catchment
 	};
 	int id;
 	std::vector<Vec2> points;
-	std::vector<float> isochroneareas;
+	std::vector<int> isochroneareas;
 	float mannings;
 	float IL;
 	float CL;
 	float avgslope;
 	float flowdistance;
-	float area;
+	int area;
 	FlowPath longest;
 	float highestpt;
 	float lowestpt;

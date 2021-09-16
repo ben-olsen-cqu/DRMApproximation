@@ -48,6 +48,9 @@
     <ClInclude Include="Headers\Catchment.h">
       <Filter>Headers</Filter>
     </ClInclude>
+    <ClInclude Include="Headers\ReportManager.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Source\main.cpp">
@@ -69,6 +72,9 @@
       <Filter>Source</Filter>
     </ClCompile>
     <ClCompile Include="Source\Quadtree.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\ReportManager.cpp">
       <Filter>Source</Filter>
     </ClCompile>
   </ItemGroup>

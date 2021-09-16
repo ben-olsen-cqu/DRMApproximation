@@ -24,6 +24,7 @@ public:
 	static void WriteStreamPathsBinary(std::string filepath, std::vector<FlowPath>& flowpaths);
 	static void WriteVecNormals3dWKT(std::string filename, QuadtreeManager<Normal>& normals);
 	static void WriteFlowDirection2dWKT(std::string filename, QuadtreeManager<FlowDirection>& normals);
+	static void WriteCatchmentstoBinary(std::string filepath, std::vector<Catchment>& catchments);
 private:
 	static void Write(std::string filename, std::string data);
 	static void Write(std::string filename, std::vector<std::string> data);

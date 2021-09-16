@@ -477,3 +477,53 @@ void FileWriter::WriteStreamPathsBinary(std::string filepath, std::vector<FlowPa
 
 	datastream.close();
 }
+
+void FileWriter::WriteCatchmentstoBinary(std::string filepath, std::vector<Catchment>& catchments)
+{
+	std::ofstream datastream;
+
+	datastream.open("./" + filepath + ".bin", std::ios::binary);
+
+	for each (Catchment var in catchments)
+	{
+
+		datastream.write((char*)&var.id, sizeof(int));
+		datastream.write((char*)&var.area, sizeof(int));
+		datastream.write((char*)&var.mannings, sizeof(float));
+		datastream.write((char*)&var.IL, sizeof(float));
+		datastream.write((char*)&var.CL, sizeof(float));
+		datastream.write((char*)&var.avgslope, sizeof(float));
+		datastream.write((char*)&var.flowdistance, sizeof(float));
+		datastream.write((char*)&var.highestpt, sizeof(float));
+		datastream.write((char*)&var.lowestpt, sizeof(float));
+		datastream.write((char*)&var.longestfplength, sizeof(float));
+		datastream.write((char*)&var.dp, sizeof(DischargePoint));
+
+		//Longest FP
+		datastream.write((char*)&var.longest.id, sizeof(int));
+		int size = var.longest.path.size();
+		datastream.write((char*)&size, sizeof(int));
+		for (int i = 0; i < size; i++)
+		{
+			datastream.write((char*)&var.longest.path[i], sizeof(Vec2));
+		}
+
+		//Catchment BDY
+		size = var.points.size();
+		datastream.write((char*)&size, sizeof(int));
+		for (int i = 0; i < size; i++)
+		{
+			datastream.write((char*)&var.points[i], sizeof(Vec2));
+		}
+
+		//Isochrone Areas
+		size = var.isochroneareas.size();
+		datastream.write((char*)&size, sizeof(int));
+		for (int i = 0; i < size; i++)
+		{
+			datastream.write((char*)&var.isochroneareas[i], sizeof(int));
+		}
+	}
+
+	datastream.close();
+}

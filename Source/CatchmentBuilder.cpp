@@ -268,6 +268,8 @@ std::vector<Catchment> CatchmentBuilder::CreateCatchments(ProgamParams progp)
     catchclass.~QuadtreeManager();
     flowdirection.~QuadtreeManager();
 
+    FileWriter::WriteCatchmentstoBinary("Temp/Catchments/Catchments",catchlist);
+
     return catchlist;
 }
 
@@ -2741,7 +2743,7 @@ void CatchmentBuilder::IsochroneGeneration(QuadtreeManager<FlowGeneral>& catchcl
     temp.splitlevel = flowdirection.splitlevel;
     temp.SetTreeType(flowdirection.type);
     
-    for each (Catchment catchm in catchlist)
+    for (auto &catchm : catchlist)
     {
         double boundsx = (catchclass.BottomRight().x) - (catchclass.TopLeft().x);
         double boundsy = (catchclass.TopLeft().y) - (catchclass.BottomRight().y);
@@ -2800,6 +2802,9 @@ void CatchmentBuilder::IsochroneGeneration(QuadtreeManager<FlowGeneral>& catchcl
 
         //for a catchment generate all flow paths and then set the values for 
 
+        int catcharea = 0;
+        int maxiso =  0;
+
         for (double x = left; x <= boundsx; x++)
             for (double y = bottom; y <= boundsy; y++)
             {
@@ -2807,9 +2812,31 @@ void CatchmentBuilder::IsochroneGeneration(QuadtreeManager<FlowGeneral>& catchcl
                 if (node != nullptr)
                 {
                     ClassifyIsochrones(Isos, flowdirection, catchm.id, catchm.flowdistance, catchm.dp.location, Vec2(x,y));
+                    catcharea++;
+                    if (node->pos.iValue > maxiso)
+                        maxiso = node->pos.iValue;
                 }
 
             }
+
+        catchm.area = catcharea;
+
+        for (int i = 1; i <= maxiso; i++)
+        {
+            int area = 0;
+            for (double x = left; x <= boundsx; x++)
+                for (double y = bottom; y <= boundsy; y++)
+                {
+                    auto node = Isos.Search(FlowGeneral(x, y));
+                    if (node != nullptr)
+                    {
+                        if (node->pos.iValue == i)
+                            area += node->pos.iValue;
+                    }
+
+                }
+            catchm.isochroneareas.push_back(area);
+        }
 
         for (double x = left; x <= boundsx; x++)
             for (double y = bottom; y <= boundsy; y++)
@@ -2904,22 +2931,6 @@ void CatchmentBuilder::ClassifyIsochrones(QuadtreeManager<FlowGeneral>& catchmen
             exitcond = 1;
             break;
         }
-
-        if (d == nullptr || c == nullptr)
-        {
-            exitcond = 2;
-            break;
-        }
-
-        for (size_t a = 0; a < path.size(); a++)
-        {
-            double comp1 = std::abs(path[a]->pos.x - i);
-            double comp2 = std::abs(path[a]->pos.y - j);
-            if (comp1 < 0.0001 && comp2 < 0.0001)
-            {
-                exitcond = 3;
-            }
-        }
     }
 
     if (exitcond == 1)
@@ -2931,7 +2942,7 @@ void CatchmentBuilder::ClassifyIsochrones(QuadtreeManager<FlowGeneral>& catchmen
         }
         //Classify Isos here
         std::vector<Vec2> inisochrone;
-        int isoid = 0;
+        int isoid = 1;
 
         float fplength = fp.Length();
 
@@ -2958,5 +2969,3 @@ void CatchmentBuilder::ClassifyIsochrones(QuadtreeManager<FlowGeneral>& catchmen
 
     path.clear();
 }
-
-

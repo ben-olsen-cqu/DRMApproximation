@@ -183,3 +183,68 @@ void FileReader::ReadStreamPathsBinary(std::string filepath, std::vector<FlowPat
     flowpaths.erase(std::end(flowpaths)-1);
     datastream.close();
 }
+
+void FileReader::ReadCatchmentsBinary(std::string filepath, std::vector<Catchment>& catchlist)
+{
+    std::ifstream datastream;
+
+    datastream.open("./" + filepath + ".bin", std::ios::binary);
+
+    while (!datastream.eof())
+    {
+        Catchment var;
+
+        datastream.read((char*)&var.id, sizeof(int));
+        datastream.read((char*)&var.area, sizeof(int));
+        datastream.read((char*)&var.mannings, sizeof(float));
+        datastream.read((char*)&var.IL, sizeof(float));
+        datastream.read((char*)&var.CL, sizeof(float));
+        datastream.read((char*)&var.avgslope, sizeof(float));
+        datastream.read((char*)&var.flowdistance, sizeof(float));
+        datastream.read((char*)&var.highestpt, sizeof(float));
+        datastream.read((char*)&var.lowestpt, sizeof(float));
+        datastream.read((char*)&var.longestfplength, sizeof(float));
+        datastream.read((char*)&var.dp, sizeof(DischargePoint));
+
+        //for (int i = 0; i < size; i++)
+        //{
+        //    Vec2 p;
+        //    datastream.read((char*)&p, sizeof(Vec2));
+        //    fp.path.push_back(p);
+        //}
+        //Longest FP
+        datastream.read((char*)&var.longest.id, sizeof(int));
+
+        int size;
+        datastream.read((char*)&size, sizeof(int));
+        for (int i = 0; i < size; i++)
+        {
+            Vec2 p;
+            datastream.read((char*)&p, sizeof(Vec2));
+            var.longest.path.push_back(p);
+        }
+        
+        //Catchment BDY
+        datastream.read((char*)&size, sizeof(int));
+        for (int i = 0; i < size; i++)
+        {
+            Vec2 p;
+            datastream.read((char*)&p, sizeof(Vec2));
+            var.points.push_back(p);
+        }
+        
+        //Isochrone Areas
+        datastream.read((char*)&size, sizeof(int));
+        for (int i = 0; i < size; i++)
+        {
+            int p;
+            datastream.read((char*)&p, sizeof(int));
+            var.isochroneareas.push_back(p);
+        }
+
+        catchlist.push_back(var);
+    }
+
+    catchlist.erase(std::end(catchlist) - 1);
+    datastream.close();
+}
