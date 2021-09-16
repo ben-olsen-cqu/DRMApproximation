@@ -183,6 +183,15 @@ struct FlowPath
         return false;
     }
 
+    bool operator < (const FlowPath& fp) const
+    {
+        return (Length() < fp.Length());
+    }
+
+    bool operator > (const FlowPath& fp) const
+    {
+        return (Length() > fp.Length());
+    }
     inline double FlowLengthBetween(Vec2 p1, Vec2 p2)
     {
         int index1 = 0;
@@ -208,14 +217,34 @@ struct FlowPath
         return length;
     }
 
-    bool operator < (const FlowPath& fp) const
+    std::vector<Vec2> GetPointsBetween(float startdist, float enddist)
     {
-        return (Length() < fp.Length());
-    }
+        //if (startdist > this->Length())
+        //{
+        //    return std::vector<Vec2>();
+        //}
+        //if (enddist <= 0)
+        //{
+        //    return std::vector<Vec2>();
+        //}
 
-    bool operator > (const FlowPath& fp) const
-    {
-        return (Length() > fp.Length());
+        std::vector<Vec2> between;
+
+        float length = 0;
+
+        for (int i = path.size() - 1; i > 0; i--)
+        {
+            length += std::sqrt(std::pow(path[i - 1].x - path[i].x, 2) + std::pow(path[i - 1].y - path[i].y, 2));
+            if (length > startdist && length <= enddist)
+            {
+                between.push_back(path[i]);
+            }
+        }
+
+        if (enddist > this->Length())
+            between.push_back(path[path.size() - 1]);
+
+        return between;
     }
 };
 
@@ -224,8 +253,19 @@ struct DischargePoint
     Vec2 location;
     int index;
 
+    DischargePoint()
+    {
+
+    };
+
     DischargePoint(Vec2 loc)
     {
         location = loc;
+    }
+
+    DischargePoint(Vec2 loc, int id)
+    {
+        location = loc;
+        index = id;
     }
 };

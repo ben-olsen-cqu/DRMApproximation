@@ -7,10 +7,10 @@
 
 #define PI 3.14159265
 
-void CatchmentBuilder::CreateCatchments(ProgamParams progp)
+std::vector<Catchment> CatchmentBuilder::CreateCatchments(ProgamParams progp)
 {
     QuadtreeManager<Coordinates> quad;
-    int blurrad = 7;           //pre-processing radius
+    int blurrad = 21;           //pre-processing radius
     int acctarget = 10000;      //Number of cells required to flow into a cell before it's considered a stream
     int breakdist = 200;        //Distance along the flow paths to split the catchment
 
@@ -134,106 +134,141 @@ void CatchmentBuilder::CreateCatchments(ProgamParams progp)
 
     normal.~QuadtreeManager();
 
-    //FlowGeneral tL3(flowdirection.topLeft.x, flowdirection.topLeft.y);
-    //FlowGeneral bR3(flowdirection.bottomRight.x, flowdirection.bottomRight.y);
+    FlowGeneral tL3(flowdirection.topLeft.x, flowdirection.topLeft.y);
+    FlowGeneral bR3(flowdirection.bottomRight.x, flowdirection.bottomRight.y);
 
-    //QuadtreeManager<FlowGeneral> flowaccum(tL3, bR3);
-    //flowaccum.prePath = "Temp/AccumulationTree/Tree";
+    QuadtreeManager<FlowGeneral> flowaccum(tL3, bR3);
+    flowaccum.prePath = "Temp/AccumulationTree/Tree";
 
-    //if (progp.reuselevel >= 5)
-    //{
-    //    //Reuse previously computed data
-    //    flowaccum.ReadManagerFromFile();
-    //    std::cout << "Existing Flow Accumulations Loaded\n";
-    //}
-    //else
-    //{
-    //    //Create new data
-    //    flowaccum.spacing = quad.spacing;
-    //    flowaccum.splitlevel = quad.splitlevel;
-    //    flowaccum.SetTreeType(quad.type);
+    if (progp.reuselevel >= 5)
+    {
+        //Reuse previously computed data
+        flowaccum.ReadManagerFromFile();
+        std::cout << "Existing Flow Accumulations Loaded\n";
+    }
+    else
+    {
+        //Create new data
+        flowaccum.spacing = quad.spacing;
+        flowaccum.splitlevel = quad.splitlevel;
+        flowaccum.SetTreeType(quad.type);
 
-    //    if (quad.type == TreeType::Single)
-    //    {
-    //        CalculateFlowAccumulationSingle(flowdirection, flowaccum);
-    //    }
-    //    else
-    //    {
-    //        CalculateFlowAccumulationSplit(flowdirection, flowaccum);
-    //    }
+        if (quad.type == TreeType::Single)
+        {
+            CalculateFlowAccumulationSingle(flowdirection, flowaccum);
+        }
+        else
+        {
+            CalculateFlowAccumulationSplit(flowdirection, flowaccum);
+        }
 
-    //    flowaccum.WriteManagerToFile();
+        flowaccum.WriteManagerToFile();
 
-    //    std::cout << "Exporting Flow Accumulation Surface\n";
-    //    FileWriter::WriteFlowGeneralTreeASC("./Exports/Surfaces/Accum", flowaccum);
-    //}
+        std::cout << "Exporting Flow Accumulation Surface\n";
+        FileWriter::WriteFlowGeneralTreeASC("./Exports/Surfaces/Accum", flowaccum);
+    }
 
-    //std::vector<FlowPath> flowpaths;
+    std::vector<FlowPath> flowpaths;
 
-    //if (progp.reuselevel >= 6)
-    //{
-    //    //Reuse previously computed data
-    //    FileReader::ReadStreamPathsBinary("Temp/FlowPath/FlowLines", flowpaths);
-    //    std::cout << "Existing Flow Paths Loaded\n";
-    //}
-    //else
-    //{
-    //    //Create new data
-    //    if (quad.type == TreeType::Single)
-    //    {
-    //        flowpaths = StreamLinkingSingle(flowaccum, flowdirection, acctarget);
-    //    }
-    //    else
-    //    {
-    //        
-    //    }
+    if (progp.reuselevel >= 6)
+    {
+        //Reuse previously computed data
+        FileReader::ReadStreamPathsBinary("Temp/FlowPath/FlowLines", flowpaths);
+        std::cout << "Existing Flow Paths Loaded\n";
+    }
+    else
+    {
+        //Create new data
+        if (quad.type == TreeType::Single)
+        {
+            flowpaths = StreamLinkingSingle(flowaccum, flowdirection, acctarget);
+        }
+        else
+        {
+            
+        }
 
-    //    FileWriter::WriteStreamPathsBinary("Temp/FlowPath/FlowLines", flowpaths);
+        FileWriter::WriteStreamPathsBinary("Temp/FlowPath/FlowLines", flowpaths);
 
-    //    std::cout << "Exporting Stream Paths\n";
-    //    FileWriter::WriteStreamPaths2dWKT("./Exports/Vectors/FlowPaths2dWKT", flowpaths);
-    //}
+        std::cout << "Exporting Stream Paths\n";
+        FileWriter::WriteStreamPaths2dWKT("./Exports/Vectors/FlowPaths2dWKT", flowpaths);
+    }
 
-    //flowaccum.~QuadtreeManager();
+    flowaccum.~QuadtreeManager();
 
-    //std::vector<DischargePoint> dischargepoints = GenerateDischargePoints(flowpaths, breakdist);
+    std::vector<DischargePoint> dischargepoints = GenerateDischargePoints(flowpaths, breakdist);
 
-    //QuadtreeManager<FlowGeneral> catchclass(tL3, bR3);
-    //catchclass.prePath = "Temp/CatchmentClassification/Tree";
+    QuadtreeManager<FlowGeneral> catchclass(tL3, bR3);
+    catchclass.prePath = "Temp/CatchmentClassification/Tree";
 
-    //if (progp.reuselevel >= 7)
-    //{
-    //    //Reuse previously computed data
-    //    catchclass.ReadManagerFromFile();
-    //    std::cout << "Existing Catchment Classifications Loaded\n";
-    //}
-    //else
-    //{
-    //    //Create new data
-    //    catchclass.spacing = quad.spacing;
-    //    catchclass.splitlevel = quad.splitlevel;
-    //    catchclass.SetTreeType(quad.type);
+    if (progp.reuselevel >= 7)
+    {
+        //Reuse previously computed data
+        catchclass.ReadManagerFromFile();
+        std::cout << "Existing Catchment Classifications Loaded\n";
+    }
+    else
+    {
+        //Create new data
+        catchclass.spacing = quad.spacing;
+        catchclass.splitlevel = quad.splitlevel;
+        catchclass.SetTreeType(quad.type);
 
-    //    CatchmentClassification(catchclass, flowdirection, dischargepoints);
+        CatchmentClassification(catchclass, flowdirection, dischargepoints);
 
-    //    catchclass.WriteManagerToFile();
+        catchclass.WriteManagerToFile();
 
-    //    std::cout << "Exporting Classified Catchment Surface\n";
-    //    FileWriter::WriteFlowGeneralTreeASC("./Exports/Surfaces/CatchmentClassification", catchclass);
-    //}
+        std::cout << "Exporting Classified Catchment Surface\n";
+        FileWriter::WriteFlowGeneralTreeASC("./Exports/Surfaces/CatchmentClassification", catchclass);
+    }
 
-    //flowdirection.~QuadtreeManager();
-    //flowpaths.clear();
+    flowpaths.clear();
 
-    //std::vector<Catchment> catchlist;
+    std::vector<Catchment> catchlist;
 
-    //PolygoniseCatchments(catchclass, dischargepoints, catchlist);
+    PolygoniseCatchments(catchclass, dischargepoints, catchlist);
 
-    //std::cout << "Exporting Catchment Polygons\n";
-    //FileWriter::WriteCatchmentPolysWKT("./Exports/Polygons/Catchments", catchlist);
+    std::cout << "Exporting Catchment Polygons\n";
+    FileWriter::WriteCatchmentPolysWKT("./Exports/Polygons/Catchments", catchlist);
 
-    //catchclass.~QuadtreeManager();
+    std::vector<FlowPath> longestfps;
 
+    if (progp.reuselevel >= 8)
+    {
+        //Reuse previously computed data
+        FileReader::ReadStreamPathsBinary("Temp/FlowPath/LongestFlowPath", longestfps);
+        std::cout << "Existing Flow Paths Loaded\n";
+    }
+    else
+    {
+        //Create new data
+        longestfps = LongestFlowPaths(catchclass, dischargepoints, catchlist, flowdirection);
+
+        FileWriter::WriteStreamPathsBinary("Temp/FlowPath/LongestFlowPath", longestfps);
+
+        std::cout << "Exporting Stream Paths\n";
+        FileWriter::WriteStreamPaths2dWKT("./Exports/Vectors/LongestFlowPaths2dWKT", longestfps);
+    }
+
+    QuadtreeManager<Normal> normal2(tL, bR);
+    normal2.prePath = "Temp/NormalTree/Tree";
+    normal2.ReadManagerFromFile();
+
+    //Calculate Catchment Params
+
+    CalculateCatchmentParams(longestfps, normal2, catchlist, progp);
+
+    longestfps.clear();
+    normal2.~QuadtreeManager();
+
+    //Calculate Isochrones
+
+    IsochroneGeneration(catchclass, dischargepoints, catchlist, flowdirection);
+
+    catchclass.~QuadtreeManager();
+    flowdirection.~QuadtreeManager();
+
+    return catchlist;
 }
 
 void CatchmentBuilder::SmoothPointsSingle(QuadtreeManager<Coordinates>& quad, QuadtreeManager<Coordinates>& smooth, int blurrad)
@@ -2180,8 +2215,9 @@ void CatchmentBuilder::PolygoniseCatchments(QuadtreeManager<FlowGeneral>& catchc
 
     for each (DischargePoint dispoint in dischargepoints)
     {
-        //DischargePoint dispoint = dischargepoints[0];
         Catchment c;
+        c.id = dispoint.index;
+        c.dp = dispoint;
 
         double boundsx = (catchclass.BottomRight().x) - (catchclass.TopLeft().x);
         double boundsy = (catchclass.TopLeft().y) - (catchclass.BottomRight().y);
@@ -2433,6 +2469,494 @@ float CatchmentBuilder::DistBetween(Vec2 v1, Vec2 v2)
     return std::sqrt(std::pow(v2.y - v1.y, 2) + std::pow(v2.x - v1.x, 2));
 }
 
+std::vector<FlowPath> CatchmentBuilder::LongestFlowPaths(QuadtreeManager<FlowGeneral>& catchclass, std::vector<DischargePoint> dischargepoints, std::vector<Catchment>& catchlist, QuadtreeManager<FlowDirection>& flowdirection)
+{
+    std::cout << "Calculating Longest Flow Paths\n";
 
+    std::vector<FlowPath> longestfps;
+
+    for each (DischargePoint dispoint in dischargepoints)
+    {
+        //DischargePoint dispoint = dischargepoints[0];
+        Catchment c;
+
+        double boundsx = (catchclass.BottomRight().x) - (catchclass.TopLeft().x);
+        double boundsy = (catchclass.TopLeft().y) - (catchclass.BottomRight().y);
+        double bottom = (catchclass.BottomRight().y);
+        double left = (catchclass.TopLeft().x);
+        //narrow down the bounds to the catchment to avoid 
+
+        MinMax catchmentMM;
+
+        for (int x = 0; x <= boundsx; x++)
+            for (int y = 0; y <= boundsy; y++)
+            {
+                auto node = catchclass.Search(FlowGeneral(x + left, y + bottom));
+                if (node != nullptr && node->pos.iValue == dispoint.index)
+                {
+                    if (x + left > catchmentMM.maxx)
+                        catchmentMM.maxx = x + left;
+
+                    if (y + bottom > catchmentMM.maxy)
+                        catchmentMM.maxy = y + bottom;
+
+                    if (x + left < catchmentMM.minx)
+                        catchmentMM.minx = x + left;
+
+                    if (y + bottom < catchmentMM.miny)
+                        catchmentMM.miny = y + bottom;
+                }
+            }
+
+        auto topLeft = FlowGeneral(catchmentMM.minx - 0.5, catchmentMM.maxy + 0.5);
+        auto bottomRight = FlowGeneral(catchmentMM.maxx + 0.5, catchmentMM.miny - 0.5);
+
+        bottom = catchmentMM.miny;
+        left = catchmentMM.minx;
+        boundsx = catchmentMM.maxx;
+        boundsy = catchmentMM.maxy;
+
+        QuadtreeManager<FlowGeneral> catchmentA(topLeft, bottomRight);
+
+        catchmentA.prePath = "Temp/Catchment/Tree";
+        catchmentA.spacing = catchclass.spacing;
+        catchmentA.splitlevel = 0;
+        catchmentA.SetTreeType(TreeType::Single);
+
+        //Copy all nodes with the matching catchment ID to a new tree for faster read write
+        for (double x = left; x <= boundsx; x++)
+            for (double y = bottom; y <= boundsy; y++)
+            {
+                auto node = catchclass.Search(FlowGeneral(x, y));
+                if (node != nullptr)
+                    if (node->pos.iValue == dispoint.index)
+                    {
+                        catchmentA.Insert(new Node<FlowGeneral>(FlowGeneral(x, y , dispoint.index)));
+                    }
+            }
+
+        //for catchmentA generate all flow paths and store in a vector
+
+        FlowPath longest;
+
+        for (double x = left; x <= boundsx; x++)
+            for (double y = bottom; y <= boundsy; y++)
+            {
+                auto node = catchmentA.Search(FlowGeneral(x, y));
+                if (node != nullptr)
+                {
+                    FlowPath temp = GetFlowPathFrom(flowdirection, dischargepoints, Vec2(x,y));
+                    if (longest.path.size() == 0)
+                    {
+                        longest = temp;
+                    }
+                    else if (longest.Length() < temp.Length())
+                    {
+                        longest = temp;
+                    }
+                }
+            }
+        
+        longest.id = dispoint.index;
+        longestfps.push_back(longest);
+        catchmentA.~QuadtreeManager();
+    }
+    return longestfps;
+}
+
+void CatchmentBuilder::CalculateCatchmentParams(std::vector<FlowPath>& longestfps, QuadtreeManager<Normal>& normal, std::vector<Catchment>& catchlist, ProgamParams progp)
+{
+    std::cout << "Calculating Catchment Parameters\n";
+
+    for each (FlowPath fp in longestfps)
+    {
+        std::vector<Vec3> points;
+
+        for each (Vec2 v in fp.path)
+        {
+            auto node = normal.Search(Normal(v.x,v.y));
+            if (node != nullptr)
+            {
+                points.push_back(node->pos);
+            }
+        }
+
+        std::vector<float> slopes;
+
+        for (int i = 1; i < points.size(); i++)
+        {
+            float slope = (points[i-1].z - points[i].z) / DistBetween(Vec2(points[i-1].x, points[i-1].y), Vec2(points[i].x, points[i].y));
+            slopes.push_back(slope);
+        }
+
+        float sumslope = 0;
+
+        for (int i = 1; i < slopes.size(); i++)
+        {
+            sumslope += slopes[i];
+        }
+
+        float avgslope = sumslope / fp.Length();
+
+        /* DO MANNINGS AND LOSS FINDING HERE*/
+        //In place of the mannings polygon function set the mannings value #REPLACE THIS LATER#
+        float mannings = 0.08;
+        float IL = 0;
+        float CL = 2.5;
+
+        //Flow Distance
+
+        //rainfall data is in 30min inc, this will need to be fixed when rainfall function is finished
+        int timestep = 30;
+
+        double temp2 = std::pow(avgslope, 0.2);
+        double temp1 = (timestep * (temp2)) / (mannings * 107);
+        float dist = std::pow(temp1, 3);
+
+        for (int i = 0; i < catchlist.size(); i++)
+        {
+            if (fp.id == catchlist[i].id)
+            {
+                catchlist[i].avgslope = avgslope;
+                catchlist[i].mannings = mannings;
+                catchlist[i].IL = IL;
+                catchlist[i].CL = CL;
+                catchlist[i].flowdistance = dist;
+                catchlist[i].longest = fp;
+                catchlist[i].highestpt = points[0].z;
+                catchlist[i].lowestpt = points[points.size() - 1].z;
+                catchlist[i].longestfplength = fp.Length();
+            }
+        }
+    }
+
+}
+
+FlowPath CatchmentBuilder::GetFlowPathFrom(QuadtreeManager<FlowDirection>& flowdirection, std::vector<DischargePoint> dischargepoints, Vec2 point)
+{
+    int exitcond = 0; //if 0 not reached exit, if 1 discharge point found, if 2 nullptr found, if 3 circular flowpath found
+    int flowpathid = 0;
+    FlowPath flowpath;
+
+    double i = point.x;
+    double j = point.y;
+
+    auto d = flowdirection.Search(FlowDirection(i, j));
+
+    while (exitcond == 0)
+    {
+        flowpath.path.push_back(Vec2(d->pos.x,d->pos.y));
+
+        //Increment i or j based on the flow direction to get the next cell
+        switch (d->pos.direction)
+        {
+        case Direction::N:
+        {
+            j++;
+            break;
+        };
+        case Direction::NE:
+        {
+            j++;
+            i++;
+            break;
+        };
+        case Direction::E:
+        {
+            i++;
+            break;
+        };
+        case Direction::SE:
+        {
+            j--;
+            i++;
+            break;
+        };
+        case Direction::S:
+        {
+            j--;
+            break;
+        };
+        case Direction::SW:
+        {
+            j--;
+            i--;
+            break;
+        };
+        case Direction::W:
+        {
+            i--;
+            break;
+        };
+        case Direction::NW:
+        {
+            j++;
+            i--;
+            break;
+        };
+        }
+
+        d = flowdirection.Search(FlowDirection(i, j));
+
+        if (d == nullptr)
+        {
+            exitcond = 2;
+            break;
+        }
+
+        for (size_t a = 0; a < dischargepoints.size(); a++)
+        {
+            if (dischargepoints[a].location == Vec2(i, j))
+            {
+                exitcond = 1;
+                flowpathid = dischargepoints[a].index;
+                break;
+            }
+        }
+
+        for (size_t a = 0; a < flowpath.path.size(); a++)
+        {
+            double comp1 = std::abs(flowpath.path[a].x - i);
+            double comp2 = std::abs(flowpath.path[a].y - j);
+            if (comp1 < 0.0001 && comp2 < 0.0001)
+            {
+                exitcond = 3;
+            }
+        }
+    }
+
+    return flowpath;
+}
+
+void CatchmentBuilder::IsochroneGeneration(QuadtreeManager<FlowGeneral>& catchclass, std::vector<DischargePoint> dischargepoints, std::vector<Catchment>& catchlist, QuadtreeManager<FlowDirection>& flowdirection)
+{
+    std::cout << "Generating Isochrones\n";
+
+    //Temporary tree for storing the isochrones, plotting purposes only
+    FlowGeneral tL3(flowdirection.topLeft.x, flowdirection.topLeft.y);
+    FlowGeneral bR3(flowdirection.bottomRight.x, flowdirection.bottomRight.y);
+    QuadtreeManager<FlowGeneral> temp(tL3, bR3);
+    temp.prePath = "Temp/AccumulationTree/Tree";
+    temp.spacing = flowdirection.spacing;
+    temp.splitlevel = flowdirection.splitlevel;
+    temp.SetTreeType(flowdirection.type);
+    
+    for each (Catchment catchm in catchlist)
+    {
+        double boundsx = (catchclass.BottomRight().x) - (catchclass.TopLeft().x);
+        double boundsy = (catchclass.TopLeft().y) - (catchclass.BottomRight().y);
+        double bottom = (catchclass.BottomRight().y);
+        double left = (catchclass.TopLeft().x);
+        //narrow down the bounds to the catchment to avoid 
+
+        MinMax catchmentMM;
+
+        for (int x = 0; x <= boundsx; x++)
+            for (int y = 0; y <= boundsy; y++)
+            {
+                auto node = catchclass.Search(FlowGeneral(x + left, y + bottom));
+                if (node != nullptr && node->pos.iValue == catchm.id)
+                {
+                    if (x + left > catchmentMM.maxx)
+                        catchmentMM.maxx = x + left;
+
+                    if (y + bottom > catchmentMM.maxy)
+                        catchmentMM.maxy = y + bottom;
+
+                    if (x + left < catchmentMM.minx)
+                        catchmentMM.minx = x + left;
+
+                    if (y + bottom < catchmentMM.miny)
+                        catchmentMM.miny = y + bottom;
+                }
+            }
+
+        auto topLeft = FlowGeneral(catchmentMM.minx - 0.5, catchmentMM.maxy + 0.5);
+        auto bottomRight = FlowGeneral(catchmentMM.maxx + 0.5, catchmentMM.miny - 0.5);
+
+        bottom = catchmentMM.miny;
+        left = catchmentMM.minx;
+        boundsx = catchmentMM.maxx;
+        boundsy = catchmentMM.maxy;
+
+        QuadtreeManager<FlowGeneral> Isos(topLeft, bottomRight);
+
+        Isos.prePath = "Temp/Catchment/Tree";
+        Isos.spacing = catchclass.spacing;
+        Isos.splitlevel = 0;
+        Isos.SetTreeType(TreeType::Single);
+
+        //Copy all nodes with the matching catchment ID to a new tree for faster read write
+        for (double x = left; x <= boundsx; x++)
+            for (double y = bottom; y <= boundsy; y++)
+            {
+                auto node = catchclass.Search(FlowGeneral(x, y));
+                if (node != nullptr)
+                    if (node->pos.iValue == catchm.id)
+                    {
+                        Isos.Insert(new Node<FlowGeneral>(FlowGeneral(x, y, 0)));
+                    }
+            }
+
+        //for a catchment generate all flow paths and then set the values for 
+
+        for (double x = left; x <= boundsx; x++)
+            for (double y = bottom; y <= boundsy; y++)
+            {
+                auto node = Isos.Search(FlowGeneral(x, y));
+                if (node != nullptr)
+                {
+                    ClassifyIsochrones(Isos, flowdirection, catchm.id, catchm.flowdistance, catchm.dp.location, Vec2(x,y));
+                }
+
+            }
+
+        for (double x = left; x <= boundsx; x++)
+            for (double y = bottom; y <= boundsy; y++)
+            {
+                auto node = Isos.Search(FlowGeneral(x, y));
+                if (node != nullptr)
+                {
+                    temp.Insert(new Node<FlowGeneral>(FlowGeneral(x, y, node->pos.iValue + 1000*catchm.id)));
+                }
+            }
+        Isos.~QuadtreeManager();
+
+    }
+    FileWriter::WriteFlowGeneralTreeASC("./Exports/Surfaces/Isochrone", temp);
+}
+
+void CatchmentBuilder::ClassifyIsochrones(QuadtreeManager<FlowGeneral>& catchment, QuadtreeManager<FlowDirection>& flowdirection, int catchID, float flowdistance, Vec2 dp, Vec2 point)
+{
+    //Trace for each x y coord
+    //store catchclass nodes in vector
+    //when discharge point is reached
+    //get the id and apply to all nodes in the vector
+    //if node already has id then skip it
+
+    int exitcond = 0; //if 0 not reached exit, if 1 discharge point found, if 2 nullptr found, if 3 circular flowpath found
+    std::vector<Node<FlowGeneral>*> path;
+
+    double i = point.x;
+    double j = point.y;
+
+    auto d = flowdirection.Search(FlowDirection(i, j));
+    auto c = catchment.Search(FlowGeneral(i, j));
+
+    while (exitcond == 0)
+    {
+        path.push_back(c);
+
+        //Increment i or j based on the flow direction to get the next cell
+        switch (d->pos.direction)
+        {
+        case Direction::N:
+        {
+            j++;
+            break;
+        };
+        case Direction::NE:
+        {
+            j++;
+            i++;
+            break;
+        };
+        case Direction::E:
+        {
+            i++;
+            break;
+        };
+        case Direction::SE:
+        {
+            j--;
+            i++;
+            break;
+        };
+        case Direction::S:
+        {
+            j--;
+            break;
+        };
+        case Direction::SW:
+        {
+            j--;
+            i--;
+            break;
+        };
+        case Direction::W:
+        {
+            i--;
+            break;
+        };
+        case Direction::NW:
+        {
+            j++;
+            i--;
+            break;
+        };
+        }
+
+        d = flowdirection.Search(FlowDirection(i, j));
+        c = catchment.Search(FlowGeneral(i, j));
+
+        if (dp == Vec2(i, j))
+        {
+            exitcond = 1;
+            break;
+        }
+
+        if (d == nullptr || c == nullptr)
+        {
+            exitcond = 2;
+            break;
+        }
+
+        for (size_t a = 0; a < path.size(); a++)
+        {
+            double comp1 = std::abs(path[a]->pos.x - i);
+            double comp2 = std::abs(path[a]->pos.y - j);
+            if (comp1 < 0.0001 && comp2 < 0.0001)
+            {
+                exitcond = 3;
+            }
+        }
+    }
+
+    if (exitcond == 1)
+    {
+        FlowPath fp;
+        for (size_t i = 0; i < path.size(); i++)
+        {
+            fp.path.push_back(Vec2(path[i]->pos.x, path[i]->pos.y));
+        }
+        //Classify Isos here
+        std::vector<Vec2> inisochrone;
+        int isoid = 0;
+
+        float fplength = fp.Length();
+
+        for (int dist = 0; dist < fplength; dist += flowdistance)
+        {
+            inisochrone = fp.GetPointsBetween(dist, dist + flowdistance);
+
+            for each (Vec2 fg in inisochrone)
+            {
+                auto c = catchment.Search(FlowGeneral(fg.x, fg.y));
+                if (c != nullptr)
+                    c->pos.iValue = isoid;
+            }
+
+            inisochrone.clear();
+            isoid++;
+        }
+    }
+
+    for (size_t i = 0; i < path.size(); i++)
+    {
+        path[i] = nullptr;
+    }
+
+    path.clear();
+}
 
 

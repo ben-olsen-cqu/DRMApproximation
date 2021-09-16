@@ -109,7 +109,7 @@ int main(int argc, char* argv[])
     auto time_start = std::chrono::steady_clock::now();
 
     CatchmentBuilder catchBuilder;
-    catchBuilder.CreateCatchments(progparams);
+    std::vector<Catchment> catchments = catchBuilder.CreateCatchments(progparams);
 
     auto time_complete = std::chrono::steady_clock::now();
 
