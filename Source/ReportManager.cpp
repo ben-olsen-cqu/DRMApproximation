@@ -1,5 +1,6 @@
 #include "../Headers/ReportManager.h"
 #include <fstream>
+#include <iomanip>
 
 void ReportManager::CatchmentParameterReport(std::vector<Catchment> catchlist)
 {
@@ -9,7 +10,7 @@ void ReportManager::CatchmentParameterReport(std::vector<Catchment> catchlist)
 	outfile << "*                                                Catchment Parameter Report                                                    *\n";
 	outfile << "********************************************************************************************************************************\n";
 	outfile << "\n";
-	outfile << std::fixed;
+	outfile << std::fixed << std::setprecision(4);
 
 	for each (Catchment catchment in catchlist)
 	{
@@ -27,9 +28,9 @@ void ReportManager::CatchmentParameterReport(std::vector<Catchment> catchlist)
 
 			//Begin Isochrone Area
 		outfile << "Isochrone ID\t\t";
-		for (int i = 1; i < catchment.isochroneareas.size(); i++)
+		for (int i = 0; i < catchment.isochroneareas.size(); i++)
 		{
-			outfile << i << "\t";
+			outfile << i+1 << "\t";
 		}
 
 		outfile << "\nIsochrone Area (ha)\t";
@@ -37,7 +38,7 @@ void ReportManager::CatchmentParameterReport(std::vector<Catchment> catchlist)
 		for each (int iso in catchment.isochroneareas)
 		{
 			float area = float(iso) / 10000;
-			outfile << std::fixed << area << "\t";
+			outfile << std::fixed << std::setprecision(4) << area << "\t";
 		}
 
 		outfile << "\n\n";

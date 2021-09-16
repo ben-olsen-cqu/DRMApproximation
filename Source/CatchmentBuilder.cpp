@@ -2743,7 +2743,7 @@ void CatchmentBuilder::IsochroneGeneration(QuadtreeManager<FlowGeneral>& catchcl
     temp.splitlevel = flowdirection.splitlevel;
     temp.SetTreeType(flowdirection.type);
     
-    for (auto &catchm : catchlist)
+    for (auto& catchm : catchlist)
     {
         double boundsx = (catchclass.BottomRight().x) - (catchclass.TopLeft().x);
         double boundsy = (catchclass.TopLeft().y) - (catchclass.BottomRight().y);
@@ -2803,7 +2803,7 @@ void CatchmentBuilder::IsochroneGeneration(QuadtreeManager<FlowGeneral>& catchcl
         //for a catchment generate all flow paths and then set the values for 
 
         int catcharea = 0;
-        int maxiso =  0;
+        int maxiso = 0;
 
         for (double x = left; x <= boundsx; x++)
             for (double y = bottom; y <= boundsy; y++)
@@ -2811,7 +2811,7 @@ void CatchmentBuilder::IsochroneGeneration(QuadtreeManager<FlowGeneral>& catchcl
                 auto node = Isos.Search(FlowGeneral(x, y));
                 if (node != nullptr)
                 {
-                    ClassifyIsochrones(Isos, flowdirection, catchm.id, catchm.flowdistance, catchm.dp.location, Vec2(x,y));
+                    ClassifyIsochrones(Isos, flowdirection, catchm.id, catchm.flowdistance, catchm.dp.location, Vec2(x, y));
                     catcharea++;
                     if (node->pos.iValue > maxiso)
                         maxiso = node->pos.iValue;
@@ -2824,17 +2824,6 @@ void CatchmentBuilder::IsochroneGeneration(QuadtreeManager<FlowGeneral>& catchcl
         for (int i = 1; i <= maxiso; i++)
         {
             int area = 0;
-            for (double x = left; x <= boundsx; x++)
-                for (double y = bottom; y <= boundsy; y++)
-                {
-                    auto node = Isos.Search(FlowGeneral(x, y));
-                    if (node != nullptr)
-                    {
-                        if (node->pos.iValue == i)
-                            area += node->pos.iValue;
-                    }
-
-                }
             catchm.isochroneareas.push_back(area);
         }
 
@@ -2844,8 +2833,13 @@ void CatchmentBuilder::IsochroneGeneration(QuadtreeManager<FlowGeneral>& catchcl
                 auto node = Isos.Search(FlowGeneral(x, y));
                 if (node != nullptr)
                 {
-                    temp.Insert(new Node<FlowGeneral>(FlowGeneral(x, y, node->pos.iValue + 1000*catchm.id)));
+                    if (node->pos.iValue >= 1)
+                    {
+                        catchm.isochroneareas[node->pos.iValue - 1]++;
+                    }
+                    temp.Insert(new Node<FlowGeneral>(FlowGeneral(x, y, node->pos.iValue + 1000 * catchm.id)));
                 }
+
             }
         Isos.~QuadtreeManager();
 
