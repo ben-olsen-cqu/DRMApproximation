@@ -5,6 +5,7 @@
 #include "Quadtree.h"
 #include "QuadtreeManager.h"
 #include "Catchment.h"
+#include "HydrologyData.h"
 
 #include <filesystem>
 #include <vector>
@@ -25,6 +26,8 @@ public:
 	static void WriteVecNormals3dWKT(std::string filename, QuadtreeManager<Normal>& normals);
 	static void WriteFlowDirection2dWKT(std::string filename, QuadtreeManager<FlowDirection>& normals);
 	static void WriteCatchmentstoBinary(std::string filepath, std::vector<Catchment>& catchments);
+	static void WriteTimeSeriestoCSV(std::string filepath, RainfallSeries rs);
+	static void WriteTimeSeriestoCSV(std::string filepath, FlowSeries fs);
 private:
 	static void Write(std::string filename, std::string data);
 	static void Write(std::string filename, std::vector<std::string> data);

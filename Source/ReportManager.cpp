@@ -19,7 +19,7 @@ void ReportManager::CatchmentParameterReport(std::vector<Catchment> catchlist)
 		outfile << "Discharge Point Coordinates: " << catchment.dp.location.x << "," << catchment.dp.location.y << " (X,Y)\n";
 		outfile << "Average manning's n value: " << std::defaultfloat << catchment.mannings << "\n";
 		outfile << "Initial Loss: " << catchment.IL << " mm\n";
-		outfile << "Continuing Loss: " << catchment.CL << " mm\n";
+		outfile << "Continuing Loss: " << catchment.CL << " mm/hr\n";
 		outfile << "Longest Flow Path Length: " << catchment.longestfplength << " m\n";
 		outfile << "Highest Point on Longest Flow Path: " << catchment.highestpt << " m\n";
 		outfile << "Lowest Point on Longest Flow Path: " << catchment.lowestpt << " m\n";

@@ -95,12 +95,14 @@
     <ClInclude Include="Headers\FileReader.h" />
     <ClInclude Include="Headers\FileWriter.h" />
     <ClInclude Include="Headers\FlowClassification.h" />
+    <ClInclude Include="Headers\HydrologyData.h" />
     <ClInclude Include="Headers\os.h" />
     <ClInclude Include="Headers\Params.h" />
     <ClInclude Include="Headers\ProgramParameters.h" />
     <ClInclude Include="Headers\Quadtree.h" />
     <ClInclude Include="Headers\QuadtreeManager.h" />
     <ClInclude Include="Headers\ReportManager.h" />
+    <ClInclude Include="Headers\TimeAreaMethod.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Source\CatchmentBuilder.cpp" />
@@ -111,6 +113,7 @@
     <ClCompile Include="Source\Quadtree.cpp" />
     <ClCompile Include="Source\QuadtreeManager.cpp" />
     <ClCompile Include="Source\ReportManager.cpp" />
+    <ClCompile Include="Source\TimeAreaMethod.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

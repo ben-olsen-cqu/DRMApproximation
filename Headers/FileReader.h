@@ -5,6 +5,7 @@
 #include "Quadtree.h"
 #include "FlowClassification.h"
 #include "Catchment.h"
+#include "HydrologyData.h"
 
 #include <filesystem>
 #include <vector>
@@ -19,5 +20,6 @@ public:
 	static void ReadLine(std::ifstream* fs, double& x, double& y, double& z);
 	static void ReadStreamPathsBinary(std::string filepath, std::vector<FlowPath>& flowpaths);
 	static void ReadCatchmentsBinary(std::string filepath, std::vector<Catchment>& catchlist);
+	static RainfallSeries ReadRainfallData(std::string filepath);
 };
 

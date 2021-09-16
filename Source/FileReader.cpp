@@ -80,13 +80,6 @@ void FileReader::GetMinMaxCSV(std::vector<std::string> files, MinMax& mm)
         std::string infileName = files[i];
 
         std::ifstream infile(infileName);
-
-        //mm.maxy = std::numeric_limits<double>::min();
-        //mm.maxx = std::numeric_limits<double>::min();
-        //mm.maxz = std::numeric_limits<double>::min();
-        //mm.miny = std::numeric_limits<double>::max();
-        //mm.minx = std::numeric_limits<double>::max();
-        //mm.minz = std::numeric_limits<double>::max();
         
         Coordinates compare(0.0f, 0.0f, 0.0f);
         
@@ -247,4 +240,33 @@ void FileReader::ReadCatchmentsBinary(std::string filepath, std::vector<Catchmen
 
     catchlist.erase(std::end(catchlist) - 1);
     datastream.close();
+}
+
+RainfallSeries FileReader::ReadRainfallData(std::string filepath)
+{
+    RainfallSeries rs;
+    std::ifstream infile(filepath);
+
+    std::string line;
+
+    std::getline(infile, line);
+
+    while (!infile.eof())
+    {
+        std::string substr;
+        float time;
+        float depth;
+
+        std::getline(infile, substr, ',');
+        if (!(substr.empty() || substr == "\n"))
+            time = std::stof(substr);
+
+        std::getline(infile, substr, '\n');
+        if (!(substr.empty() || substr == "\n"))
+            depth = std::stof(substr);
+
+        rs.series.push_back(Rainfall(int(time*60),depth));
+    }
+
+    return rs;
 }

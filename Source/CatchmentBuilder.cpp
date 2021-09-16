@@ -2821,7 +2821,7 @@ void CatchmentBuilder::IsochroneGeneration(QuadtreeManager<FlowGeneral>& catchcl
 
         catchm.area = catcharea;
 
-        for (int i = 1; i <= maxiso; i++)
+        for (int i = 0; i <= maxiso; i++)
         {
             int area = 0;
             catchm.isochroneareas.push_back(area);
@@ -2835,7 +2835,7 @@ void CatchmentBuilder::IsochroneGeneration(QuadtreeManager<FlowGeneral>& catchcl
                 {
                     if (node->pos.iValue >= 1)
                     {
-                        catchm.isochroneareas[node->pos.iValue - 1]++;
+                        catchm.isochroneareas[node->pos.iValue]++;
                     }
                     temp.Insert(new Node<FlowGeneral>(FlowGeneral(x, y, node->pos.iValue + 1000 * catchm.id)));
                 }

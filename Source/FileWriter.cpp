@@ -527,3 +527,27 @@ void FileWriter::WriteCatchmentstoBinary(std::string filepath, std::vector<Catch
 
 	datastream.close();
 }
+
+void FileWriter::WriteTimeSeriestoCSV(std::string filepath, RainfallSeries rs)
+{
+	std::ofstream outfile(filepath);
+
+	for (auto p : rs.series)
+	{
+		std::string line = std::to_string(p.time) + "," + std::to_string(p.value);
+		outfile << line << std::endl;
+	}
+	outfile.close();
+}
+
+void FileWriter::WriteTimeSeriestoCSV(std::string filepath, FlowSeries fs)
+{
+	std::ofstream outfile(filepath);
+
+	for (auto p : fs.series)
+	{
+		std::string line = std::to_string(p.time) + "," + std::to_string(p.flow);
+		outfile << line << std::endl;
+	}
+	outfile.close();
+}

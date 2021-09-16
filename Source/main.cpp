@@ -7,6 +7,8 @@
 #include "../Headers/CatchmentBuilder.h"
 #include "../Headers/ProgramParameters.h"
 #include "../Headers/ReportManager.h"
+#include "../Headers/HydrologyData.h"
+#include "../Headers/TimeAreaMethod.h"
 
 #include <iostream>
 #include <exception>
@@ -136,8 +138,9 @@ int main(int argc, char* argv[])
 
     /* HYDROLOGIC CALCULATIONS*/
 
-    //TODO
+    RainfallSeries rainfall = FileReader::ReadRainfallData(ParameterManager.GetbyName("Path").RetrieveS()+"Rainfall/rainfall.csv");
 
+    TimeAreaMethod::CalculateHydrographs(rainfall, catchments);
 
     catchments.clear();
     return 0;
