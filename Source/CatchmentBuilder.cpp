@@ -2316,6 +2316,8 @@ void CatchmentBuilder::PolygoniseCatchments(QuadtreeManager<FlowGeneral>& catchc
             }
         }
         
+        if (temppoints.size() == 0)
+            return;
 
         c.points.push_back(temppoints[lowestindex]);
         temppoints.erase(std::begin(temppoints)+lowestindex);

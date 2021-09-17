@@ -1,11 +1,16 @@
 #include "../Headers/TimeAreaMethod.h"
 #include "../Headers/FileWriter.h"
 
+#include <iostream>
+#include <iomanip>
+
 void TimeAreaMethod::CalculateHydrographs(RainfallSeries rainfallseries, std::vector<Catchment> catchlist)
 {
+	std::cout << "Calculating Hydrographs\n";
 
 	FileWriter::WriteTimeSeriestoCSV("./Exports/TimeSeries/Rainfall.csv", rainfallseries);
 
+	
 	for each (Catchment catchment in catchlist)
 	{
 		//Calculate Losses
@@ -84,14 +89,14 @@ void TimeAreaMethod::CalculateHydrographs(RainfallSeries rainfallseries, std::ve
 		//Calculate Time Area Histogram and Hydrographs
 
 		int timestep = EffIntensity.series[1].time - EffIntensity.series[0].time;
-		int numtimesteps = EffIntensity.series.size();
+		int numtimesteps = catchment.isochroneareas.size() + EffIntensity.series.size();
 		FlowSeries hydrographs;
 		FlowSeries histographs;
 
 		for (int i = 0; i < numtimesteps; i++)
 		{
 			FlowPoint flow;
-			flow.time = i*timestep;
+			flow.time = i * timestep;
 			flow.flow = 0;
 			FlowPoint area;
 			area.time = i * timestep;
@@ -100,101 +105,17 @@ void TimeAreaMethod::CalculateHydrographs(RainfallSeries rainfallseries, std::ve
 			hydrographs.series.push_back(flow);
 		}
 
-		for (int i = 0; i < numtimesteps; i++)
+		for (int i = 1; i < catchment.isochroneareas.size(); i++) //catchment index
 		{
-			std::vector<float> intensities;
-			std::vector<int> areas;
-
-			if (i < catchment.isochroneareas.size()) //Catchment not yet full flowing
+			for (int j = 1; j < EffIntensity.series.size();j++)
 			{
-				for (int j = i; j >= 0; j--)
-				{
-					intensities.push_back(EffIntensity.series[j].value);
-				}
-
-				for (int j = 1; j <= i; j++)
-				{
-					areas.push_back(catchment.isochroneareas[j]);
-				}
-
-				int area = 0;
-				float flow = 0;
-
-				for (int j = 0; j < areas.size(); j++)
-				{
-					area += areas[j];
-					flow += float(areas[j]) / 10000 * intensities[j];
-				}
-				histographs.series[i].flow = area;
-				hydrographs.series[i].flow = flow;
-
+				histographs.series[i+j].flow += catchment.isochroneareas[i];
+				hydrographs.series[i+j].flow += (float(catchment.isochroneareas[i]) / 10000) * EffIntensity.series[j].value;
 			}
-			if (i >= catchment.isochroneareas.size() && i < intensities.size()) //catchment full flowing
-			{
 
-			}
-			if (i >= intensities.size()) // catchment draining
-			{
-
-			}
 		}
-
 
 		FileWriter::WriteTimeSeriestoCSV("./Exports/TimeSeries/AreaHistograph_" + std::to_string(catchment.id) + ".csv", histographs);
 		FileWriter::WriteTimeSeriestoCSV("./Exports/TimeSeries/Hydrograph_" + std::to_string(catchment.id) + ".csv", hydrographs);
 	}
 }
-
-//if (i < catchment.isochroneareas.size()) //rainfall starts to fall and the catchment builds up
-			//{
-			//	int area = 0;
-			//	float flow = 0;
-
-			//	for (int j = 0; j < i; j++)
-			//	{
-			//		if (j > 0 && j < catchment.isochroneareas.size())
-			//		{
-			//			area += catchment.isochroneareas[j];
-			//			if (i - j >= 0 && i - j < EffIntensity.series.size())
-			//				flow += catchment.isochroneareas[j] / 10000 * EffIntensity.series[i - j].value;
-			//		}
-			//	}
-			//	histographs.series[i].flow = area;
-			//	hydrographs.series[i].flow = flow;
-			//}
-
-			//else if (i > EffIntensity.series.size()) //the rainfall stops and the catchment drains
-			//{
-			//	int area = 0;
-			//	float flow = 0;
-
-			//	for (int j = i - catchment.isochroneareas.size(); j <= i; j++)
-			//	{
-			//		if (j > 0 && j < catchment.isochroneareas.size())
-			//		{
-			//			area += catchment.isochroneareas[j];
-			//			if (i - j >= 0 && i - j < EffIntensity.series.size())
-			//				flow += catchment.isochroneareas[j] / 10000 * EffIntensity.series[i - j].value;
-			//		}
-			//	}
-			//	histographs.series[i].flow = area;
-			//	hydrographs.series[i].flow = flow;
-			//}
-			//else // the catchment is full flowing
-			//{
-			//	int area = 0;
-			//	int flow = 0;
-
-			//	for (int j = 0; j < 1; j++)
-			//	{
-			//		if (j > 0 && j < catchment.isochroneareas.size())
-			//		{
-			//			area += catchment.isochroneareas[j];
-			//			if (i - j >= 0 && i - j < EffIntensity.series.size())
-			//				flow += catchment.isochroneareas[j] / 10000 * EffIntensity.series[i - j].value;
-			//		}
-			//	}
-			//	histographs.series[i].flow = area;
-			//	hydrographs.series[i].flow = flow;
-
-			//}

@@ -133,7 +133,7 @@ int main(int argc, char* argv[])
         std::cout << "Catchments Created in: " << time_diff.count() << "ms\n";
     }
 
-    std::cout << "Writing Catchment Parameter Report";
+    std::cout << "Writing Catchment Parameter Report\n";
     ReportManager::CatchmentParameterReport(catchments);
 
     /* HYDROLOGIC CALCULATIONS*/
@@ -143,5 +143,6 @@ int main(int argc, char* argv[])
     TimeAreaMethod::CalculateHydrographs(rainfall, catchments);
 
     catchments.clear();
+    std::cout << "\n";
     return 0;
 }
