@@ -108,8 +108,11 @@ void QuadtreeManager<T>::Insert( Node<T>* n)
                         bottomnodes[j]->hasData = true;
                     }
                     //Insert the new node to the loaded tree
-                    SubInsert(bottomnodes[j], n);
-                    break;
+                    if (inBoundary(bottomnodes[j], n->pos))
+                    {
+                        SubInsert(bottomnodes[j], n);
+                        break;
+                    }
                 }
             }
         }
@@ -212,7 +215,7 @@ Node<T>* QuadtreeManager<T>::Search(T p)
                 }
                 else
                 {
-                    std::cout << "Point Causing Deload: " << p.x << "," << p.y << "\n";
+                    std::cout << std::fixed << "Point Causing Deload: " << p.x << "," << p.y << "\n";
                     //deload the previous tree
                     for (int k = 0; k < bottomnodes.size(); k++)
                     {

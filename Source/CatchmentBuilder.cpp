@@ -3,6 +3,7 @@
 #include "../Headers/FileReader.h"
 
 #include <iostream>
+#include <iomanip>
 #include <algorithm>
 
 #define PI 3.14159265
@@ -10,7 +11,7 @@
 std::vector<Catchment> CatchmentBuilder::CreateCatchments(ProgamParams progp)
 {
     QuadtreeManager<Coordinates> quad;
-    int blurrad = 21;           //pre-processing radius
+    int blurrad = 3;           //pre-processing radius always odd no.
     int acctarget = 10000;      //Number of cells required to flow into a cell before it's considered a stream
     int breakdist = 200;        //Distance along the flow paths to split the catchment
 
@@ -284,6 +285,8 @@ void CatchmentBuilder::SmoothPointsSingle(QuadtreeManager<Coordinates>& quad, Qu
     int storenum = (blurrad - 1) / 2;
 
     for (int y = 0; y <= boundsy; y++)
+    {
+        std::cout << std::fixed << std::setprecision(2) << "\r" << y / boundsy * 100 << "% Complete";
         for (int x = 0; x <= boundsx; x++)
         {
             Node<Coordinates>* node = quad.Search(Coordinates(x + left, y + bottom));
@@ -320,6 +323,8 @@ void CatchmentBuilder::SmoothPointsSingle(QuadtreeManager<Coordinates>& quad, Qu
                 smooth.Insert(new Node<Coordinates>(coord));
             }
         }
+    }
+    std::cout << "\n";
 }
 
 void CatchmentBuilder::SmoothPointsSplit(QuadtreeManager<Coordinates>& quad, QuadtreeManager<Coordinates>& smooth,int blurrad)
@@ -905,7 +910,7 @@ void CatchmentBuilder::CalculateNormalsSplit(QuadtreeManager<Coordinates>& smoot
 
                 normalq += translation;
 
-                normal.Insert(new Node<Normal>(Normal(translation, normalq)));
+                //normal.Insert(new Node<Normal>(Normal(translation, normalq)));
             }
 
         }
@@ -957,80 +962,74 @@ void CatchmentBuilder::CalculateFlowDirectionSplit(QuadtreeManager<FlowDirection
     int numquads = normal.splitlevel * 2; //quad splits the area in half in the x and y axis
     int totalquads = numquads * numquads; //total number of sub quads at the split level
 
-    double boundspersubquadx = boundsx / numquads; //the equal division of space in the x axis for the split level
-    double boundspersubquady = boundsy / numquads; //the equal division of space in the y axis for the split level
+    double boundspersubquadx = (boundsx / numquads); //the equal division of space in the x axis for the split level
+    double boundspersubquady = (boundsy / numquads); //the equal division of space in the y axis for the split level
 
     //for loops for iterating through split level trees
     for (int v = 0; v < numquads; v++) //move vertically through sub trees
     {
         //Calculate the offset to add when seaching within the loop, the +1 is to push it into the next subquad if subquad is the bottom left no offset is required
-        //int offsety = v == 0 ? 0 : std::floor(boundspersubquady * v) + 1;
+        int offsety = v == 0 ? 0 : std::floor(boundspersubquady * v)+1;
 
-        int offsety;
-        if (v == 0)
-        {
-            offsety = 0;
-            boundspersubquady = 999;
-        }
-        if (v == 1)
-        {
-            offsety = 1000;
-            boundspersubquady = 998;
-        }
-        if (v == 2)
-        {
-            offsety = 1999;
-            boundspersubquady = 999;
-        }
-        if (v == 3)
-        {
-            offsety = 3000;
-            boundspersubquady = 997;
-        }
+        //int offsety;
+        //if (v == 0)
+        //{
+        //    offsety = 0;
+        //    boundspersubquady = 1000;
+        //}
+        //if (v == 1)
+        //{
+        //    offsety = 1000;
+        //    boundspersubquady = 999;
+        //}
+        //if (v == 2)
+        //{
+        //    offsety = 1999;
+        //    boundspersubquady = 1000;
+        //}
+        //if (v == 3)
+        //{
+        //    offsety = 2999;
+        //    boundspersubquady = 999;
+        //}
 
         for (int w = 0; w < numquads; w++) //move horizontally through sub trees
         {
             //Same as the y offset
-            //int offsetx = w == 0 ? 0 : std::floor(boundspersubquadx * w) + 1;
+            int offsetx = w == 0 ? 0 : std::floor(boundspersubquadx * w)+1;
 
-            int offsetx;
-            if (w == 0)
-            {
-                offsetx = 0;
-                boundspersubquadx = 999;
-            }
-            if (w == 1)
-            {
-                offsetx = 1000;
-                boundspersubquadx = 998;
-            }
-            if (w == 2)
-            {
-                offsetx = 1999;
-                boundspersubquadx = 999;
-            }
-            if (w == 3)
-            {
-                offsetx = 3000;
-                boundspersubquadx = 997;
-            }
+            //int offsetx;
+            //if (w == 0)
+            //{
+            //    offsetx = 0;
+            //    boundspersubquadx = 1000;
+            //}
+            //if (w == 1)
+            //{
+            //    offsetx = 1000;
+            //    boundspersubquadx = 999;
+            //}
+            //if (w == 2)
+            //{
+            //    offsetx = 1999;
+            //    boundspersubquadx = 1000;
+            //}
+            //if (w == 3)
+            //{
+            //    offsetx = 2999;
+            //    boundspersubquadx = 999;
+            //}
 
             std::cout << "\nProcessing Quad " << v * numquads + (w + 1) << " of " << totalquads << "\n";
 
-            for (int y = 0; y <= boundspersubquady; y++) //move through each coord in the y direction of the subtree
+            for (int y = 0; y < boundspersubquady; y++) //move through each coord in the y direction of the subtree
             {
-                if (w == 0 && y == 0)
-                    std::cout << "Start of line: " << y + offsety + bottom << "\n";
-
-                if (w == 0 && y >= boundspersubquadx)
-                    std::cout << "End of line: " << y + offsety + bottom << "\n";
-
-                for (int x = 0; x <= boundspersubquadx; x++)//move through each coord in the x direction of the subtree
+                for (int x = 0; x < boundspersubquadx; x++)//move through each coord in the x direction of the subtree
                 {
                     if (y == 0 && x == 0)
                         std::cout << "Start of line: " << x + offsetx + left << "\n";
 
-                    if (y == 0 && x >= boundspersubquadx)
+                    if (y == 0 && x >= boundspersubquadx-1)
                         std::cout << "End of line: " << x + offsetx + left << "\n";
 
                     auto f = normal.Search(Normal(x + offsetx + left, y + offsety + bottom));
@@ -2574,6 +2573,9 @@ void CatchmentBuilder::CalculateCatchmentParams(std::vector<FlowPath>& longestfp
 
     for each (FlowPath fp in longestfps)
     {
+        if (fp.path.size() == 0)
+            continue;
+
         std::vector<Vec3> points;
 
         for each (Vec2 v in fp.path)
