@@ -1,7 +1,7 @@
 #pragma once
 
 #include "FlowClassification.h"
-
+#include "MinMax.h"
 #include <vector>
 
 struct Catchment
@@ -23,4 +23,5 @@ struct Catchment
 	float lowestpt;
 	float longestfplength;
 	DischargePoint dp;
+	MinMax bounds;
 };

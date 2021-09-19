@@ -116,7 +116,7 @@ int main(int argc, char* argv[])
     std::vector<Catchment> catchments;
 
     /* BUILD CATCHMENTS*/
-    if (progparams.reuselevel >= 9)
+    if (progparams.reuselevel >= 8)
     {
         //Reuse previously computed data
         FileReader::ReadCatchmentsBinary("Temp/Catchments/Catchments", catchments);

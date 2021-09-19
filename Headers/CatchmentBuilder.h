@@ -35,13 +35,15 @@ private:
     void CatchmentClassification(QuadtreeManager<FlowGeneral>& catchclass, QuadtreeManager<FlowDirection>& flowdirection, std::vector<DischargePoint> dischargepoints);
     std::vector<DischargePoint> GenerateDischargePoints(std::vector<FlowPath>& fps, int breakdist);
     void ClassifyFlowPath(QuadtreeManager<FlowGeneral>& catchclass, QuadtreeManager<FlowDirection>& flowdirection, std::vector<DischargePoint> dischargepoints, Vec2 point);
+    //Process individual catchments
+    void CatchmentProperties(std::vector<Catchment>& catchlist, std::vector<DischargePoint> dispoints, QuadtreeManager<FlowGeneral>& catchclass, QuadtreeManager<FlowDirection>& flowdirection);
     //Catchment Polygonisation
-    void PolygoniseCatchments(QuadtreeManager<FlowGeneral>& catchclass, std::vector<DischargePoint> dischargepoints, std::vector<Catchment>& catchlist);
+    void PolygoniseCatchment(QuadtreeManager<FlowGeneral>& catchclass, Catchment& catchment);
     float DistBetween(Vec2 v1, Vec2 v2);
     //Parameters for each catchmnet
-    std::vector<FlowPath> LongestFlowPaths(QuadtreeManager<FlowGeneral>& catchclass, std::vector<DischargePoint> dischargepoints, std::vector<Catchment>& catchlist, QuadtreeManager<FlowDirection>& flowdirection);
-    void CalculateCatchmentParams(std::vector<FlowPath>& longestfps, QuadtreeManager<Normal>& normal, std::vector<Catchment>& catchlist, ProgamParams progp);
-    void IsochroneGeneration(QuadtreeManager<FlowGeneral>& catchclass, std::vector<DischargePoint> dischargepoints, std::vector<Catchment>& catchlist, QuadtreeManager<FlowDirection>& flowdirection);
-    FlowPath GetFlowPathFrom(QuadtreeManager<FlowDirection>& flowdirection, std::vector<DischargePoint> dischargepoints, Vec2 point);
-    void ClassifyIsochrones(QuadtreeManager<FlowGeneral>& catchment, QuadtreeManager<FlowDirection>& flowdirection, int catchID, float flowdistance, Vec2 dp, Vec2 point);
+    FlowPath LongestFlowPath(QuadtreeManager<FlowGeneral>& catchclass, Catchment& catchment, QuadtreeManager<FlowDirection>& flowdirection, std::vector<FlowPath>& flowpaths);
+    void CalculateCatchmentParams(Catchment& c, QuadtreeManager<Normal>& normal);
+    void IsochroneGeneration(QuadtreeManager<FlowGeneral>& catchclass, std::vector<FlowPath> flowpaths, Catchment& catchm);
+    FlowPath GetFlowPathFrom(QuadtreeManager<FlowDirection>& flowdirection, DischargePoint dischargepoint, Vec2 point);
+    void ClassifyIsochrones(QuadtreeManager<FlowGeneral>& catchment, Catchment c, std::vector<FlowPath> flowpaths);
 };

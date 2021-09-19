@@ -227,44 +227,14 @@ std::vector<Catchment> CatchmentBuilder::CreateCatchments(ProgamParams progp)
 
     std::vector<Catchment> catchlist;
 
-    PolygoniseCatchments(catchclass, dischargepoints, catchlist);
+    //Combine the polygonisation, longest fps, catchment params and isochrone generation into 1 function and iterate per catchment
 
+    CatchmentProperties(catchlist, dischargepoints, catchclass, flowdirection);
     std::cout << "Exporting Catchment Polygons\n";
     FileWriter::WriteCatchmentPolysWKT("./Exports/Polygons/Catchments", catchlist);
 
-    std::vector<FlowPath> longestfps;
-
-    if (progp.reuselevel >= 8)
-    {
-        //Reuse previously computed data
-        FileReader::ReadStreamPathsBinary("Temp/FlowPath/LongestFlowPath", longestfps);
-        std::cout << "Existing Flow Paths Loaded\n";
-    }
-    else
-    {
-        //Create new data
-        longestfps = LongestFlowPaths(catchclass, dischargepoints, catchlist, flowdirection);
-
-        FileWriter::WriteStreamPathsBinary("Temp/FlowPath/LongestFlowPath", longestfps);
-
-        std::cout << "Exporting Stream Paths\n";
-        FileWriter::WriteStreamPaths2dWKT("./Exports/Vectors/LongestFlowPaths2dWKT", longestfps);
-    }
-
-    QuadtreeManager<Normal> normal2(tL, bR);
-    normal2.prePath = "Temp/NormalTree/Tree";
-    normal2.ReadManagerFromFile();
-
-    //Calculate Catchment Params
-
-    CalculateCatchmentParams(longestfps, normal2, catchlist, progp);
-
-    longestfps.clear();
-    normal2.~QuadtreeManager();
-
-    //Calculate Isochrones
-
-    IsochroneGeneration(catchclass, dischargepoints, catchlist, flowdirection);
+    std::cout << "Exporting Longest Flow Paths\n";
+    FileWriter::WriteStreamPaths2dWKT("./Exports/Vectors/LongestFlowPaths2dWKT", catchlist);
 
     catchclass.~QuadtreeManager();
     flowdirection.~QuadtreeManager();
@@ -1992,6 +1962,131 @@ void CatchmentBuilder::CatchmentClassification(QuadtreeManager<FlowGeneral>& cat
     }
 }
 
+void CatchmentBuilder::ClassifyFlowPath(QuadtreeManager<FlowGeneral>& catchclass, QuadtreeManager<FlowDirection>& flowdirection, std::vector<DischargePoint> dischargepoints, Vec2 point)
+{
+    //Trace for each x y coord
+    //store catchclass nodes in vector
+    //when discharge point is reached
+    //get the id and apply to all nodes in the vector
+    //if node already has id then skip it
+
+    int exitcond = 0; //if 0 not reached exit, if 1 discharge point found, if 2 nullptr found, if 3 circular flowpath found
+    int flowpathid = 0;
+    std::vector<Node<FlowGeneral>*> path;
+
+    double i = point.x;
+    double j = point.y;
+
+    auto d = flowdirection.Search(FlowDirection(i, j));
+    auto c = catchclass.Search(FlowGeneral(i, j));
+
+    while (exitcond == 0)
+    {
+        path.push_back(c);
+
+        //Increment i or j based on the flow direction to get the next cell
+        switch (d->pos.direction)
+        {
+        case Direction::N:
+        {
+            j++;
+            break;
+        };
+        case Direction::NE:
+        {
+            j++;
+            i++;
+            break;
+        };
+        case Direction::E:
+        {
+            i++;
+            break;
+        };
+        case Direction::SE:
+        {
+            j--;
+            i++;
+            break;
+        };
+        case Direction::S:
+        {
+            j--;
+            break;
+        };
+        case Direction::SW:
+        {
+            j--;
+            i--;
+            break;
+        };
+        case Direction::W:
+        {
+            i--;
+            break;
+        };
+        case Direction::NW:
+        {
+            j++;
+            i--;
+            break;
+        };
+        }
+
+        d = flowdirection.Search(FlowDirection(i, j));
+        c = catchclass.Search(FlowGeneral(i, j));
+
+        if (d == nullptr || c == nullptr)
+        {
+            exitcond = 2;
+            break;
+        }
+
+        if (c->pos.iValue != 0)
+        {
+            exitcond = 1;
+            flowpathid = c->pos.iValue;
+        }
+
+
+        for (size_t a = 0; a < dischargepoints.size(); a++)
+        {
+            if (dischargepoints[a].location == Vec2(i, j))
+            {
+                exitcond = 1;
+                flowpathid = dischargepoints[a].index;
+                break;
+            }
+        }
+
+        for (size_t a = 0; a < path.size(); a++)
+        {
+            double comp1 = std::abs(path[a]->pos.x - i);
+            double comp2 = std::abs(path[a]->pos.y - j);
+            if (comp1 < 0.0001 && comp2 < 0.0001)
+            {
+                exitcond = 3;
+            }
+        }
+    }
+
+    if (exitcond == 1)
+    {
+        for (size_t i = 0; i < path.size(); i++)
+        {
+            path[i]->pos.iValue = flowpathid;
+        }
+    }
+
+    for (size_t i = 0; i < path.size(); i++)
+    {
+        path[i] = nullptr;
+    }
+
+    path.clear();
+
+}
+
 std::vector<DischargePoint> CatchmentBuilder::GenerateDischargePoints(std::vector<FlowPath>& fps, int breakdist)
 {
     std::vector<DischargePoint> dischargepoints;
@@ -2085,154 +2180,40 @@ std::vector<DischargePoint> CatchmentBuilder::GenerateDischargePoints(std::vecto
     return dischargepoints;
 }
 
-void CatchmentBuilder::ClassifyFlowPath(QuadtreeManager<FlowGeneral>& catchclass, QuadtreeManager<FlowDirection>& flowdirection, std::vector<DischargePoint> dischargepoints, Vec2 point)
+void CatchmentBuilder::CatchmentProperties(std::vector<Catchment>& catchlist, std::vector<DischargePoint> dispoints, QuadtreeManager<FlowGeneral>& catchclass, QuadtreeManager<FlowDirection>& flowdirection)
 {
-    //Trace for each x y coord
-    //store catchclass nodes in vector
-    //when discharge point is reached
-    //get the id and apply to all nodes in the vector
-    //if node already has id then skip it
+    std::cout << "Processing Catchments\n";
 
-    int exitcond = 0; //if 0 not reached exit, if 1 discharge point found, if 2 nullptr found, if 3 circular flowpath found
-    int flowpathid = 0;
-    std::vector<Node<FlowGeneral>*> path;
-    
-    double i = point.x;
-    double j = point.y;
+    //Temporary tree for storing the isochrones, plotting purposes only
+    FlowGeneral tL3(flowdirection.topLeft.x, flowdirection.topLeft.y);
+    FlowGeneral bR3(flowdirection.bottomRight.x, flowdirection.bottomRight.y);
+    QuadtreeManager<FlowGeneral> temp(tL3, bR3);
+    temp.prePath = "Temp/AccumulationTree/Tree";
+    temp.spacing = flowdirection.spacing;
+    temp.splitlevel = flowdirection.splitlevel;
+    temp.SetTreeType(flowdirection.type);
 
-    auto d = flowdirection.Search(FlowDirection(i, j));
-    auto c = catchclass.Search(FlowGeneral(i, j));
-
-    while (exitcond == 0)
+    for (int a = 0; a < dispoints.size(); a++) //loop through all the discharge points 
     {
-        path.push_back(c);
+        std::cout << "\rProcessing Catchment " << a + 1 << " of " << dispoints.size();
 
-        //Increment i or j based on the flow direction to get the next cell
-        switch (d->pos.direction)
-        {
-        case Direction::N:
-        {
-            j++;
-            break;
-        };
-        case Direction::NE:
-        {
-            j++;
-            i++;
-            break;
-        };
-        case Direction::E:
-        {
-            i++;
-            break;
-        };
-        case Direction::SE:
-        {
-            j--;
-            i++;
-            break;
-        };
-        case Direction::S:
-        {
-            j--;
-            break;
-        };
-        case Direction::SW:
-        {
-            j--;
-            i--;
-            break;
-        };
-        case Direction::W:
-        {
-            i--;
-            break;
-        };
-        case Direction::NW:
-        {
-            j++;
-            i--;
-            break;
-        };
-        }
-
-        d = flowdirection.Search(FlowDirection(i, j));
-        c = catchclass.Search(FlowGeneral(i, j));
-
-        if (d == nullptr || c == nullptr)
-        {
-            exitcond = 2;
-            break;
-        }
-
-        if (c->pos.iValue != 0)
-        {
-            exitcond = 1;
-            flowpathid = c->pos.iValue;
-        }
-
-
-        for (size_t a = 0; a < dischargepoints.size(); a++)
-        {
-            if (dischargepoints[a].location == Vec2(i, j))
-            {
-                exitcond = 1;
-                flowpathid = dischargepoints[a].index;
-                break;
-            }
-        }
-
-        for (size_t a = 0; a < path.size(); a++)
-        {
-            double comp1 = std::abs(path[a]->pos.x - i);
-            double comp2 = std::abs(path[a]->pos.y - j);
-            if ( comp1 < 0.0001 &&  comp2 < 0.0001)
-            {
-                exitcond = 3;
-            }
-        }
-    }
-
-    if (exitcond == 1)
-    {
-        for (size_t i = 0; i < path.size(); i++)
-        {
-            path[i]->pos.iValue = flowpathid;
-        }
-    }
-
-    for (size_t i = 0; i < path.size(); i++)
-    {
-        path[i] = nullptr;
-    }
-
-    path.clear();
-
-}
-
-void CatchmentBuilder::PolygoniseCatchments(QuadtreeManager<FlowGeneral>& catchclass, std::vector<DischargePoint> dischargepoints, std::vector<Catchment>& catchlist)
-{
-    std::cout << "Polygonising Catchment Areas\n";
-
-    for each (DischargePoint dispoint in dischargepoints)
-    {
         Catchment c;
-        c.id = dispoint.index;
-        c.dp = dispoint;
+        c.dp = dispoints[a];
+        c.id = dispoints[a].index;
 
         double boundsx = (catchclass.BottomRight().x) - (catchclass.TopLeft().x);
         double boundsy = (catchclass.TopLeft().y) - (catchclass.BottomRight().y);
         double bottom = (catchclass.BottomRight().y);
         double left = (catchclass.TopLeft().x);
-        //narrow down the bounds to the catchment to avoid 
 
+        //narrow down the bounds to the catchment to avoid unnecessary iterations
         MinMax catchmentMM;
 
         for (int x = 0; x <= boundsx; x++)
             for (int y = 0; y <= boundsy; y++)
             {
                 auto node = catchclass.Search(FlowGeneral(x + left, y + bottom));
-                if (node != nullptr && node->pos.iValue == dispoint.index)
+                if (node != nullptr && node->pos.iValue == c.id)
                 {
                     if (x + left > catchmentMM.maxx)
                         catchmentMM.maxx = x + left;
@@ -2248,222 +2229,279 @@ void CatchmentBuilder::PolygoniseCatchments(QuadtreeManager<FlowGeneral>& catchc
                 }
             }
 
-        auto topLeft = FlowGeneral(catchmentMM.minx - 0.5, catchmentMM.maxy + 0.5);
-        auto bottomRight = FlowGeneral(catchmentMM.maxx + 0.5, catchmentMM.miny - 0.5);
+        c.bounds = catchmentMM;
 
-        bottom = catchmentMM.miny;
-        left = catchmentMM.minx;
-        boundsx = catchmentMM.maxx;
-        boundsy = catchmentMM.maxy;
+        auto topLeft = FlowGeneral(c.bounds.minx - 0.5, c.bounds.maxy + 0.5);
+        auto bottomRight = FlowGeneral(c.bounds.maxx + 0.5, c.bounds.miny - 0.5);
 
-        QuadtreeManager<FlowGeneral> catchmentA(topLeft, bottomRight);
+        bottom = c.bounds.miny;
+        left = c.bounds.minx;
+        boundsx = c.bounds.maxx;
+        boundsy = c.bounds.maxy;
 
-        catchmentA.prePath = "Temp/Catchment/Tree";
-        catchmentA.spacing = catchclass.spacing;
-        catchmentA.splitlevel = 0;
-        catchmentA.SetTreeType(TreeType::Single);
+        QuadtreeManager<FlowGeneral> catchmentTree(topLeft, bottomRight);
 
+        catchmentTree.prePath = "Temp/Catchment/Tree";
+        catchmentTree.spacing = catchclass.spacing;
+        catchmentTree.splitlevel = 0;
+        catchmentTree.SetTreeType(TreeType::Single);
+
+        int count = 0;
         //Copy all nodes with the matching catchment ID to a new tree for faster read write
         for (double x = left; x <= boundsx; x++)
             for (double y = bottom; y <= boundsy; y++)
             {
                 auto node = catchclass.Search(FlowGeneral(x, y));
                 if (node != nullptr)
-                    if (node->pos.iValue == dispoint.index)
+                    if (node->pos.iValue == c.id)
                     {
                         //insert at the four corners of the cell
-                        catchmentA.Insert(new Node<FlowGeneral>(FlowGeneral(x + 0.5, y + 0.5, dispoint.index)));
-                        catchmentA.Insert(new Node<FlowGeneral>(FlowGeneral(x + 0.5, y - 0.5, dispoint.index)));
-                        catchmentA.Insert(new Node<FlowGeneral>(FlowGeneral(x - 0.5, y + 0.5, dispoint.index)));
-                        catchmentA.Insert(new Node<FlowGeneral>(FlowGeneral(x - 0.5, y - 0.5, dispoint.index)));
+                        catchmentTree.Insert(new Node<FlowGeneral>(FlowGeneral(x, y, c.id)));
+                        count++;
                     }
             }
 
-        bottom = catchmentMM.miny - 0.5;
-        left = catchmentMM.minx - 0.5;
-        boundsx = catchmentMM.maxx + 0.5;
-        boundsy = catchmentMM.maxy + 0.5;
+        if (count == 0)
+            continue;
 
-        std::vector<Vec2> temppoints;
+        //Polygonise
 
-        //Copy all boundary cells to temppoints
+        PolygoniseCatchment(catchmentTree, c);
+
+        //Get all flow paths and store longest in struct with length
+        std::vector<FlowPath> flowpaths;
+
+        c.longest = LongestFlowPath(catchmentTree, c, flowdirection, flowpaths);
+
+        if (flowpaths.size() == 0)
+            continue;
+
+        c.longestfplength = c.longest.Length();
+
+        /* DO MANNINGS AND LOSS FINDING HERE*/
+        //In place of the mannings polygon function set the mannings value #REPLACE THIS LATER#
+        c.mannings = 0.0833;
+        c.IL = 0;
+        c.CL = 2.5;
+
+        //find average slope and flow distance
+        Normal tL = Normal(catchclass.TopLeft().x, catchclass.TopLeft().y);
+        Normal bR = Normal(catchclass.BottomRight().x, catchclass.BottomRight().y);
+
+        QuadtreeManager<Normal> normal2(tL, bR);
+        normal2.prePath = "Temp/NormalTree/Tree";
+        normal2.ReadManagerFromFile();
+
+        CalculateCatchmentParams(c, normal2);
+        normal2.~QuadtreeManager();
+
+        //Iso chrones
+
+        IsochroneGeneration(catchmentTree, flowpaths, c);
+
         for (double x = left; x <= boundsx; x++)
             for (double y = bottom; y <= boundsy; y++)
             {
-                if (catchmentA.Search(FlowGeneral(x, y)) != nullptr)
+                auto node = catchmentTree.Search(FlowGeneral(x, y));
+                if (node != nullptr)
                 {
-                    if (catchmentA.Search(FlowGeneral(x - 1, y)) == nullptr || catchmentA.Search(FlowGeneral(x + 1, y)) == nullptr ||
-                        catchmentA.Search(FlowGeneral(x, y - 1)) == nullptr || catchmentA.Search(FlowGeneral(x, y + 1)) == nullptr)
-                    {
-                        temppoints.push_back(Vec2(x, y));
-                    }
+                    //if (node->pos.iValue >= 1)
+                    //{
+                    //    c.isochroneareas[node->pos.iValue]++;
+                    //}
+                    temp.Insert(new Node<FlowGeneral>(FlowGeneral(x, y, node->pos.iValue + 1000 * c.id)));
+                }
+
+            }
+        catchmentTree.~QuadtreeManager();
+        catchlist.push_back(c);
+    }
+
+    std::cout << "\n";
+    FileWriter::WriteFlowGeneralTreeASC("./Exports/Surfaces/Isochrone", temp);
+    temp.~QuadtreeManager();
+}
+
+void CatchmentBuilder::PolygoniseCatchment(QuadtreeManager<FlowGeneral>& catchclass, Catchment& catchment)
+{
+    double bottom = catchment.bounds.miny;
+    double left = catchment.bounds.minx;
+    double boundsx = catchment.bounds.maxx;
+    double boundsy = catchment.bounds.maxy;
+
+    std::vector<Vec2> temppoints;
+
+    //Copy all boundary cells to temppoints
+    for (double x = left; x <= boundsx; x++)
+        for (double y = bottom; y <= boundsy; y++)
+        {
+            if (catchclass.Search(FlowGeneral(x, y)) != nullptr)
+            {
+                if (catchclass.Search(FlowGeneral(x - 1, y)) == nullptr || catchclass.Search(FlowGeneral(x + 1, y)) == nullptr ||
+                    catchclass.Search(FlowGeneral(x, y - 1)) == nullptr || catchclass.Search(FlowGeneral(x, y + 1)) == nullptr)
+                {
+                    temppoints.push_back(Vec2(x, y));
                 }
             }
+        }
 
-        catchmentA.~QuadtreeManager();
+    if (temppoints.size() == 0)
+        return;
 
-        //find the bottom most point
-        int lowestindex = 0;
-        float lowest = std::numeric_limits<float>::max();
-        
+    //find the bottom most point
+    int lowestindex = 0;
+    float lowest = std::numeric_limits<float>::max();
+
+    for (int i = 0; i < temppoints.size(); i++)
+    {
+        if (temppoints[i].y <= lowest)
+        {
+            lowestindex = i;
+            lowest = temppoints[i].y;
+        }
+    }
+
+    catchment.points.push_back(temppoints[lowestindex]);
+    temppoints.erase(std::begin(temppoints) + lowestindex);
+
+    double x = catchment.points[0].x;
+    double y = catchment.points[0].y;
+
+    while (true)
+    {
+        if (temppoints.size() == 0)
+            break;
+
+        int index1 = 0;
+        int index2 = 0;
+        int index3 = 0;
+        float dist1 = std::numeric_limits<float>::max();
+        float dist2 = std::numeric_limits<float>::max();
+        float dist3 = std::numeric_limits<float>::max();
+
         for (int i = 0; i < temppoints.size(); i++)
         {
-            if (temppoints[i].y <= lowest)
+            float dist = DistBetween(catchment.points[catchment.points.size() - 1], temppoints[i]);
+            if (dist == 0)
+                continue;
+
+            if (dist <= dist3)
             {
-                lowestindex = i; //I don't know why this is giving an incorrect index and needs to be -1
-                lowest = temppoints[i].y;
-            }
-        }
-        
-        if (temppoints.size() == 0)
-            return;
-
-        c.points.push_back(temppoints[lowestindex]);
-        temppoints.erase(std::begin(temppoints)+lowestindex);
-
-        double x = c.points[0].x;
-        double y = c.points[0].y;
-
-        while (true)
-        {
-            if (temppoints.size() == 0)
-                break;
-
-            int index1 = 0;
-            int index2 = 0;
-            int index3 = 0;
-            float dist1 = std::numeric_limits<float>::max();
-            float dist2 = std::numeric_limits<float>::max();
-            float dist3 = std::numeric_limits<float>::max();
-
-            for (int i = 0; i < temppoints.size(); i++)
-            {
-                float dist = DistBetween(c.points[c.points.size()-1], temppoints[i]);
-                if (dist == 0)
-                    continue;
-
-                if ( dist <= dist3)
+                if (dist <= dist2)
                 {
-                    if (dist <= dist2)
+                    if (dist <= dist1)
                     {
-                        if (dist <= dist1)
-                        {
-                            dist3 = dist2;
-                            index3 = index2;
-                            dist2 = dist1;
-                            index2 = index1;
-                            dist1 = dist;
-                            index1 = i;
-                        }
-                        else
-                        {
-                            dist3 = dist2;
-                            index3 = index2;
-                            dist2 = dist;
-                            index2 = i;
-                        }
+                        dist3 = dist2;
+                        index3 = index2;
+                        dist2 = dist1;
+                        index2 = index1;
+                        dist1 = dist;
+                        index1 = i;
                     }
                     else
                     {
-                        dist3 = dist;
-                        index3 = i;
+                        dist3 = dist2;
+                        index3 = index2;
+                        dist2 = dist;
+                        index2 = i;
                     }
                 }
-            }
-
-            Vec2 n;
-
-            if (c.points.size() == 1)
-            {
-                n = c.points[0];
-                n.y--;
-            }
-            else
-            {
-                n = c.points[c.points.size() - 2];
-            }
-
-            Vec2 o = c.points[c.points.size()-1];
-
-            Vec2 p = temppoints[index1];
-            Vec2 q = temppoints[index2];
-            Vec2 r = temppoints[index3];
-
-            Vec2 on = Vec2(n.x - o.x, n.y - o.y);
-            Vec2 op = Vec2(p.x - o.x, p.y - o.y);
-            Vec2 oq = Vec2(q.x - o.x, q.y - o.y);
-            Vec2 or = Vec2(r.x - o.x, r.y - o.y);
-
-            float dotnop = on.x * op.x + on.y * op.y;
-            float detnop = on.x * op.y - on.y * op.x;
-
-            float anglenop = 360 - (std::atan2(detnop, dotnop) * 180 / PI); 
-
-            float dotnoq = on.x * oq.x + on.y * oq.y;
-            float detnoq = on.x * oq.y - on.y * oq.x;
-
-            float anglenoq = 360 - (std::atan2(detnoq, dotnoq) * 180 / PI);
-
-            float dotnor = on.x * or.x + on.y * or.y;
-            float detnor = on.x * or.y - on.y * or.x;
-
-            float anglenor = 360 - (std::atan2(detnor, dotnor) * 180 / PI);
-            if (dist1 == dist2 && dist1 == dist3)
-            {
-                //filter by angle
-                if (anglenop < anglenoq && anglenop < anglenor)
+                else
                 {
-                    c.points.push_back(temppoints[index1]);
-                    temppoints.erase(std::begin(temppoints) + index1);
-                    continue;
+                    dist3 = dist;
+                    index3 = i;
                 }
-                else if (anglenoq < anglenop && anglenoq < anglenor)
-                {
-                    c.points.push_back(temppoints[index2]);
-                    temppoints.erase(std::begin(temppoints) + index2);
-                    continue;
-                }
-                else if (anglenor < anglenop && anglenor < anglenoq)
-                {
-                    c.points.push_back(temppoints[index3]);
-                    temppoints.erase(std::begin(temppoints) + index3);
-                    continue;
-                }
-            }
-            if (dist1 == dist2 && dist2 < dist3)
-            {
-                //dist 1 and 2 are equal but greater than 3
-                //filter by angle
-                if (anglenop < anglenoq)
-                {
-                    c.points.push_back(temppoints[index1]);
-                    temppoints.erase(std::begin(temppoints) + index1);
-                    continue;
-                }
-                else if (anglenoq < anglenop)
-                {
-                    c.points.push_back(temppoints[index2]);
-                    temppoints.erase(std::begin(temppoints) + index2);
-                    continue;
-                }
-            }
-            if (dist1 < dist2 && dist1 < 10)
-            {
-                //dist1 is closest
-                c.points.push_back(temppoints[index1]);
-                temppoints.erase(std::begin(temppoints) + index1);
-                continue;
-            }
-            else
-            {
-                break;
             }
         }
 
+        Vec2 n;
 
-        catchlist.push_back(c);
+        if (catchment.points.size() == 1)
+        {
+            n = catchment.points[0];
+            n.y--;
+        }
+        else
+        {
+            n = catchment.points[catchment.points.size() - 2];
+        }
 
+        Vec2 o = catchment.points[catchment.points.size() - 1];
 
+        Vec2 p = temppoints[index1];
+        Vec2 q = temppoints[index2];
+        Vec2 r = temppoints[index3];
+
+        Vec2 on = Vec2(n.x - o.x, n.y - o.y);
+        Vec2 op = Vec2(p.x - o.x, p.y - o.y);
+        Vec2 oq = Vec2(q.x - o.x, q.y - o.y);
+        Vec2 or = Vec2(r.x - o.x, r.y - o.y);
+
+        float dotnop = on.x * op.x + on.y * op.y;
+        float detnop = on.x * op.y - on.y * op.x;
+
+        float anglenop = 360 - (std::atan2(detnop, dotnop) * 180 / PI);
+
+        float dotnoq = on.x * oq.x + on.y * oq.y;
+        float detnoq = on.x * oq.y - on.y * oq.x;
+
+        float anglenoq = 360 - (std::atan2(detnoq, dotnoq) * 180 / PI);
+
+        float dotnor = on.x * or .x + on.y * or .y;
+        float detnor = on.x * or .y - on.y * or .x;
+
+        float anglenor = 360 - (std::atan2(detnor, dotnor) * 180 / PI);
+
+        if (dist1 == dist2 && dist1 == dist3)
+        {
+            //filter by angle
+            if (anglenop < anglenoq && anglenop < anglenor)
+            {
+                catchment.points.push_back(temppoints[index1]);
+                temppoints.erase(std::begin(temppoints) + index1);
+                continue;
+            }
+            else if (anglenoq < anglenop && anglenoq < anglenor)
+            {
+                catchment.points.push_back(temppoints[index2]);
+                temppoints.erase(std::begin(temppoints) + index2);
+                continue;
+            }
+            else if (anglenor < anglenop && anglenor < anglenoq)
+            {
+                catchment.points.push_back(temppoints[index3]);
+                temppoints.erase(std::begin(temppoints) + index3);
+                continue;
+            }
+        }
+        if (dist1 == dist2 && dist2 < dist3)
+        {
+            //dist 1 and 2 are equal but greater than 3
+            //filter by angle
+            if (anglenop < anglenoq)
+            {
+                catchment.points.push_back(temppoints[index1]);
+                temppoints.erase(std::begin(temppoints) + index1);
+                continue;
+            }
+            else if (anglenoq < anglenop)
+            {
+                catchment.points.push_back(temppoints[index2]);
+                temppoints.erase(std::begin(temppoints) + index2);
+                continue;
+            }
+        }
+        if (dist1 < dist2 && dist1 < 10)
+        {
+            //dist1 is closest
+            catchment.points.push_back(temppoints[index1]);
+            temppoints.erase(std::begin(temppoints) + index1);
+            continue;
+        }
+        else
+        {
+            break;
+        }
     }
 }
 
@@ -2472,173 +2510,39 @@ float CatchmentBuilder::DistBetween(Vec2 v1, Vec2 v2)
     return std::sqrt(std::pow(v2.y - v1.y, 2) + std::pow(v2.x - v1.x, 2));
 }
 
-std::vector<FlowPath> CatchmentBuilder::LongestFlowPaths(QuadtreeManager<FlowGeneral>& catchclass, std::vector<DischargePoint> dischargepoints, std::vector<Catchment>& catchlist, QuadtreeManager<FlowDirection>& flowdirection)
+FlowPath CatchmentBuilder::LongestFlowPath(QuadtreeManager<FlowGeneral>& catchclass, Catchment& catchment, QuadtreeManager<FlowDirection>& flowdirection, std::vector<FlowPath>& flowpaths)
 {
-    std::cout << "Calculating Longest Flow Paths\n";
+    //for the catchment generate all flow paths and store in a vector and return the longest
+    double bottom = catchment.bounds.miny;
+    double left = catchment.bounds.minx;
+    double boundsx = catchment.bounds.maxx;
+    double boundsy = catchment.bounds.maxy;
 
-    std::vector<FlowPath> longestfps;
+    FlowPath longest;
 
-    for each (DischargePoint dispoint in dischargepoints)
-    {
-        //DischargePoint dispoint = dischargepoints[0];
-        Catchment c;
-
-        double boundsx = (catchclass.BottomRight().x) - (catchclass.TopLeft().x);
-        double boundsy = (catchclass.TopLeft().y) - (catchclass.BottomRight().y);
-        double bottom = (catchclass.BottomRight().y);
-        double left = (catchclass.TopLeft().x);
-        //narrow down the bounds to the catchment to avoid 
-
-        MinMax catchmentMM;
-
-        for (int x = 0; x <= boundsx; x++)
-            for (int y = 0; y <= boundsy; y++)
-            {
-                auto node = catchclass.Search(FlowGeneral(x + left, y + bottom));
-                if (node != nullptr && node->pos.iValue == dispoint.index)
-                {
-                    if (x + left > catchmentMM.maxx)
-                        catchmentMM.maxx = x + left;
-
-                    if (y + bottom > catchmentMM.maxy)
-                        catchmentMM.maxy = y + bottom;
-
-                    if (x + left < catchmentMM.minx)
-                        catchmentMM.minx = x + left;
-
-                    if (y + bottom < catchmentMM.miny)
-                        catchmentMM.miny = y + bottom;
-                }
-            }
-
-        auto topLeft = FlowGeneral(catchmentMM.minx - 0.5, catchmentMM.maxy + 0.5);
-        auto bottomRight = FlowGeneral(catchmentMM.maxx + 0.5, catchmentMM.miny - 0.5);
-
-        bottom = catchmentMM.miny;
-        left = catchmentMM.minx;
-        boundsx = catchmentMM.maxx;
-        boundsy = catchmentMM.maxy;
-
-        QuadtreeManager<FlowGeneral> catchmentA(topLeft, bottomRight);
-
-        catchmentA.prePath = "Temp/Catchment/Tree";
-        catchmentA.spacing = catchclass.spacing;
-        catchmentA.splitlevel = 0;
-        catchmentA.SetTreeType(TreeType::Single);
-
-        //Copy all nodes with the matching catchment ID to a new tree for faster read write
-        for (double x = left; x <= boundsx; x++)
-            for (double y = bottom; y <= boundsy; y++)
-            {
-                auto node = catchclass.Search(FlowGeneral(x, y));
-                if (node != nullptr)
-                    if (node->pos.iValue == dispoint.index)
-                    {
-                        catchmentA.Insert(new Node<FlowGeneral>(FlowGeneral(x, y , dispoint.index)));
-                    }
-            }
-
-        //for catchmentA generate all flow paths and store in a vector
-
-        FlowPath longest;
-
-        for (double x = left; x <= boundsx; x++)
-            for (double y = bottom; y <= boundsy; y++)
-            {
-                auto node = catchmentA.Search(FlowGeneral(x, y));
-                if (node != nullptr)
-                {
-                    FlowPath temp = GetFlowPathFrom(flowdirection, dischargepoints, Vec2(x,y));
-                    if (longest.path.size() == 0)
-                    {
-                        longest = temp;
-                    }
-                    else if (longest.Length() < temp.Length())
-                    {
-                        longest = temp;
-                    }
-                }
-            }
-        
-        longest.id = dispoint.index;
-        longestfps.push_back(longest);
-        catchmentA.~QuadtreeManager();
-    }
-    return longestfps;
-}
-
-void CatchmentBuilder::CalculateCatchmentParams(std::vector<FlowPath>& longestfps, QuadtreeManager<Normal>& normal, std::vector<Catchment>& catchlist, ProgamParams progp)
-{
-    std::cout << "Calculating Catchment Parameters\n";
-
-    for each (FlowPath fp in longestfps)
-    {
-        if (fp.path.size() == 0)
-            continue;
-
-        std::vector<Vec3> points;
-
-        for each (Vec2 v in fp.path)
+    for (double x = left; x <= boundsx; x++)
+        for (double y = bottom; y <= boundsy; y++)
         {
-            auto node = normal.Search(Normal(v.x,v.y));
+            auto node = catchclass.Search(FlowGeneral(x, y));
             if (node != nullptr)
             {
-                points.push_back(node->pos);
+                FlowPath temp = GetFlowPathFrom(flowdirection, catchment.dp, Vec2(x, y));
+                temp.id = catchment.id;
+                flowpaths.push_back(temp);
+                if (longest.path.size() == 0)
+                {
+                    longest = temp;
+                }
+                else if (longest.Length() < temp.Length())
+                {
+                    longest = temp;
+                }
             }
         }
-
-        std::vector<float> slopes;
-
-        for (int i = 1; i < points.size(); i++)
-        {
-            float slope = (points[i-1].z - points[i].z) / DistBetween(Vec2(points[i-1].x, points[i-1].y), Vec2(points[i].x, points[i].y));
-            slopes.push_back(slope);
-        }
-
-        float sumslope = 0;
-
-        for (int i = 1; i < slopes.size(); i++)
-        {
-            sumslope += slopes[i];
-        }
-
-        float avgslope = sumslope / fp.Length();
-
-        /* DO MANNINGS AND LOSS FINDING HERE*/
-        //In place of the mannings polygon function set the mannings value #REPLACE THIS LATER#
-        float mannings = 0.08;
-        float IL = 0;
-        float CL = 2.5;
-
-        //Flow Distance
-
-        //rainfall data is in 30min inc, this will need to be fixed when rainfall function is finished
-        int timestep = 30;
-
-        double temp2 = std::pow(avgslope, 0.2);
-        double temp1 = (timestep * (temp2)) / (mannings * 107);
-        float dist = std::pow(temp1, 3);
-
-        for (int i = 0; i < catchlist.size(); i++)
-        {
-            if (fp.id == catchlist[i].id)
-            {
-                catchlist[i].avgslope = avgslope;
-                catchlist[i].mannings = mannings;
-                catchlist[i].IL = IL;
-                catchlist[i].CL = CL;
-                catchlist[i].flowdistance = dist;
-                catchlist[i].longest = fp;
-                catchlist[i].highestpt = points[0].z;
-                catchlist[i].lowestpt = points[points.size() - 1].z;
-                catchlist[i].longestfplength = fp.Length();
-            }
-        }
-    }
-
+    return longest;
 }
 
-FlowPath CatchmentBuilder::GetFlowPathFrom(QuadtreeManager<FlowDirection>& flowdirection, std::vector<DischargePoint> dischargepoints, Vec2 point)
+FlowPath CatchmentBuilder::GetFlowPathFrom(QuadtreeManager<FlowDirection>& flowdirection, DischargePoint dischargepoint, Vec2 point)
 {
     int exitcond = 0; //if 0 not reached exit, if 1 discharge point found, if 2 nullptr found, if 3 circular flowpath found
     int flowpathid = 0;
@@ -2651,7 +2555,7 @@ FlowPath CatchmentBuilder::GetFlowPathFrom(QuadtreeManager<FlowDirection>& flowd
 
     while (exitcond == 0)
     {
-        flowpath.path.push_back(Vec2(d->pos.x,d->pos.y));
+        flowpath.path.push_back(Vec2(d->pos.x, d->pos.y));
 
         //Increment i or j based on the flow direction to get the next cell
         switch (d->pos.direction)
@@ -2710,15 +2614,14 @@ FlowPath CatchmentBuilder::GetFlowPathFrom(QuadtreeManager<FlowDirection>& flowd
             break;
         }
 
-        for (size_t a = 0; a < dischargepoints.size(); a++)
+
+        if (dischargepoint.location == Vec2(i, j))
         {
-            if (dischargepoints[a].location == Vec2(i, j))
-            {
-                exitcond = 1;
-                flowpathid = dischargepoints[a].index;
-                break;
-            }
+            exitcond = 1;
+            flowpathid = dischargepoint.index;
+            break;
         }
+
 
         for (size_t a = 0; a < flowpath.path.size(); a++)
         {
@@ -2734,219 +2637,127 @@ FlowPath CatchmentBuilder::GetFlowPathFrom(QuadtreeManager<FlowDirection>& flowd
     return flowpath;
 }
 
-void CatchmentBuilder::IsochroneGeneration(QuadtreeManager<FlowGeneral>& catchclass, std::vector<DischargePoint> dischargepoints, std::vector<Catchment>& catchlist, QuadtreeManager<FlowDirection>& flowdirection)
+void CatchmentBuilder::CalculateCatchmentParams(Catchment& c, QuadtreeManager<Normal>& normal)
 {
-    std::cout << "Generating Isochrones\n";
+    //Check that the longest fp is not 0
+    if (c.longest.path.size() == 0)
+        return;
 
-    //Temporary tree for storing the isochrones, plotting purposes only
-    FlowGeneral tL3(flowdirection.topLeft.x, flowdirection.topLeft.y);
-    FlowGeneral bR3(flowdirection.bottomRight.x, flowdirection.bottomRight.y);
-    QuadtreeManager<FlowGeneral> temp(tL3, bR3);
-    temp.prePath = "Temp/AccumulationTree/Tree";
-    temp.spacing = flowdirection.spacing;
-    temp.splitlevel = flowdirection.splitlevel;
-    temp.SetTreeType(flowdirection.type);
-    
-    for (auto& catchm : catchlist)
+    //store all height along the FP
+    std::vector<Vec3> points;
+
+    for each (Vec2 v in c.longest.path)
     {
-        double boundsx = (catchclass.BottomRight().x) - (catchclass.TopLeft().x);
-        double boundsy = (catchclass.TopLeft().y) - (catchclass.BottomRight().y);
-        double bottom = (catchclass.BottomRight().y);
-        double left = (catchclass.TopLeft().x);
-        //narrow down the bounds to the catchment to avoid 
+        auto node = normal.Search(Normal(v.x, v.y));
+        if (node != nullptr)
+        {
+            points.push_back(node->pos);
+        }
+    }
 
-        MinMax catchmentMM;
+    //calculate the slope for all segments
+    std::vector<float> slopes;
 
-        for (int x = 0; x <= boundsx; x++)
-            for (int y = 0; y <= boundsy; y++)
+    for (int i = 1; i < points.size(); i++)
+    {
+        float slope = (points[i - 1].z - points[i].z) / DistBetween(Vec2(points[i - 1].x, points[i - 1].y), Vec2(points[i].x, points[i].y));
+        slopes.push_back(slope);
+    }
+
+    //Sum the slopes to find an average
+    float sumslope = 0;
+
+    for (int i = 1; i < slopes.size(); i++)
+    {
+        sumslope += slopes[i];
+    }
+
+    //calculate the average slope
+    float avgslope = sumslope / c.longestfplength;
+
+    //Flow Distance
+    //Using Friends Eq calculate the distance up the slope water will travel in the timestep
+    //rainfall data is in 30min inc, this will need to be fixed when rainfall function is finished
+    int timestep = 30; //get the dynamically later
+
+    double temp2 = std::pow(avgslope, 0.2);
+    double temp1 = (timestep * (temp2)) / (c.mannings * 107);
+    float dist = std::pow(temp1, 3);
+
+    c.avgslope = avgslope;
+    c.flowdistance = dist;
+    c.highestpt = points[0].z;
+    c.lowestpt = points[points.size() - 1].z;
+
+}
+
+void CatchmentBuilder::IsochroneGeneration(QuadtreeManager<FlowGeneral>& catchclass, std::vector<FlowPath> flowpaths, Catchment& catchm)
+{
+    double bottom = catchm.bounds.miny;
+    double left = catchm.bounds.minx;
+    double boundsx = catchm.bounds.maxx;
+    double boundsy = catchm.bounds.maxy;
+    
+    //Set nodes to 0
+    for (double x = left; x <= boundsx; x++)
+        for (double y = bottom; y <= boundsy; y++)
+        {
+            auto node = catchclass.Search(FlowGeneral(x, y));
+            if (node != nullptr)
+                node->pos.iValue = 0;
+        }
+
+    ClassifyIsochrones(catchclass, catchm, flowpaths);
+
+    int catcharea = 0;
+    int maxiso = 0;
+
+    for (double x = left; x <= boundsx; x++)
+        for (double y = bottom; y <= boundsy; y++)
+        {
+            auto node = catchclass.Search(FlowGeneral(x, y));
+            if (node != nullptr)
             {
-                auto node = catchclass.Search(FlowGeneral(x + left, y + bottom));
-                if (node != nullptr && node->pos.iValue == catchm.id)
-                {
-                    if (x + left > catchmentMM.maxx)
-                        catchmentMM.maxx = x + left;
-
-                    if (y + bottom > catchmentMM.maxy)
-                        catchmentMM.maxy = y + bottom;
-
-                    if (x + left < catchmentMM.minx)
-                        catchmentMM.minx = x + left;
-
-                    if (y + bottom < catchmentMM.miny)
-                        catchmentMM.miny = y + bottom;
-                }
+                catcharea++;
+                if (node->pos.iValue > maxiso)
+                    maxiso = node->pos.iValue;
             }
 
-        auto topLeft = FlowGeneral(catchmentMM.minx - 0.5, catchmentMM.maxy + 0.5);
-        auto bottomRight = FlowGeneral(catchmentMM.maxx + 0.5, catchmentMM.miny - 0.5);
+        }
 
-        bottom = catchmentMM.miny;
-        left = catchmentMM.minx;
-        boundsx = catchmentMM.maxx;
-        boundsy = catchmentMM.maxy;
+    catchm.area = catcharea;
 
-        QuadtreeManager<FlowGeneral> Isos(topLeft, bottomRight);
-
-        Isos.prePath = "Temp/Catchment/Tree";
-        Isos.spacing = catchclass.spacing;
-        Isos.splitlevel = 0;
-        Isos.SetTreeType(TreeType::Single);
-
-        //Copy all nodes with the matching catchment ID to a new tree for faster read write
+    for (int i = 0; i <= maxiso; i++)
+    {
+        int area = 0;
         for (double x = left; x <= boundsx; x++)
             for (double y = bottom; y <= boundsy; y++)
             {
                 auto node = catchclass.Search(FlowGeneral(x, y));
                 if (node != nullptr)
-                    if (node->pos.iValue == catchm.id)
-                    {
-                        Isos.Insert(new Node<FlowGeneral>(FlowGeneral(x, y, 0)));
-                    }
-            }
-
-        //for a catchment generate all flow paths and then set the values for 
-
-        int catcharea = 0;
-        int maxiso = 0;
-
-        for (double x = left; x <= boundsx; x++)
-            for (double y = bottom; y <= boundsy; y++)
-            {
-                auto node = Isos.Search(FlowGeneral(x, y));
-                if (node != nullptr)
                 {
-                    ClassifyIsochrones(Isos, flowdirection, catchm.id, catchm.flowdistance, catchm.dp.location, Vec2(x, y));
-                    catcharea++;
-                    if (node->pos.iValue > maxiso)
-                        maxiso = node->pos.iValue;
+                    if (node->pos.iValue == i)
+                        area++;
                 }
 
             }
-
-        catchm.area = catcharea;
-
-        for (int i = 0; i <= maxiso; i++)
-        {
-            int area = 0;
-            catchm.isochroneareas.push_back(area);
-        }
-
-        for (double x = left; x <= boundsx; x++)
-            for (double y = bottom; y <= boundsy; y++)
-            {
-                auto node = Isos.Search(FlowGeneral(x, y));
-                if (node != nullptr)
-                {
-                    if (node->pos.iValue >= 1)
-                    {
-                        catchm.isochroneareas[node->pos.iValue]++;
-                    }
-                    temp.Insert(new Node<FlowGeneral>(FlowGeneral(x, y, node->pos.iValue + 1000 * catchm.id)));
-                }
-
-            }
-        Isos.~QuadtreeManager();
-
+        catchm.isochroneareas.push_back(area);
     }
-    FileWriter::WriteFlowGeneralTreeASC("./Exports/Surfaces/Isochrone", temp);
 }
 
-void CatchmentBuilder::ClassifyIsochrones(QuadtreeManager<FlowGeneral>& catchment, QuadtreeManager<FlowDirection>& flowdirection, int catchID, float flowdistance, Vec2 dp, Vec2 point)
+void CatchmentBuilder::ClassifyIsochrones(QuadtreeManager<FlowGeneral>& catchment, Catchment c, std::vector<FlowPath> flowpaths)
 {
-    //Trace for each x y coord
-    //store catchclass nodes in vector
-    //when discharge point is reached
-    //get the id and apply to all nodes in the vector
-    //if node already has id then skip it
-
-    int exitcond = 0; //if 0 not reached exit, if 1 discharge point found, if 2 nullptr found, if 3 circular flowpath found
-    std::vector<Node<FlowGeneral>*> path;
-
-    double i = point.x;
-    double j = point.y;
-
-    auto d = flowdirection.Search(FlowDirection(i, j));
-    auto c = catchment.Search(FlowGeneral(i, j));
-
-    while (exitcond == 0)
+    for each (FlowPath fp in flowpaths)
     {
-        path.push_back(c);
-
-        //Increment i or j based on the flow direction to get the next cell
-        switch (d->pos.direction)
-        {
-        case Direction::N:
-        {
-            j++;
-            break;
-        };
-        case Direction::NE:
-        {
-            j++;
-            i++;
-            break;
-        };
-        case Direction::E:
-        {
-            i++;
-            break;
-        };
-        case Direction::SE:
-        {
-            j--;
-            i++;
-            break;
-        };
-        case Direction::S:
-        {
-            j--;
-            break;
-        };
-        case Direction::SW:
-        {
-            j--;
-            i--;
-            break;
-        };
-        case Direction::W:
-        {
-            i--;
-            break;
-        };
-        case Direction::NW:
-        {
-            j++;
-            i--;
-            break;
-        };
-        }
-
-        d = flowdirection.Search(FlowDirection(i, j));
-        c = catchment.Search(FlowGeneral(i, j));
-
-        if (dp == Vec2(i, j))
-        {
-            exitcond = 1;
-            break;
-        }
-    }
-
-    if (exitcond == 1)
-    {
-        FlowPath fp;
-        for (size_t i = 0; i < path.size(); i++)
-        {
-            fp.path.push_back(Vec2(path[i]->pos.x, path[i]->pos.y));
-        }
         //Classify Isos here
         std::vector<Vec2> inisochrone;
         int isoid = 1;
 
         float fplength = fp.Length();
 
-        for (int dist = 0; dist < fplength; dist += flowdistance)
+        for (int dist = 0; dist < fplength; dist += c.flowdistance)
         {
-            inisochrone = fp.GetPointsBetween(dist, dist + flowdistance);
+            inisochrone = fp.GetPointsBetween(dist, dist + c.flowdistance);
 
             for each (Vec2 fg in inisochrone)
             {
@@ -2959,11 +2770,4 @@ void CatchmentBuilder::ClassifyIsochrones(QuadtreeManager<FlowGeneral>& catchmen
             isoid++;
         }
     }
-
-    for (size_t i = 0; i < path.size(); i++)
-    {
-        path[i] = nullptr;
-    }
-
-    path.clear();
 }

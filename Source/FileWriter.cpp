@@ -417,6 +417,26 @@ void FileWriter::WriteVecNormals2dWKT(std::string filename, QuadtreeManager<Norm
 	}
 }
 
+void FileWriter::WriteStreamPaths2dWKT(std::string filename, std::vector<Catchment>& catchlist)
+{
+	std::ofstream outfile(filename + ".csv");
+	outfile << "LINESTRING ()\n";
+
+	for each (Catchment list in catchlist)
+	{
+		std::string line = "LINESTRING (";
+
+		for each (Vec2 point in list.longest.path)
+		{
+			line += std::to_string(point.x) + " " + std::to_string(point.y) + ",";
+		}
+		line.erase(line.size() - 1, 1);
+		line += ")";
+		outfile << line << std::endl;
+	}
+	outfile.close();
+}
+
 void FileWriter::WriteStreamPaths2dWKT(std::string filename, std::vector<FlowPath>& flowpaths)
 {
 	std::ofstream outfile(filename + ".csv");
@@ -498,6 +518,7 @@ void FileWriter::WriteCatchmentstoBinary(std::string filepath, std::vector<Catch
 		datastream.write((char*)&var.lowestpt, sizeof(float));
 		datastream.write((char*)&var.longestfplength, sizeof(float));
 		datastream.write((char*)&var.dp, sizeof(DischargePoint));
+		datastream.write((char*)&var.bounds, sizeof(MinMax));
 
 		//Longest FP
 		datastream.write((char*)&var.longest.id, sizeof(int));

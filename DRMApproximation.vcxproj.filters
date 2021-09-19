@@ -57,6 +57,9 @@
     <ClInclude Include="Headers\TimeAreaMethod.h">
       <Filter>Headers</Filter>
     </ClInclude>
+    <ClInclude Include="Headers\MinMax.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Source\main.cpp">

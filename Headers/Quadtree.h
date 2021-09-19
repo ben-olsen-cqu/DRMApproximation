@@ -1,6 +1,7 @@
 #pragma once
 
 #include <limits>
+#include "../Headers/MinMax.h"
 
 template<typename T>
 class Node
@@ -12,16 +13,6 @@ public:
 		pos = _pos;
 	}
 	Node<T>() = default;
-};
-
-struct MinMax
-{
-	double minx = std::numeric_limits<double>::max();
-	double miny = std::numeric_limits<double>::max();
-	double minz = std::numeric_limits<double>::max();
-	double maxx = std::numeric_limits<double>::min();
-	double maxy = std::numeric_limits<double>::min();
-	double maxz = std::numeric_limits<double>::min();
 };
 
 template<typename T>

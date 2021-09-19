@@ -198,6 +198,7 @@ void FileReader::ReadCatchmentsBinary(std::string filepath, std::vector<Catchmen
         datastream.read((char*)&var.lowestpt, sizeof(float));
         datastream.read((char*)&var.longestfplength, sizeof(float));
         datastream.read((char*)&var.dp, sizeof(DischargePoint));
+        datastream.read((char*)&var.bounds, sizeof(MinMax));
 
         //for (int i = 0; i < size; i++)
         //{
