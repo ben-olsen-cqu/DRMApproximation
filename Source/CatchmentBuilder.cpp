@@ -186,7 +186,7 @@ std::vector<Catchment> CatchmentBuilder::CreateCatchments(ProgamParams progp)
         }
         else
         {
-            
+            flowpaths = StreamLinkingSplit(flowaccum, flowdirection, acctarget);
         }
 
         FileWriter::WriteStreamPathsBinary("Temp/FlowPath/FlowLines", flowpaths);

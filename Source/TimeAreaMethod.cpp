@@ -105,12 +105,12 @@ void TimeAreaMethod::CalculateHydrographs(RainfallSeries rainfallseries, std::ve
 			hydrographs.series.push_back(flow);
 		}
 
-		for (int i = 1; i < catchment.isochroneareas.size(); i++) //catchment index
+		for (int i = 0; i < catchment.isochroneareas.size(); i++) //catchment index
 		{
 			for (int j = 1; j < EffIntensity.series.size();j++)
 			{
-				histographs.series[i+j].flow += catchment.isochroneareas[i];
-				hydrographs.series[i+j].flow += (float(catchment.isochroneareas[i]) / 10000) * EffIntensity.series[j].value;
+				histographs.series[int(i+j)].flow += catchment.isochroneareas[i];
+				hydrographs.series[int(i+j)].flow += ((float(catchment.isochroneareas[i]) / 10000) * EffIntensity.series[j].value)/360;
 			}
 
 		}
