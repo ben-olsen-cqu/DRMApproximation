@@ -587,21 +587,33 @@ void CatchmentBuilder::CalculateNormalsSingle(QuadtreeManager<Coordinates>& smoo
 
             Vec3 p1, p2, p3, p4, vec1, vec2, vec3, vec4, translation, normal1, normal2;
 
-            Coordinates c = smooth.Search(Coordinates(x + left, y + bottom))->pos;
+            auto c = smooth.Search(Coordinates(x + left, y + bottom));
 
-            p1 = Vec3(c.x, c.y, c.z);
+            if (c == nullptr)
+                continue;
 
-            c = smooth.Search(Coordinates(x + left, y + bottom + 1))->pos;
+            p1 = Vec3(c->pos.x, c->pos.y, c->pos.z);
 
-            p2 = Vec3(c.x, c.y, c.z);
+            c = smooth.Search(Coordinates(x + left, y + bottom + 1));
 
-            c = smooth.Search(Coordinates(x + left + 1, y + bottom + 1))->pos;
+            if (c == nullptr)
+                continue;
 
-            p3 = Vec3(c.x, c.y, c.z);
+            p2 = Vec3(c->pos.x, c->pos.y, c->pos.z);
 
-            c = smooth.Search(Coordinates(x + left + 1, y + bottom))->pos;
+            c = smooth.Search(Coordinates(x + left + 1, y + bottom + 1));
 
-            p4 = Vec3(c.x, c.y, c.z);
+            if (c == nullptr)
+                continue;
+
+            p3 = Vec3(c->pos.x, c->pos.y, c->pos.z);
+
+            c = smooth.Search(Coordinates(x + left + 1, y + bottom));
+
+            if (c == nullptr)
+                continue;
+
+            p4 = Vec3(c->pos.x, c->pos.y, c->pos.z);
             
             double avz = (p1.z + p2.z + p3.z + p4.z) / 4;
             translation = Vec3(p1.x + 0.5f, p1.y + .5f, avz);
@@ -1836,7 +1848,86 @@ std::vector<FlowPath> CatchmentBuilder::StreamLinkingSplit(QuadtreeManager<FlowG
 {
     std::cout << "Stream Linking\n";
 
-    return StreamLinkingSingle(flowaccum,flowdirection,acctarget);
+    double boundsx = (flowaccum.BottomRight().x) - (flowaccum.TopLeft().x);
+    double boundsy = (flowaccum.TopLeft().y) - (flowaccum.BottomRight().y);
+    double bottom = (flowaccum.BottomRight().y);
+    double left = (flowaccum.TopLeft().x);
+
+    std::vector<std::vector<Vec2>> flowpaths;
+
+    for (int y = 0; y < boundsy; y++)
+        for (int x = 0; x < boundsx; x++)
+        {
+            Node<FlowGeneral>* flowacc = flowaccum.Search(FlowGeneral(x + left, y + bottom));
+
+            if (flowacc->pos.iValue > acctarget)
+                TraceFlowPath(flowdirection, &flowpaths, x, y);
+        }
+    std::vector<std::vector<Vec2>> joinedflowpaths;
+
+    joinedflowpaths.push_back(flowpaths[0]);
+    flowpaths.erase(std::begin(flowpaths));
+
+
+    while (flowpaths.size() != 0)
+    {
+        bool added;
+        do //repeat until no more segments are added
+        {
+            added = false;
+            for (int a = 0; a < flowpaths.size(); a++) //for loop for searching through all remaining 
+            {
+                bool reset = false;
+
+                if (flowpaths[a][1] == joinedflowpaths[joinedflowpaths.size() - 1][0])
+                {
+                    //If true then add the flowpaths line before the joined paths line in joined paths
+                    joinedflowpaths[joinedflowpaths.size() - 1].insert(joinedflowpaths[joinedflowpaths.size() - 1].begin(), flowpaths[a][0]);
+                    flowpaths.erase(flowpaths.begin() + a);
+                    added = true;
+                    reset = true;
+                }
+                else if (flowpaths[a][0] == joinedflowpaths[joinedflowpaths.size() - 1][(joinedflowpaths[joinedflowpaths.size() - 1].size() - 1)])
+                {
+                    joinedflowpaths[joinedflowpaths.size() - 1].push_back(flowpaths[a][1]);
+                    flowpaths.erase(flowpaths.begin() + a);
+                    added = true;
+                    reset = true;
+                }
+
+                if (reset)
+                    a = 0;
+            }
+        } while (added);
+
+        if (flowpaths.size() != 0)
+        {
+            joinedflowpaths.push_back(flowpaths[0]);
+            flowpaths.erase(std::begin(flowpaths));
+        }
+    }
+
+    std::vector<FlowPath> copypaths;
+
+    for (int i = 0; i < joinedflowpaths.size(); i++)
+    {
+        FlowPath fp;
+        for (int j = 0; j < joinedflowpaths[i].size(); j++)
+        {
+            fp.path.push_back(joinedflowpaths[i][j]);
+        }
+        copypaths.push_back(fp);
+    }
+
+    std::sort(copypaths.begin(), copypaths.end());
+    std::reverse(copypaths.begin(), copypaths.end());
+
+    for (int i = 0; i < copypaths.size(); i++)
+    {
+        copypaths[i].id = i;
+    }
+
+    return copypaths;
 }
 
 void CatchmentBuilder::TraceFlowPath(QuadtreeManager<FlowDirection>& flowdirection, std::vector<std::vector<Vec2>>* flowpaths, int x, int y)
@@ -2727,7 +2818,7 @@ void CatchmentBuilder::IsochroneGeneration(QuadtreeManager<FlowGeneral>& catchcl
 
     catchm.area = catcharea;
 
-    for (int i = 0; i <= maxiso; i++)
+    for (int i = 1; i <= maxiso; i++)
     {
         int area = 0;
         for (double x = left; x <= boundsx; x++)

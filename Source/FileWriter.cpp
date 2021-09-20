@@ -565,9 +565,11 @@ void FileWriter::WriteTimeSeriestoCSV(std::string filepath, FlowSeries fs)
 {
 	std::ofstream outfile(filepath);
 
+	outfile << "Time(mins),Flow(cumecs),\n";
+
 	for (auto p : fs.series)
 	{
-		std::string line = std::to_string(p.time) + "," + std::to_string(p.flow);
+		std::string line = std::to_string(p.time) + "," + std::to_string(p.flow) + ",";
 		outfile << line << std::endl;
 	}
 	outfile.close();
