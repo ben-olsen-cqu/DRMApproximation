@@ -58,6 +58,8 @@ std::vector<Catchment> CatchmentBuilder::CreateCatchments(ProgamParams progp)
         else
         {
             SmoothPointsSplit(quad, smooth, blurrad);
+            std::cout << "Exporting Smoothed Surface\n";
+            FileWriter::WriteCoordTreeASC("./Exports/Surfaces/Smooth", smooth);
         }
         smooth.WriteManagerToFile();
 
@@ -414,7 +416,7 @@ void CatchmentBuilder::SmoothPointsSplit(QuadtreeManager<Coordinates>& quad, Qua
                 offsetx = 6171;
                 boundspersubquadx = 882;
             }
-            std::cout << "\rProcessing Quad " << v * numquads + (w + 1) << " of " << totalquads << "\n";
+            std::cout << "\rProcessing Quad " << v * numquads + (w + 1) << " of " << totalquads;
 
             for (int y = 0; y < boundspersubquady; y++) //move through each coord in the y direction of the subtree
             {
@@ -582,8 +584,8 @@ void CatchmentBuilder::SmoothPointsSplit(QuadtreeManager<Coordinates>& quad, Qua
             std::cout << "\rProcessing Quad " << v * numquads + (w + 1) << " of " << totalquads;
 
             //Top
-            for (int x = 0; x <= boundspersubquadx; x++)
-                for (int y = boundspersubquady - storenum; y <= boundspersubquady; y++)
+            for (int x = 0; x < boundspersubquadx; x++)
+                for (int y = boundspersubquady - storenum-1; y < boundspersubquady; y++)
                 {
                     Node<Coordinates>* node = gaps.Search(Coordinates(x + offsetx + left, y + offsety + bottom));
 
@@ -620,7 +622,7 @@ void CatchmentBuilder::SmoothPointsSplit(QuadtreeManager<Coordinates>& quad, Qua
                     }
                 }
             //Bottom
-            for (int x = 0; x <= boundspersubquadx; x++)
+            for (int x = 0; x < boundspersubquadx; x++)
                 for (int y = 0; y <= storenum; y++)
                 {
                     Node<Coordinates>* node = gaps.Search(Coordinates(x + offsetx + left, y + offsety + bottom));
@@ -659,8 +661,8 @@ void CatchmentBuilder::SmoothPointsSplit(QuadtreeManager<Coordinates>& quad, Qua
                 }
             //Right
 
-            for (int x = boundspersubquadx - storenum; x <= boundspersubquadx; x++)
-                for (int y = storenum; y <= boundspersubquady - storenum; y++)
+            for (int x = boundspersubquadx - storenum-1; x < boundspersubquadx; x++)
+                for (int y = storenum; y < boundspersubquady - storenum; y++)
                 {
                     Node<Coordinates>* node = gaps.Search(Coordinates(x + offsetx + left, y + offsety + bottom));
 
@@ -698,7 +700,7 @@ void CatchmentBuilder::SmoothPointsSplit(QuadtreeManager<Coordinates>& quad, Qua
                 }
             //Left
             for (int x = 0; x <= storenum; x++)
-                for (int y = 0; y <= boundspersubquady; y++)
+                for (int y = 0; y < boundspersubquady; y++)
                 {
                     Node<Coordinates>* node = gaps.Search(Coordinates(x + offsetx + left, y + offsety + bottom));
 
@@ -832,7 +834,7 @@ void CatchmentBuilder::CalculateNormalsSplit(QuadtreeManager<Coordinates>& smoot
     double bottom = (smooth.BottomRight().y);
     double left = (smooth.TopLeft().x);
 
-    int numquads = smooth.splitlevel * 2; //quad splits the area in half in the x and y axis
+    int numquads = std::pow(2, smooth.splitlevel); //quad splits the area in half in the x and y axis
     int totalquads = numquads * numquads; //total number of sub quads at the split level
 
     double boundspersubquadx = boundsx / numquads; //the equal division of space in the x axis for the split level
@@ -934,8 +936,8 @@ void CatchmentBuilder::CalculateNormalsSplit(QuadtreeManager<Coordinates>& smoot
             }
             std::cout << "\rProcessing Quad " << v * numquads + (w + 1) << " of " << totalquads;
 
-            for (int y = 0; y <= boundspersubquady; y++) //move through each coord in the y direction of the subtree
-                for (int x = 0; x <= boundspersubquadx; x++)//move through each coord in the x direction of the subtree
+            for (int y = 0; y < boundspersubquady; y++) //move through each coord in the y direction of the subtree
+                for (int x = 0; x < boundspersubquadx; x++)//move through each coord in the x direction of the subtree
                 {
                     if (y < 1 || (boundspersubquady - y) <= 1 || x < 1 || (boundspersubquadx - x) <= 1)
                     {
@@ -1280,7 +1282,7 @@ void CatchmentBuilder::CalculateFlowDirectionSplit(QuadtreeManager<FlowDirection
     double bottom = (normal.BottomRight().y);
     double left = (normal.TopLeft().x);
 
-    int numquads = normal.splitlevel * 2; //quad splits the area in half in the x and y axis
+    int numquads = std::pow(2, normal.splitlevel); //quad splits the area in half in the x and y axis
     int totalquads = numquads * numquads; //total number of sub quads at the split level
 
     double boundspersubquadx = (boundsx / numquads); //the equal division of space in the x axis for the split level
@@ -1597,7 +1599,7 @@ void CatchmentBuilder::CalculateFlowAccumulationSplit(QuadtreeManager<FlowDirect
     double bottom = (flowdirection.BottomRight().y);
     double left = (flowdirection.TopLeft().x);
 
-    int numquads = flowdirection.splitlevel * 2; //quad splits the area in half in the x and y axis
+    int numquads = std::pow(2, flowdirection.splitlevel); //quad splits the area in half in the x and y axis
     int totalquads = numquads * numquads; //total number of sub quads at the split level
 
     double boundspersubquadx = (boundsx / numquads); //the equal division of space in the x axis for the split level
@@ -2350,6 +2352,9 @@ std::vector<FlowPath> CatchmentBuilder::StreamLinkingSingle(QuadtreeManager<Flow
         {
             Node<FlowGeneral>* flowacc = flowaccum.Search(FlowGeneral(x + left, y + bottom));
 
+            if (flowacc == nullptr)
+                continue;
+
             if (flowacc->pos.iValue > acctarget)
                 TraceFlowPath(flowdirection, &flowpaths, x, y);
         }
@@ -2431,7 +2436,7 @@ std::vector<FlowPath> CatchmentBuilder::StreamLinkingSplit(QuadtreeManager<FlowG
 
     std::vector<std::vector<Vec2>> flowpaths;
 
-    int numquads = flowdirection.splitlevel * 2; //quad splits the area in half in the x and y axis
+    int numquads = std::pow(2, flowaccum.splitlevel); //quad splits the area in half in the x and y axis
     int totalquads = numquads * numquads; //total number of sub quads at the split level
 
     double boundspersubquadx = (boundsx / numquads); //the equal division of space in the x axis for the split level

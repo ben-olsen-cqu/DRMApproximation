@@ -216,7 +216,7 @@ Node<T>* QuadtreeManager<T>::Search(T p)
                 else
                 {
                     //deload the previous tree
-                    std::cout << "Point Causing Deload: " <<p.x << "," << p.y << "\n";
+                    //std::cout << "Point Causing Deload: " <<p.x << "," << p.y << "\n";
                     for (int k = 0; k < bottomnodes.size(); k++)
                     {
                         if (bottomnodes[k]->hasData == true) //deloads only if a tree is loaded

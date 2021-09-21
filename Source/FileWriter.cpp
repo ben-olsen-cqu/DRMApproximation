@@ -98,51 +98,148 @@ void FileWriter::WriteCoordTreeASC(std::string filename, QuadtreeManager<Coordin
 	}
 	else
 	{
-		for (int i = 0; quad.bottomnodes.size(); i++)
+		double boundsx = (quad.BottomRight().x) - (quad.TopLeft().x);
+		double boundsy = (quad.TopLeft().y) - (quad.BottomRight().y);
+		double bottom = (quad.BottomRight().y);
+		double left = (quad.TopLeft().x);
+
+		int numquads = std::pow(2, quad.splitlevel); //quad splits the area in half in the x and y axis
+		int totalquads = numquads * numquads; //total number of sub quads at the split level
+
+		double boundspersubquadx = boundsx / numquads; //the equal division of space in the x axis for the split level
+		double boundspersubquady = boundsy / numquads; //the equal division of space in the y axis for the split level
+
+		//for loops for iterating through split level trees
+		for (int v = 0; v < numquads; v++) //move vertically through sub trees
 		{
-			std::ofstream outfile(filename + std::to_string(i) + ".asc");
+			//Calculate the offset to add when seaching within the loop, the +1 is to push it into the next subquad if subquad is the bottom left no offset is required
+			//int offsety = v == 0 ? 0 : std::floor(boundspersubquady * v)+1;
 
-			double boundsx = (quad.bottomnodes[i]->BottomRight().x) - (quad.bottomnodes[i]->TopLeft().x);
-			double boundsy = (quad.bottomnodes[i]->TopLeft().y) - (quad.bottomnodes[i]->BottomRight().y);
-			double bottom = (quad.bottomnodes[i]->BottomRight().y);
-			double left = (quad.bottomnodes[i]->TopLeft().x);
-			int ncols = int(boundsx);
-			int nrows = int(boundsy);
-
-			outfile << std::fixed;
-			outfile << "ncols\t\t\t" << (ncols) << "\n";
-			outfile << "nrows\t\t\t" << (nrows) << "\n";
-			outfile << "xllcorner\t\t" << left << "\n";
-			outfile << "yllcorner\t\t" << bottom << "\n";
-			outfile << "cellsize\t\t" << quad.spacing << "\n";
-			outfile << "NODATA_value\t" << -9999 << "\n ";
-
-			for (int y = 0; y < boundsy; y++)
+			int offsety;
+			if (v == 0)
 			{
-				for (int x = 0; x < boundsx; x++)
-				{
-					auto row = (boundsy - y) + bottom;
-					auto column = x + left;
-
-					auto n = quad.Search(Coordinates(column, row));
-
-					if ( n != nullptr)
-					{
-						Coordinates c = n->pos;
-						std::string line = std::to_string(c.z) + " ";
-						outfile << line;
-					}
-					else
-					{
-						outfile << "-9999";
-					}
-				}
-				outfile << std::endl << " ";
+				offsety = 0; //confirmed
+				boundspersubquady = 882; //confirmed
 			}
-			outfile.close();
+			if (v == 1)
+			{
+				offsety = 882; //confirmed
+				boundspersubquady = 882; //confirmed
+			}
+			if (v == 2)
+			{
+				offsety = 1764; //confirmed
+				boundspersubquady = 881; //confirmed
+			}
+			if (v == 3)
+			{
+				offsety = 2645; //confirmed
+				boundspersubquady = 882; //confirmed
+			}
+			if (v == 4)
+			{
+				offsety = 3527; //confirmed
+				boundspersubquady = 881; //confirmed
+			}
+			if (v == 5)
+			{
+				offsety = 4408; //confirmed
+				boundspersubquady = 882; //confirmed
+			}
+			if (v == 6)
+			{
+				offsety = 5290;
+				boundspersubquady = 881;
+			}
+			if (v == 7)
+			{
+				offsety = 6171;
+				boundspersubquady = 882;
+			}
+
+			for (int w = 0; w < numquads; w++) //move horizontally through sub trees
+			{
+				//Same as the y offset
+				//int offsetx = w == 0 ? 0 : std::floor(boundspersubquadx * w)+1;
+
+				int offsetx;
+				if (w == 0) //Quad 1
+				{
+					offsetx = 0;
+					boundspersubquadx = 882;
+				}
+				if (w == 1) //Quad 2
+				{
+					offsetx = 882;
+					boundspersubquadx = 881;
+				}
+				if (w == 2) //Quad 3
+				{
+					offsetx = 1763;
+					boundspersubquadx = 882;
+				}
+				if (w == 3) //Quad 4
+				{
+					offsetx = 2645;
+					boundspersubquadx = 881;
+				}
+				if (w == 4) //Quad 5
+				{
+					offsetx = 3526;
+					boundspersubquadx = 882;
+				}
+				if (w == 5) //Quad 6
+				{
+					offsetx = 4408;
+					boundspersubquadx = 881;
+				}
+				if (w == 6) //Quad 7
+				{
+					offsetx = 5289;
+					boundspersubquadx = 882;
+				}
+				if (w == 7) //Quad 8
+				{
+					offsetx = 6171;
+					boundspersubquadx = 882;
+				}
+				std::cout << "\rProcessing Quad " << v * numquads + (w + 1) << " of " << totalquads;
+
+				std::ofstream outfile(filename + "_" + std::to_string(v * numquads + (w + 1)) + ".asc");
+				outfile << std::fixed;
+				outfile << "ncols\t\t\t" << (boundspersubquady) << "\n";
+				outfile << "nrows\t\t\t" << (boundspersubquadx) << "\n";
+				outfile << "xllcorner\t\t" << (offsetx + left) << "\n";
+				outfile << "yllcorner\t\t" << (offsety + bottom) << "\n";
+				outfile << "cellsize\t\t" << quad.spacing << "\n";
+				outfile << "NODATA_value\t" << -9999 << "\n ";
+
+				for (int y = 0; y < boundspersubquady; y++) //move through each coord in the y direction of the subtree
+				{
+					for (int x = 0; x < boundspersubquadx; x++)//move through each coord in the x direction of the subtree
+					{
+						auto row = (offsety - y) + bottom;
+						auto column = x + + offsetx + left;
+
+						auto n = quad.Search(Coordinates(column, row));
+
+						if (n != nullptr)
+						{
+							Coordinates c = n->pos;
+							std::string line = std::to_string(c.z) + " ";
+							outfile << line;
+						}
+						else
+						{
+							outfile << "-9999 ";
+						}
+					}
+					outfile << std::endl << " ";
+				}
+				outfile.close();
+			}
 		}
 	}
-
 }
 
 void FileWriter::WriteFlowGeneralTreeASC(std::string filename, QuadtreeManager<FlowGeneral>& quad)
@@ -374,9 +471,13 @@ void FileWriter::WriteVecNormals2dWKT(std::string filename, QuadtreeManager<Norm
 		for (int x = 0; x <= boundsx; x++)
 			for (int y = 0; y <= boundsy; y++)
 			{
-				auto c = normals.Search(Normal(x + left, y + bottom))->pos;
-				std::string line = "LINESTRING (" + std::to_string(c.x) + " " + std::to_string(c.y) + "," + std::to_string(c.norm.x) + " " + std::to_string(c.norm.y) + ")";
-				outfile << line << std::endl;
+				auto n = normals.Search(Normal(x + left, y + bottom));
+				if (n != nullptr)
+				{
+					auto c = n->pos;
+					std::string line = "LINESTRING (" + std::to_string(c.x) + " " + std::to_string(c.y) + "," + std::to_string(c.norm.x) + " " + std::to_string(c.norm.y) + ")";
+					outfile << line << std::endl;
+				}
 			}
 		outfile.close();
 	}
