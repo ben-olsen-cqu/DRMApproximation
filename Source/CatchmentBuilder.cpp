@@ -157,6 +157,8 @@ std::vector<Catchment> CatchmentBuilder::CreateCatchments(ProgamParams progp)
         if (quad.type == TreeType::Single)
         {
             CalculateFlowAccumulationSingle(flowdirection, flowaccum);
+            std::cout << "Exporting Flow Accumulation Surface\n";
+            FileWriter::WriteFlowGeneralTreeASC("./Exports/Surfaces/Accum", flowaccum);
         }
         else
         {
@@ -164,9 +166,6 @@ std::vector<Catchment> CatchmentBuilder::CreateCatchments(ProgamParams progp)
         }
 
         flowaccum.WriteManagerToFile();
-
-        std::cout << "Exporting Flow Accumulation Surface\n";
-        FileWriter::WriteFlowGeneralTreeASC("./Exports/Surfaces/Accum", flowaccum);
     }
 
     std::vector<FlowPath> flowpaths;
@@ -219,8 +218,8 @@ std::vector<Catchment> CatchmentBuilder::CreateCatchments(ProgamParams progp)
 
         catchclass.WriteManagerToFile();
 
-        std::cout << "Exporting Classified Catchment Surface\n";
-        FileWriter::WriteFlowGeneralTreeASC("./Exports/Surfaces/CatchmentClassification", catchclass);
+        //std::cout << "Exporting Classified Catchment Surface\n";
+        //FileWriter::WriteFlowGeneralTreeASC("./Exports/Surfaces/CatchmentClassification", catchclass);
     }
 
     flowpaths.clear();
@@ -315,7 +314,7 @@ void CatchmentBuilder::SmoothPointsSplit(QuadtreeManager<Coordinates>& quad, Qua
     double bottom = (quad.BottomRight().y);
     double left = (quad.TopLeft().x);
 
-    int numquads = quad.splitlevel * 2; //quad splits the area in half in the x and y axis
+    int numquads = std::pow(2, quad.splitlevel); //quad splits the area in half in the x and y axis
     int totalquads = numquads * numquads; //total number of sub quads at the split level
 
     double boundspersubquadx = boundsx / numquads; //the equal division of space in the x axis for the split level
@@ -325,18 +324,114 @@ void CatchmentBuilder::SmoothPointsSplit(QuadtreeManager<Coordinates>& quad, Qua
     for (int v = 0; v < numquads; v++) //move vertically through sub trees
     {
         //Calculate the offset to add when seaching within the loop, the +1 is to push it into the next subquad if subquad is the bottom left no offset is required
-        int offsety = v == 0 ? 0 : std::floor(boundspersubquady * v)+1;
+        //int offsety = v == 0 ? 0 : std::floor(boundspersubquady * v)+1;
+
+        int offsety;
+        if (v == 0)
+        {
+            offsety = 0; //confirmed
+            boundspersubquady = 882; //confirmed
+        }
+        if (v == 1)
+        {
+            offsety = 882; //confirmed
+            boundspersubquady = 882; //confirmed
+        }
+        if (v == 2)
+        {
+            offsety = 1764; //confirmed
+            boundspersubquady = 881; //confirmed
+        }
+        if (v == 3)
+        {
+            offsety = 2645; //confirmed
+            boundspersubquady = 882; //confirmed
+        }
+        if (v == 4)
+        {
+            offsety = 3527; //confirmed
+            boundspersubquady = 881; //confirmed
+        }
+        if (v == 5)
+        {
+            offsety = 4408; //confirmed
+            boundspersubquady = 882; //confirmed
+        }
+        if (v == 6)
+        {
+            offsety = 5290;
+            boundspersubquady = 881;
+        }
+        if (v == 7)
+        {
+            offsety = 6171;
+            boundspersubquady = 882;
+        }
 
         for (int w = 0; w < numquads; w++) //move horizontally through sub trees
         {
             //Same as the y offset
-            int offsetx = w == 0 ? 0 : std::floor(boundspersubquadx * w)+1;
+            //int offsetx = w == 0 ? 0 : std::floor(boundspersubquadx * w)+1;
 
-            std::cout << "\rProcessing Quad " << v * numquads + (w + 1) << " of " << totalquads;
+            int offsetx;
+            if (w == 0) //Quad 1
+            {
+                offsetx = 0;
+                boundspersubquadx = 882;
+            }
+            if (w == 1) //Quad 2
+            {
+                offsetx = 882;
+                boundspersubquadx = 881;
+            }
+            if (w == 2) //Quad 3
+            {
+                offsetx = 1763;
+                boundspersubquadx = 882;
+            }
+            if (w == 3) //Quad 4
+            {
+                offsetx = 2645;
+                boundspersubquadx = 881;
+            }
+            if (w == 4) //Quad 5
+            {
+                offsetx = 3526;
+                boundspersubquadx = 882;
+            }
+            if (w == 5) //Quad 6
+            {
+                offsetx = 4408;
+                boundspersubquadx = 881;
+            }
+            if (w == 6) //Quad 7
+            {
+                offsetx = 5289;
+                boundspersubquadx = 882;
+            }
+            if (w == 7) //Quad 8
+            {
+                offsetx = 6171;
+                boundspersubquadx = 882;
+            }
+            std::cout << "\rProcessing Quad " << v * numquads + (w + 1) << " of " << totalquads << "\n";
 
             for (int y = 0; y < boundspersubquady; y++) //move through each coord in the y direction of the subtree
+            {
+                if (y == 0)
+                    std::cout << std::fixed << "\nStart of line: " << y + offsety + bottom << "\n";
+
+                if (y >= boundspersubquady-1)
+                    std::cout << std::fixed << "\nEnd of line: " << y + offsety + bottom << "\n";
+
                 for (int x = 0; x < boundspersubquadx; x++)//move through each coord in the x direction of the subtree
                 {
+                    //if (y == 0 && x == 0)
+                    //    std::cout << std::fixed << "\nStart of line: " << x + offsetx + left << "\n";
+
+                    //if (y == 0 && x >= boundspersubquadx - 1)
+                    //    std::cout << std::fixed << "\nEnd of line: " << x + offsetx + left << "\n";
+
                     if (y < storenum || (boundspersubquady - y) <= storenum || x < storenum || (boundspersubquadx - x) <= storenum)
                     {
                         Node<Coordinates>* node = quad.Search(Coordinates(x + offsetx + left, y + offsety + bottom));
@@ -384,6 +479,7 @@ void CatchmentBuilder::SmoothPointsSplit(QuadtreeManager<Coordinates>& quad, Qua
                         }
                     }
                 }
+            }
 
         }
     }
@@ -951,56 +1047,56 @@ void CatchmentBuilder::CalculateFlowDirectionSplit(QuadtreeManager<FlowDirection
     for (int v = 0; v < numquads; v++) //move vertically through sub trees
     {
         //Calculate the offset to add when seaching within the loop, the +1 is to push it into the next subquad if subquad is the bottom left no offset is required
-        int offsety = v == 0 ? 0 : std::floor(boundspersubquady * v)+1;
+        //int offsety = v == 0 ? 0 : std::floor(boundspersubquady * v)+1;
 
-        //int offsety;
-        //if (v == 0)
-        //{
-        //    offsety = 0;
-        //    boundspersubquady = 1000;
-        //}
-        //if (v == 1)
-        //{
-        //    offsety = 1000;
-        //    boundspersubquady = 999;
-        //}
-        //if (v == 2)
-        //{
-        //    offsety = 1999;
-        //    boundspersubquady = 1000;
-        //}
-        //if (v == 3)
-        //{
-        //    offsety = 2999;
-        //    boundspersubquady = 999;
-        //}
+        int offsety;
+        if (v == 0)
+        {
+            offsety = 0;
+            boundspersubquady = 1763;
+        }
+        if (v == 1)
+        {
+            offsety = 1764;
+            boundspersubquady = 3526;
+        }
+        if (v == 2)
+        {
+            offsety = 3527;
+            boundspersubquady = 5289;
+        }
+        if (v == 3)
+        {
+            offsety = 5290;
+            boundspersubquady = 7052;
+        }
 
         for (int w = 0; w < numquads; w++) //move horizontally through sub trees
         {
             //Same as the y offset
-            int offsetx = w == 0 ? 0 : std::floor(boundspersubquadx * w)+1;
+            //int offsetx = w == 0 ? 0 : std::floor(boundspersubquadx * w)+1;
 
-            //int offsetx;
-            //if (w == 0)
-            //{
-            //    offsetx = 0;
-            //    boundspersubquadx = 1000;
-            //}
-            //if (w == 1)
-            //{
-            //    offsetx = 1000;
-            //    boundspersubquadx = 999;
-            //}
-            //if (w == 2)
-            //{
-            //    offsetx = 1999;
-            //    boundspersubquadx = 1000;
-            //}
-            //if (w == 3)
-            //{
-            //    offsetx = 2999;
-            //    boundspersubquadx = 999;
-            //}
+            int offsetx;
+            if (w == 0)
+            {
+                offsetx = 0;
+                boundspersubquadx = 1763;
+            }
+            if (w == 1)
+            {
+                offsetx = 1764;
+                boundspersubquadx = 3526;
+            }
+            if (w == 2)
+            {
+                offsetx = 3527;
+                boundspersubquadx = 5289;
+            }
+            if (w == 3)
+            {
+                offsetx = 5290;
+                boundspersubquadx = 7052;
+            }
 
             std::cout << "\nProcessing Quad " << v * numquads + (w + 1) << " of " << totalquads << "\n";
 
@@ -1239,27 +1335,85 @@ void CatchmentBuilder::CalculateFlowAccumulationSplit(QuadtreeManager<FlowDirect
     double left = (flowdirection.TopLeft().x);
 
     int numquads = flowdirection.splitlevel * 2; //quad splits the area in half in the x and y axis
-    int storenum = 2;
+    int totalquads = numquads * numquads; //total number of sub quads at the split level
 
-    int boundsperquadx = std::floor(boundsx / numquads);
-    int boundsperquady = std::floor(boundsy / numquads);
-
-    int totalquads = numquads * numquads;
+    double boundspersubquadx = (boundsx / numquads); //the equal division of space in the x axis for the split level
+    double boundspersubquady = (boundsy / numquads); //the equal division of space in the y axis for the split level
 
     //for loops for iterating through split level trees
     for (int v = 0; v < numquads; v++) //move vertically through sub trees
+    {
+        //Calculate the offset to add when seaching within the loop, the +1 is to push it into the next subquad if subquad is the bottom left no offset is required
+        //int offsety = v == 0 ? 0 : std::floor(boundspersubquady * v)+1;
+
+        int offsety;
+        if (v == 0)
+        {
+            offsety = 0;
+            boundspersubquady = 1000;
+        }
+        if (v == 1)
+        {
+            offsety = 1000;
+            boundspersubquady = 999;
+        }
+        if (v == 2)
+        {
+            offsety = 1999;
+            boundspersubquady = 1000;
+        }
+        if (v == 3)
+        {
+            offsety = 2999;
+            boundspersubquady = 999;
+        }
+
         for (int w = 0; w < numquads; w++) //move horizontally through sub trees
-            for (int y = 2; y < boundsperquady - 1; y++) //move through each coord in the y direction of the subtree
-                for (int x = 2; x < boundsperquadx - 1; x++)//move through each coord in the x direction of the subtree
+        {
+            //Same as the y offset
+            //int offsetx = w == 0 ? 0 : std::floor(boundspersubquadx * w)+1;
+
+            int offsetx;
+            if (w == 0)
+            {
+                offsetx = 0;
+                boundspersubquadx = 1000;
+            }
+            if (w == 1)
+            {
+                offsetx = 1000;
+                boundspersubquadx = 999;
+            }
+            if (w == 2)
+            {
+                offsetx = 1999;
+                boundspersubquadx = 1000;
+            }
+            if (w == 3)
+            {
+                offsetx = 2999;
+                boundspersubquadx = 999;
+            }
+
+            std::cout << "\nProcessing Quad " << v * numquads + (w + 1) << " of " << totalquads << "\n";
+
+            for (int y = 0; y < boundspersubquady; y++) //move through each coord in the y direction of the subtree
+            {
+                for (int x = 0; x < boundspersubquadx; x++)//move through each coord in the x direction of the subtree
                 {
-                    flowaccum.Insert(new Node<FlowGeneral>(FlowGeneral(x + w * boundsperquadx + left, y + v * boundsperquady + bottom, 1)));
+                    flowaccum.Insert(new Node<FlowGeneral>(FlowGeneral(x + offsetx + left, y + offsety + bottom, 1)));
                 }
+            }
+        }
+    }
         
 
     //  NIDP quadtree for storing the number of cells that flow into a given cell
     //  If the NIDP value is 0 then the cell is a source cell and is the top of the flow path
     //  If the NIDP value is 1 then the cell is an interior cell and simply take the flow and passes it to the next cell
     //  If the NIDP value is >=2 then the cell is an intersectionm of flow paths
+
+    int storenum = 3;
 
     QuadtreeManager<FlowGeneral> NIDP(flowaccum.TopLeft(), flowaccum.BottomRight());
     NIDP.prePath = "Temp/AccumulationTree/NIDPTree";
@@ -1276,16 +1430,68 @@ void CatchmentBuilder::CalculateFlowAccumulationSplit(QuadtreeManager<FlowDirect
 
     //for loops for iterating through split level trees
     for (int v = 0; v < numquads; v++) //move vertically through sub trees
+    {
+        //Calculate the offset to add when seaching within the loop, the +1 is to push it into the next subquad if subquad is the bottom left no offset is required
+        //int offsety = v == 0 ? 0 : std::floor(boundspersubquady * v)+1;
+
+        int offsety;
+        if (v == 0)
+        {
+            offsety = 0;
+            boundspersubquady = 1000;
+        }
+        if (v == 1)
+        {
+            offsety = 1000;
+            boundspersubquady = 999;
+        }
+        if (v == 2)
+        {
+            offsety = 1999;
+            boundspersubquady = 1000;
+        }
+        if (v == 3)
+        {
+            offsety = 2999;
+            boundspersubquady = 999;
+        }
+
         for (int w = 0; w < numquads; w++) //move horizontally through sub trees
         {
-            std::cout << "\rProcessing Quad " << v * numquads + (w + 1) << " of " << totalquads;
+            //Same as the y offset
+            //int offsetx = w == 0 ? 0 : std::floor(boundspersubquadx * w)+1;
 
-            for (int y = 2; y < boundsperquady-1; y++) //move through each coord in the y direction of the subtree
-                for (int x = 2; x < boundsperquadx-1; x++)//move through each coord in the x direction of the subtree
+            int offsetx;
+            if (w == 0)
+            {
+                offsetx = 0;
+                boundspersubquadx = 1000;
+            }
+            if (w == 1)
+            {
+                offsetx = 1000;
+                boundspersubquadx = 999;
+            }
+            if (w == 2)
+            {
+                offsetx = 1999;
+                boundspersubquadx = 1000;
+            }
+            if (w == 3)
+            {
+                offsetx = 2999;
+                boundspersubquadx = 999;
+            }
+
+            std::cout << "\nProcessing Quad " << v * numquads + (w + 1) << " of " << totalquads << "\n";
+
+            for (int y = 0; y < boundspersubquady; y++) //move through each coord in the y direction of the subtree
+            {
+                for (int x = 0; x < boundspersubquadx; x++)//move through each coord in the x direction of the subtree
                 {
-                    if (y < storenum || (boundsperquady - y) <= storenum || x < storenum || (boundsperquadx - x) <= storenum)
+                    if (y < storenum || (boundspersubquady - y) <= storenum || x < storenum || (boundspersubquadx - x) <= storenum)
                     {
-                        Node<FlowDirection>* node = flowdirection.Search(FlowDirection(x + w * boundsperquadx + left, y + v * boundsperquady + bottom));
+                        Node<FlowDirection>* node = flowdirection.Search(FlowDirection(x + offsetx + left, y + offsety + bottom));
 
                         if (node != nullptr)
                         {
@@ -1295,73 +1501,75 @@ void CatchmentBuilder::CalculateFlowAccumulationSplit(QuadtreeManager<FlowDirect
                     }
                     else
                     {
-                        Node<FlowDirection>* node = flowdirection.Search(FlowDirection(x + w * boundsperquadx + left, y + v * boundsperquady + bottom));
+                        Node<FlowDirection>* node = flowdirection.Search(FlowDirection(x + offsetx + left, y + offsety + bottom));
 
                         if (node != nullptr)
                         {
                             int NIDPval = 0;
 
-                            node = flowdirection.Search(FlowDirection(x + w * boundsperquadx + left - 1, y + v * boundsperquady + bottom-1));
+                            node = flowdirection.Search(FlowDirection(x + offsetx + left, y - 1 + offsety + bottom - 1));
                             if (node != nullptr)
                             {
                                 if (node->pos.direction == Direction::NE)
                                     NIDPval++;
                             }
 
-                            node = flowdirection.Search(FlowDirection(x + w * boundsperquadx + left, y + v * boundsperquady + bottom-1));
+                            node = flowdirection.Search(FlowDirection(x + offsetx + left, y + offsety + bottom - 1));
                             if (node != nullptr)
                             {
                                 if (node->pos.direction == Direction::N)
                                     NIDPval++;
                             }
 
-                            node = flowdirection.Search(FlowDirection(x + w * boundsperquadx + left+1, y + v * boundsperquady + bottom-1));
+                            node = flowdirection.Search(FlowDirection(x + offsetx + left + 1, y + offsety + bottom - 1));
                             if (node != nullptr)
                             {
                                 if (node->pos.direction == Direction::NW)
                                     NIDPval++;
                             }
 
-                            node = flowdirection.Search(FlowDirection(x + w * boundsperquadx + left-1, y + v * boundsperquady + bottom));
+                            node = flowdirection.Search(FlowDirection(x + offsetx + left - 1, y + offsety + bottom));
                             if (node != nullptr)
                             {
                                 if (node->pos.direction == Direction::E)
                                     NIDPval++;
                             }
 
-                            node = flowdirection.Search(FlowDirection(x + w * boundsperquadx + left+1, y + v * boundsperquady + bottom));
+                            node = flowdirection.Search(FlowDirection(x + offsetx + left + 1, y + offsety + bottom));
                             if (node != nullptr)
                             {
                                 if (node->pos.direction == Direction::W)
                                     NIDPval++;
                             }
 
-                            node = flowdirection.Search(FlowDirection(x + w * boundsperquadx + left-1, y + v * boundsperquady + bottom+1));
+                            node = flowdirection.Search(FlowDirection(x + offsetx + left - 1, y + offsety + bottom + 1));
                             if (node != nullptr)
                             {
                                 if (node->pos.direction == Direction::SE)
                                     NIDPval++;
                             }
 
-                            node = flowdirection.Search(FlowDirection(x + w * boundsperquadx + left, y + v * boundsperquady + bottom+1));
+                            node = flowdirection.Search(FlowDirection(x + offsetx + left, y + offsety + bottom + 1));
                             if (node != nullptr)
                             {
                                 if (node->pos.direction == Direction::S)
                                     NIDPval++;
                             }
 
-                            node = flowdirection.Search(FlowDirection(x + w * boundsperquadx + left+1, y + v * boundsperquady + bottom+1));
+                            node = flowdirection.Search(FlowDirection(x + offsetx + left + 1, y + offsety + bottom + 1));
                             if (node != nullptr)
                             {
                                 if (node->pos.direction == Direction::SW)
                                     NIDPval++;
                             }
 
-                            NIDP.Insert(new Node<FlowGeneral>(FlowGeneral(x + w * boundsperquadx + left, y + v * boundsperquady + bottom, NIDPval)));
+                            NIDP.Insert(new Node<FlowGeneral>(FlowGeneral(x + offsetx + left, y + offsety + bottom, NIDPval)));
                         }
                     }
                 }
+            }
         }
+    }
 
     flowdirection.Cleanup();
     gaps.Cleanup();
@@ -1371,285 +1579,335 @@ void CatchmentBuilder::CalculateFlowAccumulationSplit(QuadtreeManager<FlowDirect
 
     for (int v = 0; v < numquads; v++) //move vertically through sub trees
     {
+        //Calculate the offset to add when seaching within the loop, the +1 is to push it into the next subquad if subquad is the bottom left no offset is required
+        //int offsety = v == 0 ? 0 : std::floor(boundspersubquady * v) + 1;
+
+        int offsety;
+        if (v == 0)
+        {
+            offsety = 0;
+            boundspersubquady = 1000;
+        }
+        if (v == 1)
+        {
+            offsety = 1000;
+            boundspersubquady = 999;
+        }
+        if (v == 2)
+        {
+            offsety = 1999;
+            boundspersubquady = 1000;
+        }
+        if (v == 3)
+        {
+            offsety = 2999;
+            boundspersubquady = 999;
+        }
+
         for (int w = 0; w < numquads; w++) //move horizontally through sub trees
         {
+            //Same as the y offset
+            //int offsetx = w == 0 ? 0 : std::floor(boundspersubquadx * w) + 1;
+
+            int offsetx;
+            if (w == 0)
+            {
+                offsetx = 0;
+                boundspersubquadx = 1000;
+            }
+            if (w == 1)
+            {
+                offsetx = 1000;
+                boundspersubquadx = 999;
+            }
+            if (w == 2)
+            {
+                offsetx = 1999;
+                boundspersubquadx = 1000;
+            }
+            if (w == 3)
+            {
+                offsetx = 2999;
+                boundspersubquadx = 999;
+            }
+
             std::cout << "\rProcessing Quad " << v * numquads + (w + 1) << " of " << totalquads;
 
             //Top
-            for (int x = 0; x < boundsperquadx; x++)
-                for (int y = boundsperquady - storenum - 1; y < boundsperquady; y++)
+            for (int x = 0; x <= boundspersubquadx; x++)
+                for (int y = boundspersubquady - storenum; y <= boundspersubquady; y++)
                 {
-                    Node<FlowDirection>* node = gaps.Search(FlowDirection(x + w * boundsperquadx + left, y + v * boundsperquady + bottom));
+                    Node<FlowDirection>* node = gaps.Search(FlowDirection(x + offsetx + left, y + offsety + bottom));
 
                     if (node != nullptr)
                     {
                         int NIDPval = 0;
 
-                        node = gaps.Search(FlowDirection(x + w * boundsperquadx + left - 1, y + v * boundsperquady + bottom - 1));
+                        node = gaps.Search(FlowDirection(x + offsetx + left-1, y + offsety + bottom - 1));
                         if (node != nullptr)
                         {
                             if (node->pos.direction == Direction::NE)
                                 NIDPval++;
                         }
 
-                        node = gaps.Search(FlowDirection(x + w * boundsperquadx + left, y + v * boundsperquady + bottom - 1));
+                        node = gaps.Search(FlowDirection(x + offsetx + left, y + offsety + bottom - 1));
                         if (node != nullptr)
                         {
                             if (node->pos.direction == Direction::N)
                                 NIDPval++;
                         }
 
-                        node = gaps.Search(FlowDirection(x + w * boundsperquadx + left + 1, y + v * boundsperquady + bottom - 1));
+                        node = gaps.Search(FlowDirection(x + offsetx + left+1, y + offsety + bottom - 1));
                         if (node != nullptr)
                         {
                             if (node->pos.direction == Direction::NW)
                                 NIDPval++;
                         }
 
-                        node = gaps.Search(FlowDirection(x + w * boundsperquadx + left - 1, y + v * boundsperquady + bottom));
+                        node = gaps.Search(FlowDirection(x + offsetx + left-1, y + offsety + bottom));
                         if (node != nullptr)
                         {
                             if (node->pos.direction == Direction::E)
                                 NIDPval++;
                         }
 
-                        node = gaps.Search(FlowDirection(x + w * boundsperquadx + left + 1, y + v * boundsperquady + bottom));
+                        node = gaps.Search(FlowDirection(x + offsetx + left+1, y + offsety + bottom));
                         if (node != nullptr)
                         {
                             if (node->pos.direction == Direction::W)
                                 NIDPval++;
                         }
 
-                        node = gaps.Search(FlowDirection(x + w * boundsperquadx + left - 1, y + v * boundsperquady + bottom + 1));
+                        node = gaps.Search(FlowDirection(x + offsetx + left-1, y + offsety + bottom + 1));
                         if (node != nullptr)
                         {
                             if (node->pos.direction == Direction::SE)
                                 NIDPval++;
                         }
 
-                        node = gaps.Search(FlowDirection(x + w * boundsperquadx + left, y + v * boundsperquady + bottom + 1));
+                        node = gaps.Search(FlowDirection(x + offsetx + left, y + offsety + bottom + 1));
                         if (node != nullptr)
                         {
                             if (node->pos.direction == Direction::S)
                                 NIDPval++;
                         }
 
-                        node = gaps.Search(FlowDirection(x + w * boundsperquadx + left + 1, y + v * boundsperquady + bottom + 1));
+                        node = gaps.Search(FlowDirection(x + offsetx + left+1, y + offsety + bottom + 1));
                         if (node != nullptr)
                         {
                             if (node->pos.direction == Direction::SW)
                                 NIDPval++;
                         }
 
-                        NIDP.Insert(new Node<FlowGeneral>(FlowGeneral(x + w * boundsperquadx + left, y + v * boundsperquady + bottom, NIDPval)));
+                        NIDP.Insert(new Node<FlowGeneral>(FlowGeneral(x + offsetx + left, y + offsety + bottom, NIDPval)));
                     }
                 }
             //Bottom
-            for (int x = 0; x < boundsperquadx; x++)
-                for (int y = 0; y < storenum; y++)
+            for (int x = 0; x <= boundspersubquadx; x++)
+                for (int y = 0; y <= storenum; y++)
                 {
-                    Node<FlowDirection>* node = gaps.Search(FlowDirection(x + w * boundsperquadx + left, y + v * boundsperquady + bottom));
+                    Node<FlowDirection>* node = gaps.Search(FlowDirection(x + offsetx + left, y + offsety + bottom));
 
                     if (node != nullptr)
                     {
                         int NIDPval = 0;
 
-                        node = gaps.Search(FlowDirection(x + w * boundsperquadx + left - 1, y + v * boundsperquady + bottom - 1));
+                        node = gaps.Search(FlowDirection(x + offsetx + left - 1, y + offsety + bottom - 1));
                         if (node != nullptr)
                         {
                             if (node->pos.direction == Direction::NE)
                                 NIDPval++;
                         }
 
-                        node = gaps.Search(FlowDirection(x + w * boundsperquadx + left, y + v * boundsperquady + bottom - 1));
+                        node = gaps.Search(FlowDirection(x + offsetx + left, y + offsety + bottom - 1));
                         if (node != nullptr)
                         {
                             if (node->pos.direction == Direction::N)
                                 NIDPval++;
                         }
 
-                        node = gaps.Search(FlowDirection(x + w * boundsperquadx + left + 1, y + v * boundsperquady + bottom - 1));
+                        node = gaps.Search(FlowDirection(x + offsetx + left + 1, y + offsety + bottom - 1));
                         if (node != nullptr)
                         {
                             if (node->pos.direction == Direction::NW)
                                 NIDPval++;
                         }
 
-                        node = gaps.Search(FlowDirection(x + w * boundsperquadx + left - 1, y + v * boundsperquady + bottom));
+                        node = gaps.Search(FlowDirection(x + offsetx + left - 1, y + offsety + bottom));
                         if (node != nullptr)
                         {
                             if (node->pos.direction == Direction::E)
                                 NIDPval++;
                         }
 
-                        node = gaps.Search(FlowDirection(x + w * boundsperquadx + left + 1, y + v * boundsperquady + bottom));
+                        node = gaps.Search(FlowDirection(x + offsetx + left + 1, y + offsety + bottom));
                         if (node != nullptr)
                         {
                             if (node->pos.direction == Direction::W)
                                 NIDPval++;
                         }
 
-                        node = gaps.Search(FlowDirection(x + w * boundsperquadx + left - 1, y + v * boundsperquady + bottom + 1));
+                        node = gaps.Search(FlowDirection(x + offsetx + left - 1, y + offsety + bottom + 1));
                         if (node != nullptr)
                         {
                             if (node->pos.direction == Direction::SE)
                                 NIDPval++;
                         }
 
-                        node = gaps.Search(FlowDirection(x + w * boundsperquadx + left, y + v * boundsperquady + bottom + 1));
+                        node = gaps.Search(FlowDirection(x + offsetx + left, y + offsety + bottom + 1));
                         if (node != nullptr)
                         {
                             if (node->pos.direction == Direction::S)
                                 NIDPval++;
                         }
 
-                        node = gaps.Search(FlowDirection(x + w * boundsperquadx + left + 1, y + v * boundsperquady + bottom + 1));
+                        node = gaps.Search(FlowDirection(x + offsetx + left + 1, y + offsety + bottom + 1));
                         if (node != nullptr)
                         {
                             if (node->pos.direction == Direction::SW)
                                 NIDPval++;
                         }
 
-                        NIDP.Insert(new Node<FlowGeneral>(FlowGeneral(x + w * boundsperquadx + left, y + v * boundsperquady + bottom, NIDPval)));
+                        NIDP.Insert(new Node<FlowGeneral>(FlowGeneral(x + offsetx + left, y + offsety + bottom, NIDPval)));
                     }
                 }
             //Right
 
-            for (int x = boundsperquadx - storenum - 1; x < boundsperquadx; x++)
-                for (int y = storenum; y < boundsperquady - storenum - 1; y++)
+            for (int x = boundspersubquadx - storenum; x <= boundspersubquadx; x++)
+                for (int y = storenum; y <= boundspersubquady - storenum; y++)
                 {
-                    Node<FlowDirection>* node = gaps.Search(FlowDirection(x + w * boundsperquadx + left, y + v * boundsperquady + bottom));
+                    Node<FlowDirection>* node = gaps.Search(FlowDirection(x + offsetx + left, y + offsety + bottom));
 
                     if (node != nullptr)
                     {
                         int NIDPval = 0;
 
-                        node = gaps.Search(FlowDirection(x + w * boundsperquadx + left - 1, y + v * boundsperquady + bottom - 1));
+                        node = gaps.Search(FlowDirection(x + offsetx + left - 1, y + offsety + bottom - 1));
                         if (node != nullptr)
                         {
                             if (node->pos.direction == Direction::NE)
                                 NIDPval++;
                         }
 
-                        node = gaps.Search(FlowDirection(x + w * boundsperquadx + left, y + v * boundsperquady + bottom - 1));
+                        node = gaps.Search(FlowDirection(x + offsetx + left, y + offsety + bottom - 1));
                         if (node != nullptr)
                         {
                             if (node->pos.direction == Direction::N)
                                 NIDPval++;
                         }
 
-                        node = gaps.Search(FlowDirection(x + w * boundsperquadx + left + 1, y + v * boundsperquady + bottom - 1));
+                        node = gaps.Search(FlowDirection(x + offsetx + left + 1, y + offsety + bottom - 1));
                         if (node != nullptr)
                         {
                             if (node->pos.direction == Direction::NW)
                                 NIDPval++;
                         }
 
-                        node = gaps.Search(FlowDirection(x + w * boundsperquadx + left - 1, y + v * boundsperquady + bottom));
+                        node = gaps.Search(FlowDirection(x + offsetx + left - 1, y + offsety + bottom));
                         if (node != nullptr)
                         {
                             if (node->pos.direction == Direction::E)
                                 NIDPval++;
                         }
 
-                        node = gaps.Search(FlowDirection(x + w * boundsperquadx + left + 1, y + v * boundsperquady + bottom));
+                        node = gaps.Search(FlowDirection(x + offsetx + left + 1, y + offsety + bottom));
                         if (node != nullptr)
                         {
                             if (node->pos.direction == Direction::W)
                                 NIDPval++;
                         }
 
-                        node = gaps.Search(FlowDirection(x + w * boundsperquadx + left - 1, y + v * boundsperquady + bottom + 1));
+                        node = gaps.Search(FlowDirection(x + offsetx + left - 1, y + offsety + bottom + 1));
                         if (node != nullptr)
                         {
                             if (node->pos.direction == Direction::SE)
                                 NIDPval++;
                         }
 
-                        node = gaps.Search(FlowDirection(x + w * boundsperquadx + left, y + v * boundsperquady + bottom + 1));
+                        node = gaps.Search(FlowDirection(x + offsetx + left, y + offsety + bottom + 1));
                         if (node != nullptr)
                         {
                             if (node->pos.direction == Direction::S)
                                 NIDPval++;
                         }
 
-                        node = gaps.Search(FlowDirection(x + w * boundsperquadx + left + 1, y + v * boundsperquady + bottom + 1));
+                        node = gaps.Search(FlowDirection(x + offsetx + left + 1, y + offsety + bottom + 1));
                         if (node != nullptr)
                         {
                             if (node->pos.direction == Direction::SW)
                                 NIDPval++;
                         }
 
-                        NIDP.Insert(new Node<FlowGeneral>(FlowGeneral(x + w * boundsperquadx + left, y + v * boundsperquady + bottom, NIDPval)));
+                        NIDP.Insert(new Node<FlowGeneral>(FlowGeneral(x + offsetx + left, y + offsety + bottom, NIDPval)));
                     }
                 }
             //Left
-            for (int x = 0; x < storenum; x++)
-                for (int y = 0; y < boundsperquady; y++)
+            for (int x = 0; x <= storenum; x++)
+                for (int y = 0; y <= boundspersubquady; y++)
                 {
-                    Node<FlowDirection>* node = gaps.Search(FlowDirection(x + w * boundsperquadx + left, y + v * boundsperquady + bottom));
+                    Node<FlowDirection>* node = gaps.Search(FlowDirection(x + offsetx + left, y + offsety + bottom));
 
                     if (node != nullptr)
                     {
                         int NIDPval = 0;
 
-                        node = gaps.Search(FlowDirection(x + w * boundsperquadx + left - 1, y + v * boundsperquady + bottom - 1));
+                        node = gaps.Search(FlowDirection(x + offsetx + left - 1, y + offsety + bottom - 1));
                         if (node != nullptr)
                         {
                             if (node->pos.direction == Direction::NE)
                                 NIDPval++;
                         }
 
-                        node = gaps.Search(FlowDirection(x + w * boundsperquadx + left, y + v * boundsperquady + bottom - 1));
+                        node = gaps.Search(FlowDirection(x + offsetx + left, y + offsety + bottom - 1));
                         if (node != nullptr)
                         {
                             if (node->pos.direction == Direction::N)
                                 NIDPval++;
                         }
 
-                        node = gaps.Search(FlowDirection(x + w * boundsperquadx + left + 1, y + v * boundsperquady + bottom - 1));
+                        node = gaps.Search(FlowDirection(x + offsetx + left + 1, y + offsety + bottom - 1));
                         if (node != nullptr)
                         {
                             if (node->pos.direction == Direction::NW)
                                 NIDPval++;
                         }
 
-                        node = gaps.Search(FlowDirection(x + w * boundsperquadx + left - 1, y + v * boundsperquady + bottom));
+                        node = gaps.Search(FlowDirection(x + offsetx + left - 1, y + offsety + bottom));
                         if (node != nullptr)
                         {
                             if (node->pos.direction == Direction::E)
                                 NIDPval++;
                         }
 
-                        node = gaps.Search(FlowDirection(x + w * boundsperquadx + left + 1, y + v * boundsperquady + bottom));
+                        node = gaps.Search(FlowDirection(x + offsetx + left + 1, y + offsety + bottom));
                         if (node != nullptr)
                         {
                             if (node->pos.direction == Direction::W)
                                 NIDPval++;
                         }
 
-                        node = gaps.Search(FlowDirection(x + w * boundsperquadx + left - 1, y + v * boundsperquady + bottom + 1));
+                        node = gaps.Search(FlowDirection(x + offsetx + left - 1, y + offsety + bottom + 1));
                         if (node != nullptr)
                         {
                             if (node->pos.direction == Direction::SE)
                                 NIDPval++;
                         }
 
-                        node = gaps.Search(FlowDirection(x + w * boundsperquadx + left, y + v * boundsperquady + bottom + 1));
+                        node = gaps.Search(FlowDirection(x + offsetx + left, y + offsety + bottom + 1));
                         if (node != nullptr)
                         {
                             if (node->pos.direction == Direction::S)
                                 NIDPval++;
                         }
 
-                        node = gaps.Search(FlowDirection(x + w * boundsperquadx + left + 1, y + v * boundsperquady + bottom + 1));
+                        node = gaps.Search(FlowDirection(x + offsetx + left + 1, y + offsety + bottom + 1));
                         if (node != nullptr)
                         {
                             if (node->pos.direction == Direction::SW)
                                 NIDPval++;
                         }
 
-                        NIDP.Insert(new Node<FlowGeneral>(FlowGeneral(x + w * boundsperquadx + left, y + v * boundsperquady + bottom, NIDPval)));
+                        NIDP.Insert(new Node<FlowGeneral>(FlowGeneral(x + offsetx + left, y + offsety + bottom, NIDPval)));
                     }
                 }
 
@@ -1663,15 +1921,68 @@ void CatchmentBuilder::CalculateFlowAccumulationSplit(QuadtreeManager<FlowDirect
     //FLOW ACCUM
     std::cout << "Calculating Flow Accumulations\n";
 
+    //for loops for iterating through split level trees
     for (int v = 0; v < numquads; v++) //move vertically through sub trees
+    {
+        //Calculate the offset to add when seaching within the loop, the +1 is to push it into the next subquad if subquad is the bottom left no offset is required
+        //int offsety = v == 0 ? 0 : std::floor(boundspersubquady * v)+1;
+
+        int offsety;
+        if (v == 0)
+        {
+            offsety = 0;
+            boundspersubquady = 1000;
+        }
+        if (v == 1)
+        {
+            offsety = 1000;
+            boundspersubquady = 999;
+        }
+        if (v == 2)
+        {
+            offsety = 1999;
+            boundspersubquady = 1000;
+        }
+        if (v == 3)
+        {
+            offsety = 2999;
+            boundspersubquady = 999;
+        }
+
         for (int w = 0; w < numquads; w++) //move horizontally through sub trees
         {
-            std::cout << "\rProcessing Quad " << v * numquads + (w + 1) << " of " << totalquads;
+            //Same as the y offset
+            //int offsetx = w == 0 ? 0 : std::floor(boundspersubquadx * w)+1;
 
-            for (int y = 2; y < boundsperquady - 1; y++) //move through each coord in the y direction of the subtree
-                for (int x = 2; x < boundsperquadx - 1; x++)//move through each coord in the x direction of the subtree
+            int offsetx;
+            if (w == 0)
+            {
+                offsetx = 0;
+                boundspersubquadx = 1000;
+            }
+            if (w == 1)
+            {
+                offsetx = 1000;
+                boundspersubquadx = 999;
+            }
+            if (w == 2)
+            {
+                offsetx = 1999;
+                boundspersubquadx = 1000;
+            }
+            if (w == 3)
+            {
+                offsetx = 2999;
+                boundspersubquadx = 999;
+            }
+
+            std::cout << "\nProcessing Quad " << v * numquads + (w + 1) << " of " << totalquads << "\n";
+
+            for (int y = 0; y < boundspersubquady; y++) //move through each coord in the y direction of the subtree
+            {
+                for (int x = 0; x < boundspersubquadx; x++)//move through each coord in the x direction of the subtree
                 {
-                    Node<FlowGeneral>* nNIDP = NIDP.Search(FlowGeneral(x + w * boundsperquadx + left, y + v * boundsperquady + bottom));
+                    Node<FlowGeneral>* nNIDP = NIDP.Search(FlowGeneral(x + offsetx + left, y + offsety + bottom));
 
                     if (nNIDP != nullptr)
                     {
@@ -1679,12 +1990,12 @@ void CatchmentBuilder::CalculateFlowAccumulationSplit(QuadtreeManager<FlowDirect
                         {
                             //Source node found, trace to the downstream intersection node or boundary of the data
                             int Accum = 0;
-                            int i = x + w * boundsperquadx + left;
-                            int j = y + v * boundsperquady + bottom;
+                            int i = x + offsetx + left;
+                            int j = y + offsety + bottom;
 
                             do
                             {
-                                auto nAcc = flowaccum.Search(FlowGeneral(i , j ));
+                                auto nAcc = flowaccum.Search(FlowGeneral(i, j));
                                 if (nAcc != nullptr)
                                 {
                                     nAcc->pos.iValue += Accum;
@@ -1753,7 +2064,9 @@ void CatchmentBuilder::CalculateFlowAccumulationSplit(QuadtreeManager<FlowDirect
                         }
                     }
                 }
+            }
         }
+    }
 
     std::cout << "\nComplete\n";
 }
@@ -1855,14 +2168,84 @@ std::vector<FlowPath> CatchmentBuilder::StreamLinkingSplit(QuadtreeManager<FlowG
 
     std::vector<std::vector<Vec2>> flowpaths;
 
-    for (int y = 0; y < boundsy; y++)
-        for (int x = 0; x < boundsx; x++)
-        {
-            Node<FlowGeneral>* flowacc = flowaccum.Search(FlowGeneral(x + left, y + bottom));
+    int numquads = flowdirection.splitlevel * 2; //quad splits the area in half in the x and y axis
+    int totalquads = numquads * numquads; //total number of sub quads at the split level
 
-            if (flowacc->pos.iValue > acctarget)
-                TraceFlowPath(flowdirection, &flowpaths, x, y);
+    double boundspersubquadx = (boundsx / numquads); //the equal division of space in the x axis for the split level
+    double boundspersubquady = (boundsy / numquads); //the equal division of space in the y axis for the split level
+
+    //for loops for iterating through split level trees
+    for (int v = 0; v < numquads; v++) //move vertically through sub trees
+    {
+        //Calculate the offset to add when seaching within the loop, the +1 is to push it into the next subquad if subquad is the bottom left no offset is required
+        //int offsety = v == 0 ? 0 : std::floor(boundspersubquady * v)+1;
+
+        int offsety;
+        if (v == 0)
+        {
+            offsety = 0;
+            boundspersubquady = 1000;
         }
+        if (v == 1)
+        {
+            offsety = 1000;
+            boundspersubquady = 999;
+        }
+        if (v == 2)
+        {
+            offsety = 1999;
+            boundspersubquady = 1000;
+        }
+        if (v == 3)
+        {
+            offsety = 2999;
+            boundspersubquady = 999;
+        }
+
+        for (int w = 0; w < numquads; w++) //move horizontally through sub trees
+        {
+            //Same as the y offset
+            //int offsetx = w == 0 ? 0 : std::floor(boundspersubquadx * w)+1;
+
+            int offsetx;
+            if (w == 0)
+            {
+                offsetx = 0;
+                boundspersubquadx = 1000;
+            }
+            if (w == 1)
+            {
+                offsetx = 1000;
+                boundspersubquadx = 999;
+            }
+            if (w == 2)
+            {
+                offsetx = 1999;
+                boundspersubquadx = 1000;
+            }
+            if (w == 3)
+            {
+                offsetx = 2999;
+                boundspersubquadx = 999;
+            }
+
+            std::cout << "\nProcessing Quad " << v * numquads + (w + 1) << " of " << totalquads << "\n";
+
+            for (int y = 0; y < boundspersubquady; y++) //move through each coord in the y direction of the subtree
+            {
+                for (int x = 0; x < boundspersubquadx; x++)//move through each coord in the x direction of the subtree
+                {
+                    Node<FlowGeneral>* flowacc = flowaccum.Search(FlowGeneral(x + offsetx + left, y + offsety + bottom));
+                    if (flowacc == nullptr)
+                        continue;
+
+                    if (flowacc->pos.iValue > acctarget)
+                        TraceFlowPath(flowdirection, &flowpaths, x + offsetx, y + offsety);
+                }
+            }
+        }
+    }
+
     std::vector<std::vector<Vec2>> joinedflowpaths;
 
     joinedflowpaths.push_back(flowpaths[0]);

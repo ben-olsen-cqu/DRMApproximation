@@ -77,8 +77,6 @@ void QuadtreeManager<T>::Insert( Node<T>* n)
                     {
                         if (bottomnodes[k]->hasData == true) //deloads only if a tree is loaded
                         {
-                            std::cout << "Point Causing Deload: " << n->pos.x << "," << n->pos.y << "\n";
-
                             std::ofstream datastream;
 
                             datastream.open("./" + prePath + std::to_string(bottomnodes[k]->index) + ".bin", std::ios::binary);
@@ -217,8 +215,8 @@ Node<T>* QuadtreeManager<T>::Search(T p)
                 }
                 else
                 {
-                    std::cout << std::fixed << "Point Causing Deload: " << p.x << "," << p.y << "\n";
                     //deload the previous tree
+                    std::cout << "Point Causing Deload: " <<p.x << "," << p.y << "\n";
                     for (int k = 0; k < bottomnodes.size(); k++)
                     {
                         if (bottomnodes[k]->hasData == true) //deloads only if a tree is loaded
@@ -237,7 +235,8 @@ Node<T>* QuadtreeManager<T>::Search(T p)
                         datastream2.open("./" + prePath + std::to_string(bottomnodes[j]->index) + ".bin", std::ios::binary);
 
                         ReadFromFile(bottomnodes[j], &datastream2);
-                        bottomnodes[j]->hasData = true;
+                        if(bottomnodes[j]->bottomLeftTree != nullptr || bottomnodes[j]->bottomRightTree != nullptr || bottomnodes[j]->topLeftTree != nullptr || bottomnodes[j]->topRightTree != nullptr)
+                            bottomnodes[j]->hasData = true;
 
                         datastream2.close();
                     }
@@ -672,6 +671,18 @@ Node<T>* QuadtreeManager<T>::Subsearch(Quadtree<T>* q, T p) const
     // We cannot subdivide this quad further 
     if (q->n != nullptr && ((p.x - q->n->pos.x) < (spacing)+.0001 && (p.y - q->n->pos.y) < (spacing)+.0001))
         return q->n;
+
+    if (q->topRightTree == nullptr)
+        return nullptr;
+
+    if (q->bottomRightTree == nullptr)
+        return nullptr;
+
+    if (q->bottomLeftTree == nullptr)
+        return nullptr;
+
+    if (q->topLeftTree == nullptr)
+        return nullptr;
 
     if (((q->topLeft.x + q->bottomRight.x) / 2) <= p.x)
     {
