@@ -325,17 +325,17 @@ void CatchmentBuilder::SmoothPointsSplit(QuadtreeManager<Coordinates>& quad, Qua
     for (int v = 0; v < numquads; v++) //move vertically through sub trees
     {
         //Calculate the offset to add when seaching within the loop, the +1 is to push it into the next subquad if subquad is the bottom left no offset is required
-        int offsety = v == 0 ? 0 : std::floor(boundspersubquady * v) + 1;
+        int offsety = v == 0 ? 0 : std::floor(boundspersubquady * v)+1;
 
         for (int w = 0; w < numquads; w++) //move horizontally through sub trees
         {
             //Same as the y offset
-            int offsetx = w == 0 ? 0 : std::floor(boundspersubquadx * w) + 1;
+            int offsetx = w == 0 ? 0 : std::floor(boundspersubquadx * w)+1;
 
             std::cout << "\rProcessing Quad " << v * numquads + (w + 1) << " of " << totalquads;
 
-            for (int y = 0; y <= boundspersubquady; y++) //move through each coord in the y direction of the subtree
-                for (int x = 0; x <= boundspersubquadx; x++)//move through each coord in the x direction of the subtree
+            for (int y = 0; y < boundspersubquady; y++) //move through each coord in the y direction of the subtree
+                for (int x = 0; x < boundspersubquadx; x++)//move through each coord in the x direction of the subtree
                 {
                     if (y < storenum || (boundspersubquady - y) <= storenum || x < storenum || (boundspersubquadx - x) <= storenum)
                     {

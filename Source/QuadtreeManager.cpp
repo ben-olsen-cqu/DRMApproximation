@@ -77,6 +77,8 @@ void QuadtreeManager<T>::Insert( Node<T>* n)
                     {
                         if (bottomnodes[k]->hasData == true) //deloads only if a tree is loaded
                         {
+                            std::cout << "Point Causing Deload: " << n->pos.x << "," << n->pos.y << "\n";
+
                             std::ofstream datastream;
 
                             datastream.open("./" + prePath + std::to_string(bottomnodes[k]->index) + ".bin", std::ios::binary);
