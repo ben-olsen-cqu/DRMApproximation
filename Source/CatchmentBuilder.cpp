@@ -418,12 +418,6 @@ void CatchmentBuilder::SmoothPointsSplit(QuadtreeManager<Coordinates>& quad, Qua
 
             for (int y = 0; y < boundspersubquady; y++) //move through each coord in the y direction of the subtree
             {
-                if (y == 0)
-                    std::cout << std::fixed << "\nStart of line: " << y + offsety + bottom << "\n";
-
-                if (y >= boundspersubquady-1)
-                    std::cout << std::fixed << "\nEnd of line: " << y + offsety + bottom << "\n";
-
                 for (int x = 0; x < boundspersubquadx; x++)//move through each coord in the x direction of the subtree
                 {
                     //if (y == 0 && x == 0)
@@ -494,12 +488,96 @@ void CatchmentBuilder::SmoothPointsSplit(QuadtreeManager<Coordinates>& quad, Qua
     for (int v = 0; v < numquads; v++) //move vertically through sub trees
     {
         //Calculate the offset to add when seaching within the loop, the +1 is to push it into the next subquad if subquad is the bottom left no offset is required
-        int offsety = v == 0 ? 0 : std::floor(boundspersubquady * v) + 1;
+                //int offsety = v == 0 ? 0 : std::floor(boundspersubquady * v)+1;
+
+        int offsety;
+        if (v == 0)
+        {
+            offsety = 0; //confirmed
+            boundspersubquady = 882; //confirmed
+        }
+        if (v == 1)
+        {
+            offsety = 882; //confirmed
+            boundspersubquady = 882; //confirmed
+        }
+        if (v == 2)
+        {
+            offsety = 1764; //confirmed
+            boundspersubquady = 881; //confirmed
+        }
+        if (v == 3)
+        {
+            offsety = 2645; //confirmed
+            boundspersubquady = 882; //confirmed
+        }
+        if (v == 4)
+        {
+            offsety = 3527; //confirmed
+            boundspersubquady = 881; //confirmed
+        }
+        if (v == 5)
+        {
+            offsety = 4408; //confirmed
+            boundspersubquady = 882; //confirmed
+        }
+        if (v == 6)
+        {
+            offsety = 5290;
+            boundspersubquady = 881;
+        }
+        if (v == 7)
+        {
+            offsety = 6171;
+            boundspersubquady = 882;
+        }
 
         for (int w = 0; w < numquads; w++) //move horizontally through sub trees
         {
             //Same as the y offset
-            int offsetx = w == 0 ? 0 : std::floor(boundspersubquadx * w) + 1;
+                        //int offsetx = w == 0 ? 0 : std::floor(boundspersubquadx * w)+1;
+
+            int offsetx;
+            if (w == 0) //Quad 1
+            {
+                offsetx = 0;
+                boundspersubquadx = 882;
+            }
+            if (w == 1) //Quad 2
+            {
+                offsetx = 882;
+                boundspersubquadx = 881;
+            }
+            if (w == 2) //Quad 3
+            {
+                offsetx = 1763;
+                boundspersubquadx = 882;
+            }
+            if (w == 3) //Quad 4
+            {
+                offsetx = 2645;
+                boundspersubquadx = 881;
+            }
+            if (w == 4) //Quad 5
+            {
+                offsetx = 3526;
+                boundspersubquadx = 882;
+            }
+            if (w == 5) //Quad 6
+            {
+                offsetx = 4408;
+                boundspersubquadx = 881;
+            }
+            if (w == 6) //Quad 7
+            {
+                offsetx = 5289;
+                boundspersubquadx = 882;
+            }
+            if (w == 7) //Quad 8
+            {
+                offsetx = 6171;
+                boundspersubquadx = 882;
+            }
 
             std::cout << "\rProcessing Quad " << v * numquads + (w + 1) << " of " << totalquads;
 
@@ -764,13 +842,96 @@ void CatchmentBuilder::CalculateNormalsSplit(QuadtreeManager<Coordinates>& smoot
     for (int v = 0; v < numquads; v++) //move vertically through sub trees
     {
         //Calculate the offset to add when seaching within the loop, the +1 is to push it into the next subquad if subquad is the bottom left no offset is required
-        int offsety = v == 0 ? 0 : std::floor(boundspersubquady * v) + 1;
+        //int offsety = v == 0 ? 0 : std::floor(boundspersubquady * v)+1;
+
+        int offsety;
+        if (v == 0)
+        {
+            offsety = 0; //confirmed
+            boundspersubquady = 882; //confirmed
+        }
+        if (v == 1)
+        {
+            offsety = 882; //confirmed
+            boundspersubquady = 882; //confirmed
+        }
+        if (v == 2)
+        {
+            offsety = 1764; //confirmed
+            boundspersubquady = 881; //confirmed
+        }
+        if (v == 3)
+        {
+            offsety = 2645; //confirmed
+            boundspersubquady = 882; //confirmed
+        }
+        if (v == 4)
+        {
+            offsety = 3527; //confirmed
+            boundspersubquady = 881; //confirmed
+        }
+        if (v == 5)
+        {
+            offsety = 4408; //confirmed
+            boundspersubquady = 882; //confirmed
+        }
+        if (v == 6)
+        {
+            offsety = 5290;
+            boundspersubquady = 881;
+        }
+        if (v == 7)
+        {
+            offsety = 6171;
+            boundspersubquady = 882;
+        }
 
         for (int w = 0; w < numquads; w++) //move horizontally through sub trees
         {
             //Same as the y offset
-            int offsetx = w == 0 ? 0 : std::floor(boundspersubquadx * w) + 1;
+            //int offsetx = w == 0 ? 0 : std::floor(boundspersubquadx * w)+1;
 
+            int offsetx;
+            if (w == 0) //Quad 1
+            {
+                offsetx = 0;
+                boundspersubquadx = 882;
+            }
+            if (w == 1) //Quad 2
+            {
+                offsetx = 882;
+                boundspersubquadx = 881;
+            }
+            if (w == 2) //Quad 3
+            {
+                offsetx = 1763;
+                boundspersubquadx = 882;
+            }
+            if (w == 3) //Quad 4
+            {
+                offsetx = 2645;
+                boundspersubquadx = 881;
+            }
+            if (w == 4) //Quad 5
+            {
+                offsetx = 3526;
+                boundspersubquadx = 882;
+            }
+            if (w == 5) //Quad 6
+            {
+                offsetx = 4408;
+                boundspersubquadx = 881;
+            }
+            if (w == 6) //Quad 7
+            {
+                offsetx = 5289;
+                boundspersubquadx = 882;
+            }
+            if (w == 7) //Quad 8
+            {
+                offsetx = 6171;
+                boundspersubquadx = 882;
+            }
             std::cout << "\rProcessing Quad " << v * numquads + (w + 1) << " of " << totalquads;
 
             for (int y = 0; y <= boundspersubquady; y++) //move through each coord in the y direction of the subtree
@@ -858,13 +1019,95 @@ void CatchmentBuilder::CalculateNormalsSplit(QuadtreeManager<Coordinates>& smoot
     for (int v = 0; v < numquads; v++) //move vertically through sub trees
     {
         //Calculate the offset to add when seaching within the loop, the +1 is to push it into the next subquad if subquad is the bottom left no offset is required
-        int offsety = v == 0 ? 0 : std::floor(boundspersubquady * v) + 1;
+        //int offsety = v == 0 ? 0 : std::floor(boundspersubquady * v)+1;
 
+        int offsety;
+        if (v == 0)
+        {
+            offsety = 0; //confirmed
+            boundspersubquady = 882; //confirmed
+        }
+        if (v == 1)
+        {
+            offsety = 882; //confirmed
+            boundspersubquady = 882; //confirmed
+        }
+        if (v == 2)
+        {
+            offsety = 1764; //confirmed
+            boundspersubquady = 881; //confirmed
+        }
+        if (v == 3)
+        {
+            offsety = 2645; //confirmed
+            boundspersubquady = 882; //confirmed
+        }
+        if (v == 4)
+        {
+            offsety = 3527; //confirmed
+            boundspersubquady = 881; //confirmed
+        }
+        if (v == 5)
+        {
+            offsety = 4408; //confirmed
+            boundspersubquady = 882; //confirmed
+        }
+        if (v == 6)
+        {
+            offsety = 5290;
+            boundspersubquady = 881;
+        }
+        if (v == 7)
+        {
+            offsety = 6171;
+            boundspersubquady = 882;
+        }
         for (int w = 0; w < numquads; w++) //move horizontally through sub trees
         {
             //Same as the y offset
-            int offsetx = w == 0 ? 0 : std::floor(boundspersubquadx * w) + 1;
+            //int offsetx = w == 0 ? 0 : std::floor(boundspersubquadx * w)+1;
 
+            int offsetx;
+            if (w == 0) //Quad 1
+            {
+                offsetx = 0;
+                boundspersubquadx = 882;
+            }
+            if (w == 1) //Quad 2
+            {
+                offsetx = 882;
+                boundspersubquadx = 881;
+            }
+            if (w == 2) //Quad 3
+            {
+                offsetx = 1763;
+                boundspersubquadx = 882;
+            }
+            if (w == 3) //Quad 4
+            {
+                offsetx = 2645;
+                boundspersubquadx = 881;
+            }
+            if (w == 4) //Quad 5
+            {
+                offsetx = 3526;
+                boundspersubquadx = 882;
+            }
+            if (w == 5) //Quad 6
+            {
+                offsetx = 4408;
+                boundspersubquadx = 881;
+            }
+            if (w == 6) //Quad 7
+            {
+                offsetx = 5289;
+                boundspersubquadx = 882;
+            }
+            if (w == 7) //Quad 8
+            {
+                offsetx = 6171;
+                boundspersubquadx = 882;
+            }
             std::cout << "\rProcessing Quad " << v * numquads + (w + 1) << " of " << totalquads;
 
             //Top
@@ -1052,23 +1295,43 @@ void CatchmentBuilder::CalculateFlowDirectionSplit(QuadtreeManager<FlowDirection
         int offsety;
         if (v == 0)
         {
-            offsety = 0;
-            boundspersubquady = 1763;
+            offsety = 0; //confirmed
+            boundspersubquady = 882; //confirmed
         }
         if (v == 1)
         {
-            offsety = 1764;
-            boundspersubquady = 3526;
+            offsety = 882; //confirmed
+            boundspersubquady = 882; //confirmed
         }
         if (v == 2)
         {
-            offsety = 3527;
-            boundspersubquady = 5289;
+            offsety = 1764; //confirmed
+            boundspersubquady = 881; //confirmed
         }
         if (v == 3)
         {
+            offsety = 2645; //confirmed
+            boundspersubquady = 882; //confirmed
+        }
+        if (v == 4)
+        {
+            offsety = 3527; //confirmed
+            boundspersubquady = 881; //confirmed
+        }
+        if (v == 5)
+        {
+            offsety = 4408; //confirmed
+            boundspersubquady = 882; //confirmed
+        }
+        if (v == 6)
+        {
             offsety = 5290;
-            boundspersubquady = 7052;
+            boundspersubquady = 881;
+        }
+        if (v == 7)
+        {
+            offsety = 6171;
+            boundspersubquady = 882;
         }
 
         for (int w = 0; w < numquads; w++) //move horizontally through sub trees
