@@ -12,7 +12,7 @@ std::vector<Catchment> CatchmentBuilder::CreateCatchments(ProgamParams progp)
 {
     QuadtreeManager<Coordinates> quad;
     int blurrad = 3;           //pre-processing radius always odd no.
-    int acctarget = 10000;      //Number of cells required to flow into a cell before it's considered a stream
+    int acctarget = 45000;      //Number of cells required to flow into a cell before it's considered a stream
     int breakdist = 200;        //Distance along the flow paths to split the catchment
 
     if (progp.reuselevel >= 1)
